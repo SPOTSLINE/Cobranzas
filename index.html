@@ -2876,6 +2876,30 @@ function armarFotoDesdeCartera(mesKey,motivo,pctBase){
     pct:normPct(pctBase||objPctGlobal)
   };
 }
+// Revisión de la foto: código corto armado con sus facturas (el mismo Excel da siempre el mismo código)
+// y número de revisión, que sube cada vez que se vuelve a tomar la foto del mes. Queda el historial.
+function fotoCodigo(foto){const l=((foto&&foto.fc)||[]).map(r=>[normCli(r[0]),String(r[2]||''),r[3]||'',r[4]||'',Math.round((r[5]||0)*100)].join('|')).sort();
+  if(!l.length)return'';const t=l.join('\n');let h=0x811c9dc5;for(let i=0;i<t.length;i++){h^=t.charCodeAt(i);h=Math.imul(h,16777619)>>>0;}return h.toString(36).toUpperCase().padStart(6,'0').slice(-6);}
+function fotoResumen(f){const fc=(f&&f.fc)||[];return{rev:f.rev||1,codigo:f.codigo||fotoCodigo(f),archivo:f.archivo||'',tomada_ts:f.tomada_ts||'',tomada_por:f.tomada_por||'',fecha_foto:f.fecha_foto||'',n:fc.length,
+  total:Math.round(fc.length?fc.reduce((s,r)=>s+(r[5]||0),0):(f.clientes||[]).reduce((s,r)=>s+(r[3]||0),0))};}
+function sellarFoto(foto,previa){foto.codigo=fotoCodigo(foto);foto.rev=previa?((previa.rev||1)+1):1;
+  foto.historial=previa?((previa.historial||[]).concat([fotoResumen(previa)])).slice(-20):[];return foto;}
+function compararFotos(prev,nueva){
+  const k=r=>normCli(r[0])+'|'+String(r[2]||'');const a={},b={};
+  (prev.fc||[]).forEach(r=>{a[k(r)]=(a[k(r)]||0)+(r[5]||0);});(nueva.fc||[]).forEach(r=>{b[k(r)]=(b[k(r)]||0)+(r[5]||0);});
+  let nN=0,mN=0,nQ=0,mQ=0,nC=0,mC=0;
+  Object.keys(b).forEach(x=>{if(!(x in a)){nN++;mN+=b[x];}else if(Math.abs(b[x]-a[x])>=1){nC++;mC+=b[x]-a[x];}});
+  Object.keys(a).forEach(x=>{if(!(x in b)){nQ++;mQ+=a[x];}});
+  return{nN,mN,nQ,mQ,nC,mC};
+}
+function fotoCompHtml(previa,P){
+  const nueva={fc:P.fc};const cod=fotoCodigo(nueva),codP=previa.codigo||fotoCodigo(previa),rp=previa.rev||1;
+  if(!previa.fc||!previa.fc.length)return'<div style="font-size:12px;color:var(--text2);margin-bottom:8px"><strong>Revisión:</strong> la foto actual (Rev. '+rp+') no tiene las facturas guardadas, así que no se puede comparar factura por factura. Si confirmás queda como Rev. '+(rp+1)+' · código '+cod+'.</div>';
+  if(cod===codP)return'<div class="cump-banner" style="background:var(--green-bg);border-color:#1d3a24"><i class="ti ti-circle-check" style="color:var(--green)"></i><div><strong style="color:var(--text)">Es la misma base</strong> que la foto actual (Rev. '+rp+' · código '+codP+'): mismas facturas y mismos saldos. Si confirmás, el objetivo no cambia.</div></div>';
+  const c=compararFotos(previa,nueva);const tP=previa.fc.reduce((s,r)=>s+(r[5]||0),0),tN=P.fc.reduce((s,r)=>s+(r[5]||0),0);
+  return'<div class="cump-banner" style="background:var(--orange-bg);border-color:#3a2510"><i class="ti ti-arrows-diff" style="color:var(--orange)"></i><div><strong style="color:var(--text)">No es la misma base</strong> que la foto actual (Rev. '+rp+' · código '+codP+' → nuevo '+cod+'). '
+    +c.nN+' facturas nuevas ('+fmtN(c.mN)+') · '+c.nQ+' que ya no están ('+fmtN(c.mQ)+') · '+c.nC+' con otro saldo ('+fmtN(c.mC)+'). Cartera: '+fmtN(tP)+' → '+fmtN(tN)+'. Si confirmás queda como Rev. '+(rp+1)+'.</div></div>';
+}
 async function guardarFoto(mesKey,foto,sobrescribir){
   const res=await fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE_OBJ+'?on_conflict=id',{
     method:'POST',
@@ -2896,7 +2920,7 @@ async function asegurarFotoMesActual(){
   objFotoCreando=true;
   try{
     await loadPctMora();
-    await guardarFoto(mesKey,armarFotoDesdeCartera(mesKey,'auto'),false);
+    await guardarFoto(mesKey,sellarFoto(armarFotoDesdeCartera(mesKey,'auto'),null),false);
     const f=await loadFotoMes(mesKey,true);
     if(f)showToast('Objetivo de '+nombreMesObj(mesKey)+' fijado con la cartera de hoy ✓');
     return f;
@@ -2912,7 +2936,7 @@ async function refrescarFotoSiPrimerDiaHabil(){
   try{
     await loadPctMora();
     const previa=await loadFotoMes(mesKey,true);
-    await guardarFoto(mesKey,armarFotoDesdeCartera(mesKey,previa?'actualizada-primer-dia':'auto',previa&&previa.pct),true);
+    await guardarFoto(mesKey,sellarFoto(armarFotoDesdeCartera(mesKey,previa?'actualizada-primer-dia':'auto',previa&&previa.pct),previa),true);
     await loadFotoMes(mesKey,true);
   }catch(e){console.error('No se pudo actualizar la foto del mes:',e);}
 }
@@ -2922,7 +2946,7 @@ async function retomarFotoManual(){
   if(!confirm('¿Volver a tomar la foto de '+nombreMesObj(mesKey)+' con la cartera de HOY?\n\nEl objetivo del mes se recalcula con la deuda actual y queda fijo de nuevo. Usalo solo si la foto se tomó con datos viejos.'))return;
   try{
     const previa=await loadFotoMes(mesKey,true);
-    await guardarFoto(mesKey,armarFotoDesdeCartera(mesKey,'manual',previa&&previa.pct),true);
+    await guardarFoto(mesKey,sellarFoto(armarFotoDesdeCartera(mesKey,'manual',previa&&previa.pct),previa),true);
     await loadFotoMes(mesKey,true);
     showToast('Foto actualizada ✓');
     renderObjetivos();
@@ -3196,9 +3220,11 @@ function renderFotoInfo(foto,baseTotal,nClientes){
   const setB=(txt,bg,col)=>{badge.textContent=txt;badge.style.background=bg;badge.style.color=col;};
   let html='';
   if(foto){
-    setB('fijo · foto del '+fmtFecha(foto.fecha_foto),'var(--green-bg)','var(--green)');
+    setB('fijo · foto del '+fmtFecha(foto.fecha_foto)+' · Rev. '+(foto.rev||1),'var(--green-bg)','var(--green)');
     html='<i class="ti ti-camera" style="vertical-align:-2px"></i> Base del objetivo: cartera de <strong>'+nClientes+'</strong> clientes por <strong>'+fmtN(baseTotal)+'</strong> al <strong>'+fmtFecha(foto.fecha_foto)+'</strong>'
       +' (primer día hábil de '+nombreMesObj(mesKey)+': '+fmtFecha(foto.primer_habil||ph)+'). No cambia aunque se actualice la cartera durante el mes.'+(objEmpresaSel()&&foto.fc?' <strong style="color:var(--yellow)">Mostrando solo '+escH(objEmpresaSel())+'.</strong>':'');
+    {const hist=(foto.historial||[]).map(x=>'Rev. '+x.rev+' · '+x.codigo+' · '+(x.archivo||'cartera')+' · '+(x.tomada_ts?new Date(x.tomada_ts).toLocaleString('es-AR'):'')+(x.tomada_por?' · '+x.tomada_por:'')+' · '+x.n+' facturas · '+fmtN(x.total)).join('\n');
+     html+=' <span style="color:var(--text3)"'+(hist?' title="Revisiones anteriores:\n'+escH(hist)+'"':'')+'>Revisión <strong style="color:var(--text)">'+(foto.rev||1)+'</strong> · código <strong style="color:var(--text)">'+(foto.codigo||fotoCodigo(foto)||'—')+'</strong>'+((foto.fc||[]).length?' · '+foto.fc.length+' facturas':'')+(hist?' · '+foto.historial.length+' anterior'+(foto.historial.length!==1?'es':'')+' (pasá el mouse)':'')+'.</span>';}
     if(foto.motivo==='excel')html+=' <span style="color:var(--text3)">Cargada desde el Excel <em>'+escH(foto.archivo||'')+'</em>'+(foto.tomada_por?' por '+escH(foto.tomada_por):'')+'.</span>';
     else if(foto.fecha_foto>(foto.primer_habil||ph))html+=' <span style="color:var(--orange)">La foto se tomó después del primer día hábil (nadie abrió el panel ese día).</span>';
     if(foto.motivo==='manual')html+=' <span style="color:var(--text3)">Foto retomada a mano'+(foto.tomada_por?' por '+escH(foto.tomada_por):'')+'.</span>';
@@ -4716,6 +4742,7 @@ function pintarPreviewFotoExcel(){
     '<div class="metrics" style="margin-bottom:12px"><div class="metric m-all"><div class="metric-label">Cartera al '+fmtFecha(P.ph)+'</div><div class="metric-value">'+fmtN(tot)+'</div><div class="metric-sub">'+P.filas.length+' clientes con saldo</div></div>'
     +'<div class="metric m-prev"><div class="metric-label">Objetivo resultante</div><div class="metric-value">'+fmtN(objT)+'</div><div class="metric-sub">con los % de '+escH(nombreMesObj(P.mes))+'</div></div></div>'
     +(previa?'<div class="cump-banner" style="background:var(--orange-bg);border-color:#3a2510"><i class="ti ti-alert-triangle" style="color:var(--orange)"></i><div>'+escH(nombreMesObj(P.mes))+' ya tiene una foto del '+fmtFecha(previa.fecha_foto)+' ('+fmtN(previa.clientes.reduce((s,r)=>s+r[3],0))+'). Si confirmás, se reemplaza por la de este archivo. Los % cargados se mantienen.</div></div>':'')
+    +(previa?fotoCompHtml(previa,P):'')
     +(P.deCartera?'<div style="font-size:12px;color:var(--text2);margin-bottom:8px">'+P.deCartera+' cliente'+(P.deCartera!==1?'s':'')+' sin vendedor en el archivo tomaron el vendedor que tienen hoy en Cartera.</div>':'')
     +(sinAsig.length?'<div style="font-size:12px;color:var(--orange);margin-bottom:8px">⚠ '+sinAsig.length+' cliente'+(sinAsig.length!==1?'s':'')+' quedan <strong>Sin asignar</strong> ('+fmtN(sinAsig.reduce((s,r)=>s+r[3],0))+'): '+escH(sinAsig.slice(0,8).map(r=>r[0]).join(', '))+(sinAsig.length>8?'…':'')+'. Suman al objetivo total pero no al de ningún vendedor: asignales vendedor en Cartera (ficha del cliente) y volvé a cargar el archivo.</div>':'')
     +'<div class="table-scroll"><table class="obj-cfg" style="min-width:680px"><thead><tr><th>Vendedor</th>'+TRAMOS_ORDEN.map(t=>'<th style="text-align:right;color:'+tramoColor[t]+'">'+TRAMO_LBL[t]+'</th>').join('')+'<th style="text-align:right">Cartera</th><th style="text-align:right">Objetivo</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
@@ -4746,6 +4773,7 @@ document.getElementById('fe-ok').addEventListener('click',async()=>{
   try{
     const previa=await loadFotoMes(P.mes,true);
     const foto={mes:P.mes,primer_habil:P.ph,fecha_foto:P.ph,tomada_ts:new Date().toISOString(),tomada_por:currentUser?currentUser.nombre:'',motivo:'excel',archivo:P.archivo,clientes:P.filas,fc:P.fc,pct:normPct((previa&&previa.pct)||objPctGlobal)};
+    sellarFoto(foto,previa);
     await guardarFoto(P.mes,foto,true);
     await loadFotoMes(P.mes,true);
     document.getElementById('modal-foto-excel').classList.remove('open');fotoExcelPend=null;
@@ -5336,9 +5364,24 @@ function prPintarPreview(){
       +'<tr><td>Recibos de pagos</td><td>'+Object.keys(P.pag.partes).length+' partes leídas · '+P.pag.nMult+' filas "Multiple payments" salteadas (son el total del recibo) · '+P.pag.nInter+' pagos entre empresas</td></tr>'
       +'<tr><td>Oficial / AJ</td><td>'+f.filter(x=>prTipo(x[0])==='Oficial').length+' / '+f.filter(x=>prTipo(x[0])==='AJ').length+'</td></tr></table></div>';
   });
+  if(P.grupos&&P.pagos){let n=0;try{n=prRecibosNuevos(P).length;}catch(_){}h+='<div style="font-size:12.5px;color:var(--text2);margin-top:4px"><i class="ti ti-receipt"></i> <strong>Recibos para Cumplimiento:</strong> '+(n?'se suman '+n+' recibos de este Excel de pagos que todavía no estaban (los repetidos se ignoran).':'todos los recibos de este Excel ya están cargados.')+'</div>';}
   if(P.errores.length)h+='<div class="cump-banner" style="background:var(--orange-bg);border-color:#3a2510;margin-top:10px"><i class="ti ti-alert-triangle" style="color:var(--orange)"></i><div>'+P.errores.join('<br>')+'</div></div>';
   h+='<div style="font-size:11.5px;color:var(--text3);margin-top:10px;line-height:1.5">Cómo bajarlos de Odoo: <strong>1)</strong> Facturación › Facturas, agrupar nada, exportar Estado en pago, Fecha de la factura, Fecha de vencimiento, Fecha del recibo, Importe sin impuestos, Nombre del contacto, Número, Pagos conciliados y Total. <strong>2)</strong> Pagos de clientes con las líneas de Cheques (Fecha de pago, Número, Banco, Importe) y Líneas conciliadas/Asiento contable. Mismo período. Si bajás las dos empresas juntas, agregá la columna <strong>Compañía</strong> al de facturas y se separan solas.</div>';
   el.innerHTML=h;ok.disabled=!(P.arm&&!P.errores.some(e=>/empresa|dos/.test(e)));
+}
+// El Excel de pagos de Plazo real es el mismo de recibos: se suman a Cumplimiento los que todavía no estén (no se duplican).
+function prRecibosNuevos(P){
+  if(!P||!P.pagos)return[];
+  const wb={SheetNames:['p'],Sheets:{p:XLSX.utils.aoa_to_sheet(P.pagos.rows,{cellDates:true})}};
+  const det=parsePagosMensual(wb).detalle;const yaRid=new Set(recibosDetalle.map(r=>r.rid).filter(Boolean));const ya=new Set(recibosDetalle.map(sigRec));
+  return det.filter(r=>enPeriodo(r)&&!(r.e==='?'||!r.c||r.c==='Sin nombre'||!(r.m>0))&&!(r.rid&&yaRid.has(r.rid))&&!ya.has(sigRec(r)));
+}
+async function prSumarRecibos(P){
+  try{const nuevos=prRecibosNuevos(P);if(!nuevos.length)return;
+    const cg='c'+Date.now().toString(36);const fechas=nuevos.map(r=>r.f).sort();
+    const carga={id:cg,archivo:P.pagos.file+' (desde Plazo real)',ts:new Date().toISOString(),por:currentUser?currentUser.nombre:'',n:nuevos.length,total:Math.round(nuevos.reduce((s,r)=>s+r.m,0)),desde:fechas[0],hasta:fechas[fechas.length-1]};
+    await aplicarCambioRecibos(recibosDetalle.concat(nuevos.map(r=>({...r,cg}))),recibosCargas.concat([carga]),nuevos.length+' recibos sumados a Cumplimiento');
+  }catch(e){console.warn('Recibos desde Plazo real:',e);showToast('No se pudieron sumar los recibos a Cumplimiento: '+e.message);}
 }
 async function prConfirmar(){
   const P=prPend;if(!P||!P.grupos)return;
@@ -5347,6 +5390,7 @@ async function prConfirmar(){
     showToast('Plazo real '+P.empresa+' guardado ✓');}
   catch(e){showToast('No se pudo guardar: '+e.message);return;}
   document.getElementById('modal-pr-carga').classList.remove('open');prPend=null;
+  await prSumarRecibos(P);
   renderPlazoReal();
 }
 
@@ -5372,6 +5416,29 @@ const prFmtD=v=>v===null||v===undefined?'—':(Math.round(v)+'d');
 const prFmtS=v=>v===null||v===undefined?'—':((v>0?'+':'')+Math.round(v)+'d');
 
 // --- Pantalla: Cumplimiento ---
+// Detalle de un cliente: todas sus facturas cargadas en Plazo real, con las cuatro fechas y los días.
+function prDetalleCliente(cli,emp){
+  let md=document.getElementById('modal-pr-cli');
+  if(!md){md=document.createElement('div');md.className='modal-bg';md.id='modal-pr-cli';md.style.zIndex=260;
+    md.innerHTML='<div class="modal" style="width:1000px;max-width:96vw"><div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start"><h2 id="prc-tit" style="margin:0"></h2><button class="btn" id="prc-cerrar">Cerrar</button></div><div id="prc-body" style="max-height:70vh;overflow:auto;margin-top:10px"></div></div>';
+    document.body.appendChild(md);md.addEventListener('click',e=>{if(e.target===md||e.target.closest('#prc-cerrar'))md.classList.remove('open');});}
+  const k=normCli(cli);const fs=prFilas().filter(x=>normCli(x.cli)===k&&(!emp||emp==='Ambas'||x.emp===emp)).sort((a,b)=>String(b.A).localeCompare(String(a.A)));
+  const d=(a,b)=>a&&b?prDias(a,b):null;const fd=v=>v===null?'—':v+'d';
+  const cob=fs.filter(x=>x.est==='P'),pend=fs.filter(x=>x.est!=='P');const M=prMetricas(prCobradas(+prVentana,emp,'').filter(x=>normCli(x.cli)===k));
+  const card=(lbl,val,sub)=>'<div class="metric m-all"><div class="metric-label">'+lbl+'</div><div class="metric-value" style="font-size:20px">'+val+'</div><div class="metric-sub">'+sub+'</div></div>';
+  let h='<div class="metrics" style="margin:0 0 10px">'+card('Plazo real',prFmtD(M.real),'factura → dinero disponible')+card('Atraso',prFmtS(M.atraso),'vencimiento → recibo')+card('Cheque',prFmtD(M.cheque),'recibo → cobro')
+    +card('En término',M.enTermino===null?'—':Math.round(M.enTermino*100)+'%','pagado hasta el vencimiento')+card('Pendiente',fmtN(pend.reduce((s,x)=>s+x.tot,0)),pend.length+' factura'+(pend.length!==1?'s':''))+'</div>'
+    +'<div style="font-size:12px;color:var(--text3);margin-bottom:6px">Métricas de la ventana elegida ('+prVentana+' meses). La tabla muestra todas las facturas cargadas del cliente'+(emp&&emp!=='Ambas'?' de '+escH(emp):'')+'.</div>'
+    +'<div class="table-scroll"><table><thead><tr><th>Factura</th><th>Empresa</th><th>Estado</th><th>Emisión</th><th>Vencimiento</th><th>Pago</th><th>Dinero disp.</th><th style="text-align:center">Otorgado</th><th style="text-align:center">Atraso</th><th style="text-align:center">Cheque</th><th style="text-align:center">Plazo real</th><th style="text-align:right">Importe</th></tr></thead><tbody>'
+    +fs.map(x=>{const at=d(x.B,x.C);return'<tr><td style="white-space:nowrap">'+escH(x.num)+(x.tipo==='AJ'?' <span style="font-size:10.5px;color:var(--text3)">AJ</span>':'')+'</td><td>'+empBadge(x.emp)+'</td><td>'+(x.est==='P'?'<span style="color:var(--green)">Pagada</span>':x.est==='PP'?'<span style="color:var(--orange)">Parcial</span>':'<span style="color:var(--red)">Sin pagar</span>')+'</td>'
+      +'<td>'+fmtFecha(x.A)+'</td><td>'+fmtFecha(x.B)+'</td><td>'+(x.C?fmtFecha(x.C):'—')+'</td><td>'+(x.D?fmtFecha(x.D):'—')+'</td>'
+      +'<td style="text-align:center">'+fd(d(x.A,x.B))+'</td><td style="text-align:center;color:'+(at>0?'var(--red)':'var(--green)')+'">'+(at===null?'—':prFmtS(at))+'</td><td style="text-align:center">'+fd(d(x.C,x.D))+'</td><td style="text-align:center;font-weight:600">'+fd(d(x.A,x.D))+'</td>'
+      +'<td class="amount">'+fmtN(x.tot)+'</td></tr>';}).join('')
+    +'</tbody></table></div>';
+  if(!fs.length)h='<div class="empty" style="padding:1rem">No hay facturas cargadas para este cliente.</div>';
+  document.getElementById('prc-tit').innerHTML='<i class="ti ti-file-invoice" style="vertical-align:-2px;margin-right:8px;color:var(--yellow)"></i>'+escH(cli)+' <span style="font-size:13px;color:var(--text3);font-weight:400">· '+cob.length+' pagadas · '+pend.length+' pendientes</span>';
+  document.getElementById('prc-body').innerHTML=h;md.classList.add('open');
+}
 async function renderPlazoReal(){
   const wrap=document.getElementById('pr-wrap');if(!wrap)return;
   await prLoad();
@@ -5406,7 +5473,7 @@ async function renderPlazoReal(){
     +'<th style="text-align:center" data-dsort="o" data-num title="Vencimiento − emisión">Plazo otorgado</th><th style="text-align:center" data-dsort="at" data-num title="Recibo − vencimiento. Negativo = pagó antes">Atraso</th>'
     +'<th style="text-align:center" data-dsort="ch" data-num title="Cobro del cheque − recibo">Cheque</th><th style="text-align:center" data-dsort="r" data-num title="Dinero disponible − emisión">Plazo real</th>'
     +'<th style="text-align:center" data-dsort="pt" data-num>% en término</th>'+(meses>3?'<th data-dsort="tv" data-num title="Plazo real de los últimos 3 meses contra la ventana elegida (±3 días = estable)">Tendencia</th>':'')+'<th data-dsort="u">Último pago</th></tr></thead><tbody>'
-    +ver.map(f=>{const m=f.m;return'<tr><td style="font-weight:600">'+escH(f.c)+(f.aj/f.m.tot>=0.01?' <span style="font-size:10.5px;color:var(--text3)" title="Parte cobrada en AJ (sin IVA)">AJ '+Math.round(f.aj/m.tot*100)+'%</span>':'')+'</td><td>'+empBadge(f.emp)+'</td>'
+    +ver.map(f=>{const m=f.m;return'<tr data-prcli="'+escH(f.c)+'" style="cursor:pointer" title="Ver las facturas de este cliente"><td style="font-weight:600">'+escH(f.c)+(f.aj/f.m.tot>=0.01?' <span style="font-size:10.5px;color:var(--text3)" title="Parte cobrada en AJ (sin IVA)">AJ '+Math.round(f.aj/m.tot*100)+'%</span>':'')+'</td><td>'+empBadge(f.emp)+'</td>'
       +'<td style="text-align:center">'+m.n+'</td><td class="amount" data-v="'+Math.round(m.tot)+'">'+fmtN(m.tot)+'</td>'
       +'<td style="text-align:center" data-v="'+(m.otorgado??'')+'">'+prFmtD(m.otorgado)+'</td><td style="text-align:center;color:'+(m.atraso>0?'var(--red)':'var(--green)')+'" data-v="'+(m.atraso??'')+'">'+prFmtS(m.atraso)+'</td>'
       +'<td style="text-align:center" data-v="'+(m.cheque??'')+'">'+prFmtD(m.cheque)+'</td><td style="text-align:center" class="dias-plazo '+cl(m.real)+'" data-v="'+(m.real??'')+'">'+prFmtD(m.real)+'</td>'
@@ -5417,6 +5484,7 @@ async function renderPlazoReal(){
   aplicarOrdenDom('pr-tabla');
   const vt=document.getElementById('pr-vertodos');if(vt)vt.onclick=()=>{prVerTodos=!prVerTodos;renderPlazoReal();};
   document.getElementById('pr-xls').onclick=()=>prDescargar(l);
+  wrap.querySelectorAll('[data-prcli]').forEach(tr=>tr.addEventListener('click',()=>prDetalleCliente(tr.dataset.prcli,emp)));
   const ej='<div style="margin-top:6px;color:var(--text3)">Ventana: facturas con último recibo en los últimos '+meses+' meses. Cada factura pesa según su importe.</div>';
   setCalc('pr-k-real','<div>Para cada factura cobrada: <strong>fecha en que el dinero está disponible − fecha de la factura</strong>.</div><div style="margin-top:6px">Dinero disponible: efectivo y transferencia = fecha del recibo; cheques = fecha de cobro de cada cheque, ponderada por su importe. Si la factura tuvo varios recibos se toma el último.</div>'+cRow('Facturas con el dato',M.nD+' de '+M.n)+cRow('Promedio',prFmtD(M.real),'calc-tot')+ej);
   setCalc('pr-k-atraso','<div><strong>Fecha del recibo − vencimiento</strong> de cada factura. Negativo = pagó antes de que venza.</div>'+cRow('Facturas',M.n)+cRow('Promedio',prFmtS(M.atraso),'calc-tot')+ej);
