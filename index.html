@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script src="/Paneldepaneles/candado.js" data-panel="cobranzas"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel de Cobranzas · SPL / Spotsline</title>
@@ -404,7 +405,7 @@ th.th-on{color:var(--yellow)!important}
       <i class="ti ti-user-circle" style="font-size:16px"></i>
       <span id="user-display"></span>
       <button class="logout-btn" id="btn-mi-clave" title="Cambiar mi clave"><i class="ti ti-key" style="font-size:13px;vertical-align:-2px"></i></button>
-      <button class="logout-btn" onclick="logout()"><i class="ti ti-logout" style="font-size:13px;vertical-align:-2px"></i> Salir</button>
+      <button class="logout-btn" onclick="window.PORTAL.salir()"><i class="ti ti-logout" style="font-size:13px;vertical-align:-2px"></i> Salir</button>
     </div>
     <span class="last-update" id="sync-status" style="color:var(--text3)">☁ Conectando...</span>
     <button class="btn" id="btn-sync" title="Recargar gestiones desde Google Sheets"><i class="ti ti-cloud-download"></i> Sincronizar</button>
@@ -1378,9 +1379,10 @@ let menciones=[];
 let reclamos={};
 let mailVencidosActuales=[];
 
+// Login único (Panel de Paneles): los usuarios salen del portal
+function aliasPortal(u){return ((u&&u.config&&u.config.usuario)||String((u&&u.email)||'').split('@')[0]||(u&&u.nombre)||'').trim().toLowerCase();}
 function loadUsuarios(){
-  fetch(SUPABASE_URL+'/rest/v1/usuarios?select=nombre,usuario&activo=eq.true',{headers:SUPABASE_HEADERS})
-    .then(r=>r.json()).then(d=>{usuariosList=d||[];}).catch(e=>console.error('Error usuarios:',e));
+  window.PORTAL.usuarios().then(l=>{usuariosList=(l||[]).map(u=>({nombre:u.nombre,usuario:aliasPortal(u)}));}).catch(e=>console.error('Error usuarios:',e));
 }
 
 function loadReclamos(){
@@ -3853,7 +3855,8 @@ function aplicarPermisos(){
   set('btn-export',puede('exportar'));
   set('btn-reporte',puede('reporte'));
   set('btn-rep-mails',puede('mails_vendedores'));
-  set('btn-usuarios',puede('usuarios'));
+  set('btn-usuarios',false); // usuarios: en el Panel de Paneles
+  set('btn-mi-clave',false);
   set('btn-obj-excel',puede('editar_objetivos'));
   // Ayuda: los links "Ver instructivo" solo si tiene la solapa
   document.querySelectorAll('[data-ayuda]').forEach(a=>a.style.display=puede('tab_ayuda')?'':'none');
@@ -3871,6 +3874,11 @@ function aplicarPermisos(){
 // Todo pasa por la Edge Function secure-write (acciones list_usuarios / save_usuario / cambiar_mi_clave).
 // Las claves se encriptan en el servidor; el panel nunca las ve ni las guarda.
 async function secureCall(action,payload){
+  // Login único: usuarios, claves e ingresos se manejan en el Panel de Paneles
+  if(action==='list_usuarios'){const l=await window.PORTAL.usuarios();return {ok:true,usuarios:(l||[]).map(u=>{const c=u.config||{};return {usuario:aliasPortal(u),nombre:u.nombre,rol:u.es_admin?'admin':(c.rol||'cobranzas'),vendedor_nombre:c.vendedor_nombre||'',email:u.email,activo:true,permisos:c.permisos||{}};})};}
+  if(action==='registrar_ingreso'||action==='ping')return {ok:true};
+  if(action==='list_ingresos')return {ok:true,ingresos:[]};
+  if(action==='save_usuario'||action==='cambiar_mi_clave')throw new Error('Los usuarios y las claves ahora se manejan en Usuarios del Panel de Paneles.');
   const res=await fetch(SUPABASE_URL+'/functions/v1/secure-write',{method:'POST',headers:SUPABASE_HEADERS,body:JSON.stringify({token:currentToken,action,payload})});
   let data={};try{data=await res.json();}catch(_){}
   if(res.status===401){showToast('Tu sesión expiró, volvé a iniciar sesión');logout();throw new Error('Sesión expirada');}
@@ -5565,21 +5573,66 @@ document.getElementById('view-ayuda').addEventListener('click',e=>{const a=e.tar
 
 
 // Helper para llamar a la función segura de escritura
+// Escrituras de Cobranzas. Antes pasaban por la función secure-write del Supabase viejo;
+// ahora van directo a las tablas, que solo aceptan usuarios logueados con el panel Cobranzas.
+async function _rest(ruta,opt){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/'+ruta,Object.assign({},opt||{},{headers:Object.assign({},SUPABASE_HEADERS,(opt&&opt.headers)||{})}));
+  if(!r.ok)throw new Error(await r.text());
+  const t=await r.text();return t?JSON.parse(t):null;
+}
+const _q=v=>encodeURIComponent(String(v));
+const _in=l=>'in.('+l.map(x=>'"'+String(x).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"').join(',')+')';
+async function _reemplazar(tabla,rows){
+  await _rest(tabla+'?id=gte.0',{method:'DELETE'});
+  for(let i=0;i<rows.length;i+=50)await _rest(tabla,{method:'POST',body:JSON.stringify(rows.slice(i,i+50))});
+}
 async function secureWrite(action,payload){
   try{
-    const res=await fetch(SUPABASE_URL+'/functions/v1/secure-write',{
-      method:'POST',
-      headers:SUPABASE_HEADERS,
-      body:JSON.stringify({token:currentToken,action,payload})
-    });
-    const data=await res.json();
-    if(!res.ok||data.error){
-      console.error('secure-write error:',data.error);
-      if(res.status===401){showToast('Tu sesión expiró, volvé a iniciar sesión');logout();}
-      return false;
+    const p=payload||{};const ahora=new Date().toISOString();
+    if(action==='save_gestion'){
+      const row={cliente:p.cliente,nota:p.nota,email:p.email,telefono:p.telefono,vendedor:p.vendedor,fecha_comp:p.fecha_comp,monto_comp:p.monto_comp,historial:p.historial,gestionado_por:p.gestionado_por,ts:ahora};
+      const ex=await _rest('gestiones?select=cliente&cliente=eq.'+_q(p.cliente)+'&limit=1',{headers:{Prefer:''}});
+      if(ex&&ex.length)await _rest('gestiones?cliente=eq.'+_q(p.cliente),{method:'PATCH',body:JSON.stringify(row)});
+      else await _rest('gestiones',{method:'POST',body:JSON.stringify(row)});
+      return true;
     }
-    return true;
-  }catch(e){console.error('secure-write fetch error:',e);return false;}
+    if(action==='replace_clientes'||action==='replace_saldos_favor'){
+      if(!puede('actualizar')){showToast('No tenés permiso para actualizar datos');return false;}
+      await _reemplazar(action==='replace_clientes'?'clientes':'saldos_favor',action==='replace_clientes'?(p.clientes||[]):(p.saldos||[]));
+      return true;
+    }
+    if(action==='save_mencion'){
+      await _rest('menciones',{method:'POST',body:JSON.stringify({cliente:p.cliente,mencionado:p.mencionado,autor:p.autor,autor_usuario:p.autor_usuario||null,nota:p.nota,leida:false,resuelta:false,tipo:'mencion',ts:ahora})});
+      return true;
+    }
+    if(action==='mark_leida'){
+      await _rest('menciones?id=eq.'+_q(p.id),{method:'PATCH',body:JSON.stringify({leida:true})});
+      return true;
+    }
+    if(action==='resolver_menciones'){
+      const pend=await _rest('menciones?select=*&cliente=eq.'+_q(p.cliente)+'&mencionado=eq.'+_q(p.mencionado)+'&resuelta=eq.false&tipo=eq.mencion',{headers:{Prefer:''}})||[];
+      if(!pend.length)return true;
+      await _rest('menciones?id='+_q(_in(pend.map(x=>x.id))),{method:'PATCH',body:JSON.stringify({resuelta:true,respuesta:String(p.respuesta||'').slice(0,300),resuelta_ts:ahora})});
+      const notifs=pend.filter(x=>x.autor_usuario).map(x=>({cliente:p.cliente,mencionado:x.autor_usuario,autor:p.respondido_por||'',autor_usuario:p.respondido_por_usuario||null,
+        nota:'Respondió tu mención: '+String(p.respuesta||'').slice(0,250),leida:false,resuelta:true,tipo:'resolucion',ts:ahora}));
+      if(notifs.length)await _rest('menciones',{method:'POST',body:JSON.stringify(notifs)});
+      return true;
+    }
+    if(action==='registrar_reclamo'){
+      const nombres=p.clientes||[];if(!nombres.length)return true;
+      const ex=await _rest('reclamos_mail?select=*&cliente='+_q(_in(nombres)),{headers:{Prefer:''}})||[];
+      const mapa={};ex.forEach(r=>{mapa[r.cliente]=r;});
+      for(const n of nombres.filter(n=>mapa[n]))await _rest('reclamos_mail?cliente=eq.'+_q(n),{method:'PATCH',body:JSON.stringify({veces:(mapa[n].veces||0)+1,ultima_fecha:ahora})});
+      const nuevos=nombres.filter(n=>!mapa[n]).map(n=>({cliente:n,veces:1,primera_fecha:ahora,ultima_fecha:ahora}));
+      if(nuevos.length)await _rest('reclamos_mail',{method:'POST',body:JSON.stringify(nuevos)});
+      return true;
+    }
+    if(action==='reset_reclamo'){
+      await _rest('reclamos_mail?cliente=eq.'+_q(p.cliente),{method:'PATCH',body:JSON.stringify({veces:0,ultima_fecha:ahora})});
+      return true;
+    }
+    console.error('Acción desconocida:',action);return false;
+  }catch(e){console.error('Error al guardar ('+action+'):',e);return false;}
 }
 
 fillVendedorFilter();
@@ -5678,6 +5731,16 @@ loadUsuarios();
 loadReclamos();
 loadSaldosFromSheets();
 setTimeout(loadFromSheets, 1500);
+// Login único: el usuario y sus permisos vienen del Panel de Paneles
+window.PORTAL_ACCESO.then(a=>{
+  const c=a.config||{};const esAdm=!!a.es_admin||c.rol==='admin';
+  const permisos=esAdm?Object.fromEntries(PERMISOS_DEF.map(d=>[d.k,true])):Object.assign({},c.permisos||{});
+  permisos.usuarios=false;
+  permisos.cartera=esAdm?'todos':(c.cartera==null?(c.rol==='vendedor'?[]:'todos'):c.cartera);
+  currentUser={nombre:a.nombre||a.email,usuario:aliasPortal(a),rol:esAdm?'admin':(c.rol||'cobranzas'),vendedor_nombre:c.vendedor_nombre||'',email:a.email||'',activo:true,permisos};
+  currentToken='portal';
+  showApp();
+});
 // Auto-sync every 2 minutes
 setInterval(()=>{loadClientesFromSheets();setTimeout(loadFromSheets,1500);if(currentUser)loadMenciones();loadSaldosFromSheets();}, 120000);
 
