@@ -5222,17 +5222,19 @@ function prTipoArchivo(rows){
   if(h.some(t=>t.startsWith('cheques/fecha'))||(h[0]==='fecha'&&h[1]&&h[1].startsWith('numero')&&rows[0].length>=11))return'pagos';
   return null;
 }
+// Compañía de la factura (columna opcional "Compañía"): permite subir las dos empresas juntas.
+function prEmpDe(t){const e=empresaFromDiario(String(t||''));return e==='?'?null:e;}
 function prLeerFacturas(rows){
   const h=rows[0].map(x=>normTxt(x).trim());const ix=(...ps)=>h.findIndex(t=>ps.some(p=>p instanceof RegExp?p.test(t):t===p));
   const c={est:ix('estado en pago'),A:ix('fecha de la factura'),B:ix('fecha de vencimiento'),C1:ix('fecha del recibo'),cli:ix(/^nombre del contacto/,'cliente'),
-    num:ix('numero'),rec:ix('pagos conciliados'),tot:ix('total en divisa firmado',/^total/)};
+    num:ix('numero'),rec:ix('pagos conciliados'),tot:ix('total en divisa firmado',/^total/),emp:ix('compania','empresa')};
   if([c.est,c.A,c.B,c.cli,c.num,c.rec,c.tot].some(i=>i<0))throw new Error('Al Excel de facturas le faltan columnas (Estado en pago, Fecha de la factura, Fecha de vencimiento, Nombre del contacto, Número, Pagos conciliados, Total).');
   const fac=[];let cur=null;
   for(let r=1;r<rows.length;r++){
     const row=rows[r];const num=String(row[c.num]||'').trim();const rec=String(row[c.rec]||'').trim();
     if(num){
       cur={num,cli:String(row[c.cli]||'').trim(),A:prISO(row[c.A]),B:prISO(row[c.B]),C1:c.C1>=0?prISO(row[c.C1]):null,
-        tot:parseFloat(row[c.tot])||0,estTxt:String(row[c.est]||'').trim(),recs:new Set()};
+        tot:parseFloat(row[c.tot])||0,estTxt:String(row[c.est]||'').trim(),recs:new Set(),emp:c.emp>=0?prEmpDe(row[c.emp]):null};
       fac.push(cur);if(rec)cur.recs.add(rec);
     }else if(cur&&rec)cur.recs.add(rec);
   }
@@ -5292,16 +5294,23 @@ function prArmar(facs,pag){
 function prAbrirCarga(){document.getElementById('pr-file-input').click();}
 async function prLeerArchivos(files){
   const leidos=await Promise.all([...files].map(file=>new Promise((res)=>{const rd=new FileReader();rd.onload=ev=>{try{const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
-    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:'',cellDates:true});res({file:file.name,rows,tipo:prTipoArchivo(rows)});}catch(e){res({file:file.name,error:e.message});}};rd.readAsArrayBuffer(file);})));
+    let rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:'',cellDates:true});let tipo=prTipoArchivo(rows);
+    if(!tipo&&rows[0]&&/^(compania|empresa)$/.test(normTxt(rows[0][0]).trim())){rows=rows.map(x=>x.slice(1));tipo=prTipoArchivo(rows);} // pagos con "Compañía" como primera columna
+    res({file:file.name,rows,tipo});}catch(e){res({file:file.name,error:e.message});}};rd.readAsArrayBuffer(file);})));
   const P={archivos:leidos.map(l=>l.file),errores:[]};
   leidos.forEach(l=>{if(l.error)P.errores.push(l.file+': '+l.error);else if(!l.tipo)P.errores.push(l.file+': '+(l.rows&&l.rows[0]&&detectarColumnasPagos(l.rows[0])?'es el listado de Pagos sin las líneas de cheques. Exportalo con Cheques/Fecha de pago, Número, Banco, Importe y Líneas conciliadas (columnas A–L).':'no lo reconozco (no es el de facturas con recibos ni el de pagos con cheques).'));else P[l.tipo]=l;});
   try{
     if(P.facturas&&P.pagos){
       const facs=prLeerFacturas(P.facturas.rows);const pag=prLeerPagos(P.pagos.rows);
-      const arm=prArmar(facs,pag);
-      Object.assign(P,{empresa:pag.empresa,nFac:facs.length,arm,pag});
-      if(!PR_EMPRESAS.includes(pag.empresa))P.errores.push('No pude saber de qué empresa son los pagos (la columna Diario tiene que decir SPL o SPOTSLINE).');
-      if(arm.cobertura<0.5)P.errores.push('Solo el '+Math.round(arm.cobertura*100)+'% de los recibos de las facturas aparecen en el Excel de pagos: ¿son de la misma empresa y del mismo período?');
+      // Si el Excel de facturas trae la columna Compañía, se arma una carga por empresa; si no, todo va a la empresa de los pagos.
+      const conEmp=facs.some(x=>x.emp);
+      const grupos=conEmp?PR_EMPRESAS.map(e=>({empresa:e,facs:facs.filter(x=>x.emp===e)})).filter(g=>g.facs.length):[{empresa:pag.empresa,facs}];
+      P.grupos=grupos.map(g=>({empresa:g.empresa,arm:prArmar(g.facs,pag)}));
+      const sinEmp=conEmp?facs.filter(x=>!x.emp).length:0;
+      Object.assign(P,{empresa:P.grupos.map(g=>g.empresa).join(' + '),nFac:facs.length,arm:P.grupos[0].arm,pag,sinEmp});
+      if(!conEmp&&!PR_EMPRESAS.includes(pag.empresa))P.errores.push('No pude saber de qué empresa son los pagos (la columna Diario tiene que decir SPL o SPOTSLINE). Si bajás las dos empresas juntas, agregá la columna Compañía al Excel de facturas.');
+      if(sinEmp)P.errores.push(sinEmp+' facturas sin Compañía: no se cargan.');
+      P.grupos.forEach(g=>{if(g.arm.cobertura<0.5)P.errores.push(g.empresa+': solo el '+Math.round(g.arm.cobertura*100)+'% de los recibos de las facturas aparecen en el Excel de pagos. ¿Es el mismo período?');});
     }else if(!P.errores.length)P.errores.push('Subí los <strong>dos</strong> archivos juntos (facturas con recibos + pagos con cheques). Llegó solo: '+(P.facturas?'facturas':P.pagos?'pagos':'ninguno reconocido')+'.');
   }catch(e){P.errores.push(e.message);}
   prPend=P;prPintarPreview();document.getElementById('modal-pr-carga').classList.add('open');
@@ -5309,25 +5318,26 @@ async function prLeerArchivos(files){
 function prPintarPreview(){
   const P=prPend;const el=document.getElementById('pr-body');const ok=document.getElementById('pr-ok');
   let h='<div style="font-size:12.5px;color:var(--text2);margin-bottom:8px">Archivos: '+P.archivos.map(escH).join(' · ')+'</div>';
-  if(P.arm){
-    const f=P.arm.f,cob=f.filter(x=>x[5]==='P');const fechas=f.map(x=>x[2]).sort();
-    const ya=prCache[P.empresa];
-    h+='<div class="tbl"><table class="obj-cfg" style="min-width:0;font-size:12.5px">'
-      +'<tr><td>Empresa</td><td><strong>'+escH(P.empresa)+'</strong>'+(ya?' <span style="color:var(--orange)">· reemplaza la carga del '+fmtFecha((ya.cargado||'').slice(0,10))+'</span>':'')+'</td></tr>'
-      +'<tr><td>Facturas</td><td>'+f.length+' (emitidas '+fmtFecha(fechas[0])+' al '+fmtFecha(fechas[fechas.length-1])+') · '+P.arm.excl+' descartadas (revertidas, canceladas o sin importe)</td></tr>'
+  (P.grupos||[]).forEach(G=>{const A=G.arm;
+    const f=A.f,cob=f.filter(x=>x[5]==='P');const fechas=f.map(x=>x[2]).sort();
+    const ya=prCache[G.empresa];
+    h+='<div class="tbl" style="margin-bottom:10px"><table class="obj-cfg" style="min-width:0;font-size:12.5px">'
+      +'<tr><td>Empresa</td><td><strong>'+escH(G.empresa)+'</strong>'+(ya?' <span style="color:var(--orange)">· reemplaza la carga del '+fmtFecha((ya.cargado||'').slice(0,10))+'</span>':'')+'</td></tr>'
+      +'<tr><td>Facturas</td><td>'+f.length+' (emitidas '+fmtFecha(fechas[0])+' al '+fmtFecha(fechas[fechas.length-1])+') · '+A.excl+' descartadas (revertidas, canceladas o sin importe)</td></tr>'
       +'<tr><td>Cobradas</td><td>'+cob.length+' · '+fmtN(cob.reduce((s,x)=>s+x[4],0))+'</td></tr>'
-      +'<tr><td>Con fecha de dinero disponible</td><td>'+(P.arm.conRec-P.arm.sinD)+' de '+P.arm.conRec+(P.arm.sinD?' <span style="color:var(--orange)">· '+P.arm.sinD+' con algún recibo que no está en el Excel de pagos (cuentan para el atraso, no para el plazo real)</span>':'')+'</td></tr>'
+      +'<tr><td>Con fecha de dinero disponible</td><td>'+(A.conRec-A.sinD)+' de '+A.conRec+(A.sinD?' <span style="color:var(--orange)">· '+A.sinD+' con algún recibo que no está en el Excel de pagos (cuentan para el atraso, no para el plazo real)</span>':'')+'</td></tr>'
       +'<tr><td>Recibos de pagos</td><td>'+Object.keys(P.pag.partes).length+' partes leídas · '+P.pag.nMult+' filas "Multiple payments" salteadas (son el total del recibo) · '+P.pag.nInter+' pagos entre empresas</td></tr>'
       +'<tr><td>Oficial / AJ</td><td>'+f.filter(x=>prTipo(x[0])==='Oficial').length+' / '+f.filter(x=>prTipo(x[0])==='AJ').length+'</td></tr></table></div>';
-  }
+  });
   if(P.errores.length)h+='<div class="cump-banner" style="background:var(--orange-bg);border-color:#3a2510;margin-top:10px"><i class="ti ti-alert-triangle" style="color:var(--orange)"></i><div>'+P.errores.join('<br>')+'</div></div>';
-  h+='<div style="font-size:11.5px;color:var(--text3);margin-top:10px;line-height:1.5">Cómo bajarlos de Odoo: <strong>1)</strong> Facturación › Facturas, agrupar nada, exportar Estado en pago, Fecha de la factura, Fecha de vencimiento, Fecha del recibo, Importe sin impuestos, Nombre del contacto, Número, Pagos conciliados y Total. <strong>2)</strong> Pagos de clientes con las líneas de Cheques (Fecha de pago, Número, Banco, Importe) y Líneas conciliadas/Asiento contable. Mismo período y una empresa por vez.</div>';
+  h+='<div style="font-size:11.5px;color:var(--text3);margin-top:10px;line-height:1.5">Cómo bajarlos de Odoo: <strong>1)</strong> Facturación › Facturas, agrupar nada, exportar Estado en pago, Fecha de la factura, Fecha de vencimiento, Fecha del recibo, Importe sin impuestos, Nombre del contacto, Número, Pagos conciliados y Total. <strong>2)</strong> Pagos de clientes con las líneas de Cheques (Fecha de pago, Número, Banco, Importe) y Líneas conciliadas/Asiento contable. Mismo período. Si bajás las dos empresas juntas, agregá la columna <strong>Compañía</strong> al de facturas y se separan solas.</div>';
   el.innerHTML=h;ok.disabled=!(P.arm&&!P.errores.some(e=>/empresa|dos/.test(e)));
 }
 async function prConfirmar(){
-  const P=prPend;if(!P||!P.arm)return;
-  const valor={empresa:P.empresa,archivos:P.archivos,cargado:new Date().toISOString(),por:currentUser?currentUser.nombre:'',f:P.arm.f};
-  try{await prGuardar(P.empresa,valor);prCache[P.empresa]=valor;showToast('Plazo real '+P.empresa+' guardado ✓');}
+  const P=prPend;if(!P||!P.grupos)return;
+  try{for(const G of P.grupos){const valor={empresa:G.empresa,archivos:P.archivos,cargado:new Date().toISOString(),por:currentUser?currentUser.nombre:'',f:G.arm.f};
+    await prGuardar(G.empresa,valor);prCache[G.empresa]=valor;}
+    showToast('Plazo real '+P.empresa+' guardado ✓');}
   catch(e){showToast('No se pudo guardar: '+e.message);return;}
   document.getElementById('modal-pr-carga').classList.remove('open');prPend=null;
   renderPlazoReal();
