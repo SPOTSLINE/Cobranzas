@@ -397,6 +397,7 @@ th.th-on{color:var(--yellow)!important}
     <span class="last-update" id="last-update">Cargando...</span>
     <div class="notif-wrap" id="notif-wrap" style="display:none">
       <button class="btn" id="btn-notif" title="Notificaciones"><i class="ti ti-bell"></i><span id="notif-badge" class="notif-badge" style="display:none">0</span></button>
+      <button class="btn" id="btn-seguimiento" title="Seguimiento de menciones: lo que tenés que responder y lo que estás esperando"><i class="ti ti-at"></i> Seguimiento <span class="pcount" id="seg-count" hidden></span></button>
       <div id="notif-dropdown" class="notif-dropdown"></div>
     </div>
     <div class="user-badge" id="user-badge" style="display:none">
@@ -700,7 +701,7 @@ th.th-on{color:var(--yellow)!important}
 <article class="ayuda">
 <h2 id="a-top">Instructivo del Panel de Cobranzas</h2>
 <p class="muted">Qué muestra cada pestaña, de dónde salen los números y cómo se calculan. Si algo no queda claro, anotalo con <strong>Pedido de mejora</strong>.</p>
-<nav class="toc" aria-label="Contenido"><a href="#a-cartera">Cartera</a><a href="#a-tramos">Tipos de deudor</a><a href="#a-cump">Cumplimiento de pagos</a><a href="#a-plazo">Plazo de cheque: qué compara</a><a href="#a-real">Plazo real de pago</a><a href="#a-conc">Conciliación</a><a href="#a-obj">Objetivos</a><a href="#a-foto">Foto mensual</a><a href="#a-pct">% por tipo de deudor</a><a href="#a-cobrado">Cobrado y cumplimiento</a><a href="#a-mail">Mails de vendedores</a><a href="#a-usuarios">Usuarios</a><a href="#a-pedidos">Pedidos de mejora</a><a href="#a-faq">Preguntas frecuentes</a></nav>
+<nav class="toc" aria-label="Contenido"><a href="#a-cartera">Cartera</a><a href="#a-tramos">Tipos de deudor</a><a href="#a-cump">Cumplimiento de pagos</a><a href="#a-plazo">Plazo de cheque: qué compara</a><a href="#a-real">Plazo real de pago</a><a href="#a-conc">Conciliación</a><a href="#a-obj">Objetivos</a><a href="#a-foto">Foto mensual</a><a href="#a-pct">% por tipo de deudor</a><a href="#a-cobrado">Cobrado y cumplimiento</a><a href="#a-mail">Mails de vendedores</a><a href="#a-usuarios">Usuarios</a><a href="#a-menciones">Menciones @</a><a href="#a-pedidos">Pedidos de mejora</a><a href="#a-faq">Preguntas frecuentes</a></nav>
 
 <h2 id="a-cartera">1. Cartera</h2>
 <p>Muestra la deuda abierta de cada cliente (SPL y Spotsline) según el último Excel de Odoo cargado con <em>Actualizar</em> (apunte contable <code>account_move_line</code>, columna “residual”). Cada vez que se sube un Excel nuevo, la cartera se reemplaza y se publica para todo el equipo; las gestiones, contactos y compromisos de pago se conservan.</p>
@@ -884,6 +885,19 @@ th.th-on{color:var(--yellow)!important}
 <li><strong>Cambiar mi clave:</strong> cualquier usuario, con el ícono de llave al lado de su nombre (arriba a la derecha).</li>
 </ul>
 <p class="muted">Técnico: las claves se encriptan en Supabase (bcrypt) dentro de la función <code>secure-write</code>; el panel nunca las guarda. Si al abrir Usuarios aparece “Falta actualizar la función secure-write”, hay que pegar la versión nueva de la función y correr el SQL de instalación.</p>
+
+<h3 id="a-menciones">Menciones @ y su seguimiento</h3>
+<ul>
+<li><strong>Mencionar:</strong> en la ficha del cliente, pestaña Gestión, escribí <strong>@</strong> en la nota y elegí a la persona. Al guardar, le llega una notificación (campana 🔔).</li>
+<li><strong>Responder:</strong> la persona mencionada responde <strong>cargando una gestión con nota en ese mismo cliente</strong>. En ese momento la mención queda respondida y a quien preguntó le llega un aviso ✅ con el texto de la respuesta. Marcar la notificación como leída <em>no</em> la responde.</li>
+<li><strong>Botón Seguimiento</strong> (al lado de la campana; el número son las que tenés para responder):
+<ul>
+<li><em>Tengo que responder:</em> te mencionaron y todavía no cargaste gestión en ese cliente, con hace cuánto (naranja desde 2 días, rojo desde 5). <em>Responder en la ficha</em> abre la gestión. Si el cliente ya no está en Cartera, se responde ahí mismo.</li>
+<li><em>Esperando respuesta:</em> lo que preguntaste vos y nadie contestó todavía. <em>Recordar</em> le vuelve a mandar la notificación (como "Recordatorio: …").</li>
+<li><em>Respondidas:</em> tus menciones ya contestadas, con la respuesta y cuánto tardaron.</li>
+</ul></li>
+<li>Si mencionaste varias veces a la misma persona en el mismo cliente, se ve una sola vez con la cantidad. Todo se actualiza solo cada 2 minutos.</li>
+</ul>
 
 <h2 id="a-pedidos">5. Pedidos de mejora</h2>
 <p>El botón <em>Pedido de mejora</em> (abajo a la izquierda y en la barra superior) sirve para anotar errores, mejoras o ideas mientras usás el panel. Cada pedido guarda la pantalla donde estabas (pestaña, mes, filtros o ventana abierta) y quién lo cargó. Es compartido por todo el equipo.</p>
@@ -1175,6 +1189,13 @@ th.th-on{color:var(--yellow)!important}
 
 
 <!-- MODAL CARGA DE RECIBOS (vista previa) -->
+<div class="modal-bg" id="modal-seguimiento">
+  <div class="modal" style="width:760px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><h2><i class="ti ti-at" style="vertical-align:-2px;margin-right:8px;color:var(--yellow)"></i>Seguimiento de menciones</h2><button class="btn" id="seg-cerrar">Cerrar</button></div>
+    <div class="modal-sub" style="margin-top:6px">Lo que te preguntaron y todavía no respondiste, y lo que preguntaste vos y estás esperando. <span class="help-link" data-ayuda="a-menciones">¿cómo funciona?</span></div>
+    <div id="seg-body" style="max-height:62vh;overflow-y:auto"></div>
+  </div>
+</div>
 <div class="modal-bg" id="modal-pr-carga" style="z-index:250">
   <div class="modal" style="width:780px">
     <h2><i class="ti ti-file-upload" style="vertical-align:-2px;margin-right:8px;color:var(--yellow)"></i>Revisar carga: plazo real de pago</h2>
@@ -1406,6 +1427,7 @@ function loadMenciones(){
   if(!currentUser)return;
   fetch(SUPABASE_URL+'/rest/v1/menciones?mencionado=eq.'+encodeURIComponent(currentUser.usuario)+'&leida=eq.false&select=*&order=ts.desc',{headers:SUPABASE_HEADERS})
     .then(r=>r.json()).then(d=>{menciones=d||[];renderNotifBadge();}).catch(e=>console.error('Error menciones:',e));
+  loadSeguimiento();
 }
 function renderNotifBadge(){
   const badge=document.getElementById('notif-badge');
@@ -1419,7 +1441,8 @@ function renderNotifDropdown(){
     const icono=esResolucion?'✅':'🔔';
     return'<div class="notif-item" data-id="'+m.id+'" data-cliente="'+String(m.cliente).replace(/"/g,'&quot;')+'"><span class="notif-cliente">'+icono+' '+m.cliente+'</span><span class="notif-nota">'+(m.autor?'<strong>'+m.autor+'</strong>: ':'')+(m.nota||'')+'</span><span class="notif-meta">'+new Date(m.ts).toLocaleString('es-AR')+'</span></div>';
   }).join(''):'<div class="notif-empty">Sin notificaciones pendientes</div>';
-  dd.innerHTML=items+'<div class="notif-historial-link" id="notif-historial-link">Ver historial completo</div>';
+  const sg=(segData.pend.length||segData.esp.length)?'<div class="notif-historial-link" id="notif-seg-link" style="border-top:0;border-bottom:1px solid var(--border)"><i class="ti ti-at"></i> '+segData.pend.length+' para responder · '+segData.esp.length+' esperando respuesta — ver seguimiento</div>':'';
+  dd.innerHTML=sg+items+'<div class="notif-historial-link" id="notif-historial-link">Ver historial completo</div>';
 }
 
 function showSyncStatus(msg,color){
@@ -1881,6 +1904,7 @@ document.getElementById('msave').addEventListener('click',()=>{
   if(nota){
     enviarMenciones(clientes[currentIdx].nombre,nota);
     resolverMencionesPendientes(clientes[currentIdx].nombre,nota);
+    setTimeout(loadSeguimiento,2500);
     const nombreCliente=clientes[currentIdx].nombre;
     secureWrite('reset_reclamo',{cliente:nombreCliente}).then(ok=>{if(ok&&reclamos[nombreCliente])reclamos[nombreCliente]={...reclamos[nombreCliente],veces:0};});
   }
@@ -1911,6 +1935,7 @@ document.getElementById('btn-notif').addEventListener('click',()=>{
   dd.style.display=open?'none':'block';
 });
 document.getElementById('notif-dropdown').addEventListener('click',e=>{
+  if(e.target.closest('#notif-seg-link')){document.getElementById('notif-dropdown').style.display='none';abrirSeguimiento();return;}
   if(e.target.closest('#notif-historial-link')){
     document.getElementById('notif-dropdown').style.display='none';
     abrirHistorialNotificaciones();
@@ -5455,6 +5480,80 @@ async function renderHistTramo(cfg,foto){
   document.getElementById('pr-cancel').addEventListener('click',()=>{document.getElementById('modal-pr-carga').classList.remove('open');prPend=null;});
   document.getElementById('pr-ok').addEventListener('click',prConfirmar);
   document.getElementById('pr-ventana').addEventListener('change',function(){prVentana=this.value;renderPlazoReal();});
+})();
+
+// ===================== SEGUIMIENTO DE MENCIONES (@) — oct-2026 =====================
+// Tres listas: "Tengo que responder" (me mencionaron y todavía no cargué gestión en ese cliente),
+// "Esperando respuesta" (yo mencioné y el otro no respondió) y "Respondidas" (las mías que ya contestaron).
+// Una mención se responde cargando una gestión con nota en ese cliente (resolver_menciones en secure-write).
+let segData={pend:[],esp:[],resp:[]},segTab='pend';
+function segNombre(u){const x=(usuariosList||[]).find(v=>String(v.usuario).toLowerCase()===String(u||'').toLowerCase());return x?x.nombre:(u||'—');}
+function segDias(iso){return iso?Math.floor((Date.now()-new Date(iso).getTime())/86400000):0;}
+function segDemora(a,b){const h=Math.round((new Date(b)-new Date(a))/3600000);return h<24?h+' h':Math.round(h/24)+' días';}
+async function loadSeguimiento(){
+  if(!currentUser)return segData;
+  const u=encodeURIComponent(currentUser.usuario);const base=SUPABASE_URL+'/rest/v1/menciones?tipo=eq.mencion&select=*&order=ts.desc';
+  try{
+    const [a,b]=await Promise.all([
+      fetch(base+'&mencionado=eq.'+u+'&resuelta=eq.false&limit=200',{headers:SUPABASE_HEADERS}).then(r=>r.json()),
+      fetch(base+'&autor_usuario=eq.'+u+'&limit=300',{headers:SUPABASE_HEADERS}).then(r=>r.json())]);
+    const mias=Array.isArray(b)?b:[];
+    segData={pend:Array.isArray(a)?a:[],esp:mias.filter(m=>!m.resuelta),resp:mias.filter(m=>m.resuelta).sort((x,y)=>String(y.resuelta_ts||y.ts).localeCompare(String(x.resuelta_ts||x.ts)))};
+  }catch(e){console.error('Seguimiento menciones:',e);}
+  const c=document.getElementById('seg-count');
+  if(c){const n=segData.pend.length;c.hidden=!n;c.textContent=n>9?'9+':n;c.title=n+' para responder · '+segData.esp.length+' esperando respuesta';}
+  if(document.getElementById('modal-seguimiento').classList.contains('open'))pintarSeguimiento();
+  return segData;
+}
+function segAgrupar(lista,clave){const g={};lista.forEach(m=>{const k=normCli(m.cliente)+'|'+String(m[clave]||'').toLowerCase();(g[k]=g[k]||[]).push(m);});return Object.values(g);}
+function pintarSeguimiento(){
+  const el=document.getElementById('seg-body');
+  const tabs=[['pend','Tengo que responder',segData.pend.length],['esp','Esperando respuesta',segData.esp.length],['resp','Respondidas',segData.resp.length]];
+  let h='<div class="tab-bar" style="margin-bottom:12px">'+tabs.map(([k,l,n])=>'<button class="tab'+(segTab===k?' active':'')+'" data-segtab="'+k+'">'+l+' <span class="pcount"'+(n?'':' style="opacity:.5"')+'>'+n+'</span></button>').join('')+'</div>';
+  const colorDias=d=>d>=5?'var(--red)':d>=2?'var(--orange)':'var(--text3)';
+  const cli=m=>'<span style="font-weight:700;color:var(--yellow)">'+escH(m.cliente)+'</span>';
+  if(segTab==='pend'){
+    const grupos=segAgrupar(segData.pend,'autor_usuario');
+    h+='<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Te mencionaron y todavía no cargaste una gestión en ese cliente. Se responde <strong>cargando la gestión en la ficha</strong> (con nota): a quien te mencionó le llega el aviso.</div>';
+    h+=grupos.length?grupos.map(gr=>{const m=gr[0];const d=segDias(gr[gr.length-1].ts);const hay=clientes.some(c=>c.nombre===m.cliente);
+      return'<div class="notif-hist-item" style="cursor:default"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div>'+cli(m)+' <span style="color:var(--text2)">· te mencionó <strong>'+escH(m.autor||segNombre(m.autor_usuario))+'</strong>'+(gr.length>1?' ('+gr.length+' veces)':'')+'</span></div><div style="color:'+colorDias(d)+';font-weight:700;font-size:12px">'+haceCuanto(gr[gr.length-1].ts)+'</div></div>'
+        +'<div style="color:var(--text2);margin:4px 0">'+escH(m.nota||'')+'</div>'
+        +(hay?'<button class="btn btn-yellow" data-segficha="'+escH(m.cliente)+'"><i class="ti ti-pencil"></i> Responder en la ficha</button>'
+          :'<div style="font-size:11.5px;color:var(--text3);margin-bottom:4px">El cliente ya no está en Cartera: respondé acá.</div><textarea data-segresp="'+escH(m.cliente)+'" rows="2" style="width:100%;padding:7px;border:1px solid var(--border2);border-radius:6px;background:var(--bg3);color:var(--text)"></textarea><button class="btn btn-yellow" style="margin-top:4px" data-segenviar="'+escH(m.cliente)+'">Enviar respuesta</button>')
+        +'</div>';}).join(''):'<div class="notif-empty">No tenés menciones sin responder 🎉</div>';
+  }else if(segTab==='esp'){
+    const grupos=segAgrupar(segData.esp,'mencionado');
+    h+='<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Mencionaste a alguien y todavía no cargó gestión en ese cliente. <strong>Recordar</strong> le vuelve a llegar la notificación.</div>';
+    h+=grupos.length?grupos.map(gr=>{const m=gr[0];const pri=gr[gr.length-1];const d=segDias(pri.ts);
+      return'<div class="notif-hist-item" style="cursor:default"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div>'+cli(m)+' <span style="color:var(--text2)">· le preguntaste a <strong>'+escH(segNombre(m.mencionado))+'</strong>'+(gr.length>1?' ('+gr.length+' veces)':'')+'</span></div><div style="color:'+colorDias(d)+';font-weight:700;font-size:12px">esperando · '+haceCuanto(pri.ts)+'</div></div>'
+        +'<div style="color:var(--text2);margin:4px 0">'+escH(m.nota||'')+'</div>'
+        +'<div style="display:flex;gap:6px"><button class="btn" data-segrecordar="'+escH(m.cliente)+'" data-para="'+escH(m.mencionado)+'" data-nota="'+escH(String(m.nota||'').replace(/^Recordatorio:\s*/,''))+'"><i class="ti ti-bell-ringing"></i> Recordar</button>'
+        +(clientes.some(c=>c.nombre===m.cliente)?'<button class="btn" data-segficha="'+escH(m.cliente)+'">Ver ficha</button>':'')+'</div></div>';}).join(''):'<div class="notif-empty">No estás esperando ninguna respuesta.</div>';
+  }else{
+    const lista=segData.resp.slice(0,60);
+    h+='<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Tus menciones que ya fueron respondidas (últimas 60), con lo que contestaron y cuánto tardaron.</div>';
+    h+=lista.length?lista.map(m=>'<div class="notif-hist-item" data-segficha="'+escH(m.cliente)+'"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div>✅ '+cli(m)+' <span style="color:var(--text2)">· respondió <strong>'+escH(segNombre(m.mencionado))+'</strong></span></div><div style="color:var(--text3);font-size:11px">'+(m.resuelta_ts?new Date(m.resuelta_ts).toLocaleString('es-AR')+' · tardó '+segDemora(m.ts,m.resuelta_ts):'')+'</div></div>'
+      +'<div style="color:var(--text3);font-size:11.5px;margin-top:3px">Vos: '+escH(m.nota||'')+'</div><div style="color:var(--text);margin-top:3px">↳ '+escH(m.respuesta||'(sin texto)')+'</div></div>').join(''):'<div class="notif-empty">Todavía no hay respuestas.</div>';
+  }
+  el.innerHTML=h;
+}
+function abrirSeguimiento(tab){if(tab)segTab=tab;document.getElementById('modal-seguimiento').classList.add('open');pintarSeguimiento();loadSeguimiento();}
+(function(){
+  const md=document.getElementById('modal-seguimiento');if(!md)return;
+  document.getElementById('btn-seguimiento').addEventListener('click',()=>abrirSeguimiento());
+  document.getElementById('seg-cerrar').addEventListener('click',()=>md.classList.remove('open'));
+  md.addEventListener('click',async e=>{
+    if(e.target===md){md.classList.remove('open');return;}
+    const t=e.target.closest('[data-segtab]');if(t){segTab=t.dataset.segtab;pintarSeguimiento();return;}
+    const f=e.target.closest('[data-segficha]');if(f&&!e.target.closest('textarea')){const idx=clientes.findIndex(c=>c.nombre===f.dataset.segficha);
+      if(idx!==-1){md.classList.remove('open');openModal(idx);switchTab('gestion');}else showToast('Ese cliente no está en la lista actual');return;}
+    const r=e.target.closest('[data-segrecordar]');if(r){r.disabled=true;
+      const ok=await secureWrite('save_mencion',{cliente:r.dataset.segrecordar,mencionado:r.dataset.para,autor:currentUser.nombre,autor_usuario:currentUser.usuario,nota:('Recordatorio: '+r.dataset.nota).slice(0,300)});
+      showToast(ok?'Recordatorio enviado a '+segNombre(r.dataset.para)+' ✓':'No se pudo enviar');loadSeguimiento();return;}
+    const s=e.target.closest('[data-segenviar]');if(s){const ta=md.querySelector('textarea[data-segresp="'+CSS.escape(s.dataset.segenviar)+'"]');const txt=(ta&&ta.value||'').trim();if(!txt){showToast('Escribí la respuesta');return;}
+      s.disabled=true;const ok=await secureWrite('resolver_menciones',{cliente:s.dataset.segenviar,mencionado:currentUser.usuario,respuesta:txt,respondido_por:currentUser.nombre,respondido_por_usuario:currentUser.usuario});
+      showToast(ok?'Respuesta enviada ✓':'No se pudo enviar');loadSeguimiento();}
+  });
 })();
 
 function irAyuda(sec){
