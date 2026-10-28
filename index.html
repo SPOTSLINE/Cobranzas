@@ -621,6 +621,7 @@ th.th-on{color:var(--yellow)!important}
 
   <div class="toolbar">
     <select id="obj-mes" style="width:170px"></select>
+    <select id="obj-empresa" style="width:170px" title="Separar por empresa (meses con foto por factura)"><option value="">Ambas empresas</option><option value="SPL">SPL</option><option value="Spotsline">Spotsline</option></select>
     <span style="flex:1"></span>
     <button class="btn" id="btn-obj-excel" title="Fijar el objetivo del mes elegido con el Excel de Odoo exportado el primer día hábil"><i class="ti ti-file-upload"></i> Cargar foto desde Excel</button>
     <input type="file" id="fe-file" accept=".xlsx,.xls" style="display:none">
@@ -2961,6 +2962,9 @@ function setPct(cfg,scope,v,t,val){
 }
 
 // Base del objetivo: la foto (si existe) o la cartera de hoy (provisorio / referencial)
+// Empresa elegida en Objetivos ('' = ambas). Filtra las facturas de la foto (fc: [cliente, vendedor, número, empresa, vto, saldo]).
+function objEmpresaSel(){const e=document.getElementById('obj-empresa');return e?e.value:'';}
+function fcFoto(foto){const l=(foto&&foto.fc)||[];const e=objEmpresaSel();return e?l.filter(r=>r[3]===e):l;}
 function baseObjetivo(foto){
   const porVT={},mapV={},mapT={};
   const add=(nom,v,t,d)=>{
@@ -2971,7 +2975,7 @@ function baseObjetivo(foto){
   };
   if(foto&&foto.fc){
     foto.clientes.forEach(([n,v,t])=>{const k=normCli(n);if(k){mapV[k]=v;mapT[k]=t;}});
-    foto.fc.forEach(([cli,v,num,emp,vto,monto])=>{if(!veVendedor(v))return;const t=tramoFactura(vto,foto.fecha_foto);if(!porVT[v])porVT[v]=ceroTramos();porVT[v][t]+=monto||0;});
+    fcFoto(foto).forEach(([cli,v,num,emp,vto,monto])=>{if(!veVendedor(v))return;const t=tramoFactura(vto,foto.fecha_foto);if(!porVT[v])porVT[v]=ceroTramos();porVT[v][t]+=monto||0;});
   }
   else if(foto)foto.clientes.forEach(([n,v,t,d])=>add(n,v,t,d));
   else{const h=hoyISO();clientes.forEach((c,i)=>add(c.nombre,getVend(i)||'Sin asignar',tramoClienteEnFecha(c,h),c.deuda));}
@@ -2986,6 +2990,7 @@ function cobradoMesDetalle(mesKey,base){
   const porV={},porVT={};
   recibosDetalle.forEach(r=>{
     if((r.f||'').slice(0,7)!==mesKey)return;
+    if(objEmpresaSel()&&r.e!==objEmpresaSel())return;
     if(!esCobrado(r.edo,r.met))return;
     const v=vendedorDeCliente(base,mapHoy,r.c);
     if(!veVendedor(v))return;
@@ -3043,6 +3048,7 @@ function evolucionSemanalMes(mesKey,objetivoTotal,base){
   const porSemana={};
   recibosDetalle.forEach(r=>{
     if((r.f||'').slice(0,7)!==mesKey)return;
+    if(objEmpresaSel()&&r.e!==objEmpresaSel())return;
     if(!esCobrado(r.edo,r.met))return;
     if(!veVendedor(vendedorDeCliente(base,mapHoy,r.c)))return;
     const d=new Date(r.f+'T00:00:00');
@@ -3192,7 +3198,7 @@ function renderFotoInfo(foto,baseTotal,nClientes){
   if(foto){
     setB('fijo · foto del '+fmtFecha(foto.fecha_foto),'var(--green-bg)','var(--green)');
     html='<i class="ti ti-camera" style="vertical-align:-2px"></i> Base del objetivo: cartera de <strong>'+nClientes+'</strong> clientes por <strong>'+fmtN(baseTotal)+'</strong> al <strong>'+fmtFecha(foto.fecha_foto)+'</strong>'
-      +' (primer día hábil de '+nombreMesObj(mesKey)+': '+fmtFecha(foto.primer_habil||ph)+'). No cambia aunque se actualice la cartera durante el mes.';
+      +' (primer día hábil de '+nombreMesObj(mesKey)+': '+fmtFecha(foto.primer_habil||ph)+'). No cambia aunque se actualice la cartera durante el mes.'+(objEmpresaSel()&&foto.fc?' <strong style="color:var(--yellow)">Mostrando solo '+escH(objEmpresaSel())+'.</strong>':'');
     if(foto.motivo==='excel')html+=' <span style="color:var(--text3)">Cargada desde el Excel <em>'+escH(foto.archivo||'')+'</em>'+(foto.tomada_por?' por '+escH(foto.tomada_por):'')+'.</span>';
     else if(foto.fecha_foto>(foto.primer_habil||ph))html+=' <span style="color:var(--orange)">La foto se tomó después del primer día hábil (nadie abrió el panel ese día).</span>';
     if(foto.motivo==='manual')html+=' <span style="color:var(--text3)">Foto retomada a mano'+(foto.tomada_por?' por '+escH(foto.tomada_por):'')+'.</span>';
@@ -3289,7 +3295,7 @@ async function renderObjetivos(){
 
   const saldoBase={};Object.entries(base.porVT).forEach(([v,st])=>{saldoBase[v]=TRAMOS_ORDEN.reduce((s,t)=>s+(st[t]||0),0);});
   const baseTotal=Object.values(saldoBase).reduce((s,x)=>s+x,0);
-  const nClientesBase=foto?foto.clientes.filter(c=>veVendedor(c[1])).length:clientes.filter((c,i)=>veCliente(c,i)).length;
+  const nClientesBase=foto?(foto.fc&&objEmpresaSel()?new Set(fcFoto(foto).filter(r=>veVendedor(r[1])).map(r=>normCli(r[0]))).size:foto.clientes.filter(c=>veVendedor(c[1])).length):clientes.filter((c,i)=>veCliente(c,i)).length;
   const objetivoTotal=Object.entries(base.porVT).reduce((s,[v,st])=>s+objetivoVendedor(cfg,v,st).total,0);
   const semanasMes=semanasDelMes(objMesActual);
   const objetivoSemanal=objetivoTotal/semanasMes;
@@ -3389,6 +3395,7 @@ document.getElementById('btn-obj-add-compromiso').addEventListener('click',async
   renderObjetivos();
 });
 document.getElementById('obj-mes').addEventListener('change',renderObjetivos);
+document.getElementById('obj-empresa').addEventListener('change',()=>{const f=objFotoCache[objMesActual];if(objEmpresaSel()&&f&&!f.fc)showToast('Este mes tiene la foto vieja (sin facturas): no se puede separar por empresa');renderObjetivos();});
 document.getElementById('btn-obj-refresh').addEventListener('click',renderObjetivos);
 document.querySelectorAll('.obj-metric-nav').forEach(el=>{
   el.addEventListener('click',()=>{
@@ -5127,7 +5134,7 @@ async function marcarCarteraActualizada(){try{await fetch(SUPABASE_URL+'/rest/v1
 function canceladoFoto(foto){
   const{m,porNum}=mapaFacturasHoy();
   const porV={},porVT={},porT=ceroTramos();let total=0;const filas=[];
-  (foto.fc||[]).forEach(([cli,v,num,emp,vto,monto])=>{
+  fcFoto(foto).forEach(([cli,v,num,emp,vto,monto])=>{
     const t=tramoFactura(vto,foto.fecha_foto);
     let resto;if(!num)resto=monto;else{const k=normCli(cli)+'|'+num;resto=m[k]!==undefined?m[k]:(porNum[num]!==undefined?porNum[num]:0);}
     resto=Math.min(resto,monto);const canc=Math.max(0,monto-resto);
@@ -5476,7 +5483,7 @@ async function renderHistTramo(cfg,foto){
     h+='</div>';
   }
   // gestión judicial (solo aclaración: la deuda sigue contando en el objetivo)
-  const deudaFoto={};(foto&&foto.fc||[]).forEach(([cli,v,num,emp,vto,monto])=>{if(!veVendedor(v))return;const k=normCli(cli);const o=deudaFoto[k]=deudaFoto[k]||{m:0,v,crit:0};o.m+=monto;if(tramoFactura(vto,foto.fecha_foto)==='Mora crítica')o.crit+=monto;});
+  const deudaFoto={};fcFoto(foto).forEach(([cli,v,num,emp,vto,monto])=>{if(!veVendedor(v))return;const k=normCli(cli);const o=deudaFoto[k]=deudaFoto[k]||{m:0,v,crit:0};o.m+=monto;if(tramoFactura(vto,foto.fecha_foto)==='Mora crítica')o.crit+=monto;});
   const jl=Object.entries(jud).map(([k,j])=>({...j,d:deudaFoto[k]})).filter(j=>j.d&&j.d.m>0).sort((a,b)=>b.d.m-a.d.m);
   h+='<div style="margin-top:14px"><div style="font-weight:700;font-size:13px;margin-bottom:4px"><i class="ti ti-gavel" style="vertical-align:-2px"></i> Clientes con gestión judicial o legal (según las notas) <span style="font-weight:400;color:var(--text3);font-size:12px">· siguen dentro del objetivo; es para decidir qué hacer</span></div>';
   if(!jl.length)h+='<div style="font-size:12px;color:var(--text3)">'+(foto?'Ningún cliente de la foto tiene en sus notas palabras como judicial, abogado, legal, carta documento, mediación o demanda.':'Sin foto del mes.')+'</div>';
