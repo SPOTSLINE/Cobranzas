@@ -3514,7 +3514,9 @@ document.getElementById('cu-btn-clear').addEventListener('click',()=>{
 // --- Parser de recibos de pago (account_payment) para actualizar esta pestaña a futuro ---
 function simplifyMetodoPago(d){if(!d)return'Otro';d=d.toUpperCase();if(d.includes('CHEQUE'))return'Cheque';if(d.includes('EFECTIVO')||d.includes('CAJA'))return'Efectivo';return'Transferencia';}
 function empresaFromDiario(d){if(!d)return'?';const du=d.toUpperCase();if(du.includes('SPOTSLINE'))return'Spotsline';if(du.includes('SPL'))return'SPL';return'?';}
-const PAGOS_INTERCO=new Set(['SPOTSLINE S.R.L.','SPOTSLINE S.R.L','SPL DISTRIBUIDORA S.R.L','SPL DISTRIBUIDORA S.R.L.']);
+// Pagos entre empresas (Spotsline ↔ SPL Distribuidora): no son clientes, se excluyen de Cumplimiento y Plazo real.
+// Compara sin puntos, espacios ni mayúsculas: "SPOTSLINE S.R.L.", "Spotsline SRL", "SPL DISTRIBUIDORA S.R.L", etc.
+const PAGOS_INTERCO={has:n=>/^(SPOTSLINE|SPLDISTRIBUIDORA)(SRL|SA)?$/.test(String(n||'').toUpperCase().replace(/[^A-Z0-9]/g,''))};
 // Recibos con varias formas de pago: Odoo exporta las partes "RE-X … (1)", "(2)" y además una fila "Multiple payments"
 // con el total. Si esa fila ya se había cargado, se descarta (mismo número sin "(n)", misma fecha y cliente que sus partes).
 function sinMultiples(det){
