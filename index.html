@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<script src="/Paneldepaneles/candado.js" data-panel="cobranzas"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Panel de Cobranzas · SPL / Spotsline</title>
@@ -404,7 +403,7 @@ th.th-on{color:var(--yellow)!important}
       <i class="ti ti-user-circle" style="font-size:16px"></i>
       <span id="user-display"></span>
       <button class="logout-btn" id="btn-mi-clave" title="Cambiar mi clave"><i class="ti ti-key" style="font-size:13px;vertical-align:-2px"></i></button>
-      <button class="logout-btn" onclick="window.PORTAL.salir()"><i class="ti ti-logout" style="font-size:13px;vertical-align:-2px"></i> Salir</button>
+      <button class="logout-btn" onclick="logout()"><i class="ti ti-logout" style="font-size:13px;vertical-align:-2px"></i> Salir</button>
     </div>
     <span class="last-update" id="sync-status" style="color:var(--text3)">☁ Conectando...</span>
     <button class="btn" id="btn-sync" title="Recargar gestiones desde Google Sheets"><i class="ti ti-cloud-download"></i> Sincronizar</button>
@@ -540,6 +539,19 @@ th.th-on{color:var(--yellow)!important}
     <div class="metric m-crit" data-filter="plazo" onclick="setCuMetricFilter('plazo')" title="Días entre la fecha del recibo y la del cheque más lejano. Promedio de los promedios por cliente."><div class="metric-label">Plazo prom. de cheque</div><div class="metric-value" id="cu-plazo-prom">0 días</div><div class="metric-sub">recibo → cheque más lejano · clic: &gt; 45d</div></div>
   </div>
 
+  <div class="cump-panel" id="pr-panel">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+      <h3 style="margin:0">Plazo real de pago <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--text3)">· de la factura al dinero disponible (cheques a su fecha de cobro)</span> <span class="help-link" data-ayuda="a-real" style="text-transform:none;letter-spacing:0;font-weight:400;margin-left:6px">¿cómo funciona?</span></h3>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select id="pr-ventana" style="width:160px"><option value="3">Últimos 3 meses</option><option value="6" selected>Últimos 6 meses</option><option value="12">Últimos 12 meses</option></select>
+        <button class="btn" id="pr-btn-upload" title="Subí juntos los 2 Excel de Odoo de una empresa: facturas con recibos + pagos con cheques"><i class="ti ti-file-upload"></i> Cargar facturas + pagos</button>
+        <input type="file" id="pr-file-input" accept=".xlsx,.xls" multiple style="display:none">
+      </div>
+    </div>
+    <div id="pr-fuente" style="font-size:11.5px;color:var(--text3);margin:6px 0 2px"></div>
+    <div style="font-size:11.5px;color:var(--text3)">Usa los mismos filtros de empresa y búsqueda de abajo.</div>
+    <div id="pr-wrap"></div>
+  </div>
   <div class="cump-panel">
     <h3>Mezcla de medios de pago (sobre el monto cobrado)</h3>
     <div id="cu-metodos"></div>
@@ -632,6 +644,9 @@ th.th-on{color:var(--yellow)!important}
     <div id="obj-hero-semanal" style="font-size:12.5px;color:var(--text2);margin-top:4px;font-weight:600"></div>
   </div>
 
+  <div class="cump-panel" id="obj-cumpl-tramo" style="display:none"></div>
+  <div class="cump-panel" id="obj-hist-tramo" style="display:none"></div>
+
   <div class="cump-panel">
     <h3>% de cobro esperado por tipo de deudor <span class="help-link" data-ayuda="a-pct" style="text-transform:none;letter-spacing:0;font-weight:400;margin-left:6px">¿cómo funciona?</span></h3>
     <div id="obj-cfg-sub" style="font-size:12px;color:var(--text3);margin:-4px 0 10px;line-height:1.5"></div>
@@ -685,7 +700,7 @@ th.th-on{color:var(--yellow)!important}
 <article class="ayuda">
 <h2 id="a-top">Instructivo del Panel de Cobranzas</h2>
 <p class="muted">Qué muestra cada pestaña, de dónde salen los números y cómo se calculan. Si algo no queda claro, anotalo con <strong>Pedido de mejora</strong>.</p>
-<nav class="toc" aria-label="Contenido"><a href="#a-cartera">Cartera</a><a href="#a-tramos">Tipos de deudor</a><a href="#a-cump">Cumplimiento de pagos</a><a href="#a-plazo">Plazo de cheque: qué compara</a><a href="#a-conc">Conciliación</a><a href="#a-obj">Objetivos</a><a href="#a-foto">Foto mensual</a><a href="#a-pct">% por tipo de deudor</a><a href="#a-cobrado">Cobrado y cumplimiento</a><a href="#a-mail">Mails de vendedores</a><a href="#a-usuarios">Usuarios</a><a href="#a-pedidos">Pedidos de mejora</a><a href="#a-faq">Preguntas frecuentes</a></nav>
+<nav class="toc" aria-label="Contenido"><a href="#a-cartera">Cartera</a><a href="#a-tramos">Tipos de deudor</a><a href="#a-cump">Cumplimiento de pagos</a><a href="#a-plazo">Plazo de cheque: qué compara</a><a href="#a-real">Plazo real de pago</a><a href="#a-conc">Conciliación</a><a href="#a-obj">Objetivos</a><a href="#a-foto">Foto mensual</a><a href="#a-pct">% por tipo de deudor</a><a href="#a-cobrado">Cobrado y cumplimiento</a><a href="#a-mail">Mails de vendedores</a><a href="#a-usuarios">Usuarios</a><a href="#a-pedidos">Pedidos de mejora</a><a href="#a-faq">Preguntas frecuentes</a></nav>
 
 <h2 id="a-cartera">1. Cartera</h2>
 <p>Muestra la deuda abierta de cada cliente (SPL y Spotsline) según el último Excel de Odoo cargado con <em>Actualizar</em> (apunte contable <code>account_move_line</code>, columna “residual”). Cada vez que se sube un Excel nuevo, la cartera se reemplaza y se publica para todo el equipo; las gestiones, contactos y compromisos de pago se conservan.</p>
@@ -741,16 +756,16 @@ th.th-on{color:var(--yellow)!important}
 <div class="callout"><strong>No compara la fecha de factura con los cheques.</strong> Compara la <strong>fecha del recibo</strong> (el día que el cliente entregó el pago y se registró en Odoo) con la <strong>fecha de cobro del cheque más lejano</strong> de ese recibo. Mide <em>cuánto “estira” el cliente con cheques diferidos</em> después de pagar, no cuánto tarda desde que se le facturó.</div>
 <div class="tbl"><table>
 <tr><th>Concepto</th><th>Fecha que usa</th><th>¿Está en el panel?</th></tr>
-<tr><td>A · Fecha de factura</td><td>emisión de la factura</td><td>Solo en Cartera (facturas impagas). Los recibos no traen qué factura cancelan.</td></tr>
-<tr><td>B · Vencimiento de factura</td><td>vencimiento pactado</td><td>Solo en Cartera.</td></tr>
+<tr><td>A · Fecha de factura</td><td>emisión de la factura</td><td>Sí, en <a href="#a-real">Plazo real de pago</a> (con el Excel de facturas con recibos).</td></tr>
+<tr><td>B · Vencimiento de factura</td><td>vencimiento pactado</td><td>Sí, en Plazo real de pago.</td></tr>
 <tr><td>C · Fecha del recibo</td><td>día de entrega del pago</td><td>Sí</td></tr>
 <tr><td>D · Fecha del cheque</td><td>día en que se puede cobrar cada cheque</td><td>Sí (se usa la más lejana del recibo)</td></tr>
 </table></div>
 <p><strong>Plazo de cheque = D − C.</strong> Ejemplo: factura emitida el 01/09, vence el 15/09; el cliente entrega el recibo el 20/09 con dos cheques al 20/10 y al 19/11.</p>
 <ul>
 <li>Plazo de cheque que muestra el panel: 20/09 → 19/11 = <strong>60 días</strong>.</li>
-<li>Plazo real desde la factura (A → D): 01/09 → 19/11 = <strong>79 días</strong> — <em>hoy el panel no lo calcula</em>.</li>
-<li>Atraso de entrega del pago (B → C): 15/09 → 20/09 = 5 días — tampoco se calcula todavía.</li>
+<li>Plazo real desde la factura (A → D): 01/09 → 19/11 = <strong>79 días</strong> — se ve en <a href="#a-real">Plazo real de pago</a> (ahí los cheques se ponderan por importe, ver abajo).</li>
+<li>Atraso de entrega del pago (B → C): 15/09 → 20/09 = 5 días — también en Plazo real de pago.</li>
 </ul>
 <p>Otros detalles del cálculo:</p>
 <ul>
@@ -760,6 +775,29 @@ th.th-on{color:var(--yellow)!important}
 <li>Colores: <span class="dias-plazo p-bajo">verde</span> hasta 30 días · <span class="dias-plazo p-med">naranja</span> 31 a 60 · <span class="dias-plazo p-alto">rojo</span> más de 60. La tarjeta “Plazo prom.” filtra los clientes con más de 45 días.</li>
 </ul>
 <p class="muted"><strong>Para medir el plazo real de pago (factura → cobro)</strong> hace falta que el Excel de recibos de Odoo incluya la columna de <em>facturas conciliadas</em> (qué factura cancela cada recibo). Con ese dato se puede agregar al panel “días factura → recibo” y “días factura → acreditación del cheque”.</p>
+
+<h3 id="a-real">Plazo real de pago (factura → dinero disponible)</h3>
+<div class="callout"><strong>Mide cuándo tenemos la plata, no cuándo se cargó el recibo.</strong> Un cheque cargado hoy con fecha de cobro dentro de 15 días cuenta recién dentro de 15 días.</div>
+<p><strong>De dónde salen los datos.</strong> Se suben <strong>juntos</strong> dos Excel de Odoo de <strong>una empresa</strong> (botón <em>Cargar facturas + pagos</em>, en Cumplimiento). Cada carga reemplaza solo la de esa empresa; SPL y Spotsline se cargan por separado y se ven juntas.</p>
+<div class="tbl"><table>
+<tr><th>Archivo</th><th>Columnas</th><th>Para qué</th></tr>
+<tr><td>Facturas con recibos (account.move)</td><td>Estado en pago, Fecha de la factura, Fecha de vencimiento, Fecha del recibo, Importe sin impuestos, Nombre del contacto, Número, Pagos conciliados, Total</td><td>Emisión (A), vencimiento (B), importe y qué recibos cancelaron cada factura. Si una factura tuvo varios recibos, vienen en filas de abajo con solo "Pagos conciliados".</td></tr>
+<tr><td>Pagos con cheques (account.payment, columnas A–L)</td><td>Fecha, Número, Diario, Cantidad, Cliente, Estado, Total, Cheques/Fecha de pago, Número, Banco, Importe, Líneas conciliadas</td><td>Fecha de cada recibo (C), fecha de cobro e importe de cada cheque (D) y facturas conciliadas. Define la empresa por el Diario.</td></tr>
+</table></div>
+<p><strong>Cómo se calcula, por factura cobrada:</strong></p>
+<ul>
+<li><strong>C · Fecha de pago</strong> = fecha del <em>último</em> recibo conciliado (si pagó en partes, cuenta cuando terminó de pagar).</li>
+<li><strong>D · Dinero disponible</strong>, por recibo: efectivo y transferencia = fecha del recibo; cheques = fecha de cobro de cada cheque, <strong>ponderada por su importe</strong> (cheques con fecha anterior al recibo se toman en la fecha del recibo). La factura toma la D de su último recibo.</li>
+<li><strong>Plazo otorgado</strong> = B − A · <strong>Atraso en pagar</strong> = C − B (negativo = pagó antes) · <strong>Estiramiento con cheque</strong> = D − C · <strong>Plazo real</strong> = D − A.</li>
+<li><strong>% cobrado en término</strong> = importe de facturas con C hasta el vencimiento ÷ total cobrado.</li>
+<li>Promedios <strong>ponderados por importe</strong> de la factura (una factura grande pesa más). La ventana (3, 6 o 12 meses) se cuenta por la fecha del último recibo.</li>
+<li><strong>Tendencia</strong> por cliente: plazo real de los últimos 3 meses contra la ventana elegida; ±3 días = estable.</li>
+<li>Se suman facturas oficiales y <strong>AJ</strong> (sin IVA: números 0001/AAAA/…), que también son deuda. En la tabla se indica qué parte de lo cobrado es AJ.</li>
+<li>Quedan afuera: facturas revertidas, canceladas o en borrador; pagos entre empresas (SPL ↔ Spotsline); las filas "Multiple payments" del Excel de pagos (son el total de un recibo cuyas partes ya vienen aparte).</li>
+<li>Si un recibo de la factura no está en el Excel de pagos (otro período), la factura cuenta para el atraso pero no para el plazo real. La vista previa dice cuántas son.</li>
+<li>El Excel no trae cuánto de cada recibo se aplicó a cada factura: si un recibo paga varias facturas, todas toman su fecha.</li>
+<li><em>Excel detalle</em> baja factura por factura con las cuatro fechas y los días.</li>
+</ul>
 
 <h3 id="a-conc">Conciliación de transferencias</h3>
 <p>Cruza cada recibo por <em>Transferencia</em> del mes elegido contra los créditos de los extractos bancarios cargados en el Panel de Intereses. Coincide si el importe difiere en $1 o menos y la fecha en 3 días o menos. Las que no aparecen en el banco se listan para revisar.</p>
@@ -788,6 +826,16 @@ th.th-on{color:var(--yellow)!important}
 <li>Solo administración edita los %; los vendedores los ven en modo lectura y solo ven su propia cartera.</li>
 </ul>
 
+<h3 id="a-porfactura">Objetivo y cumplimiento factura por factura</h3>
+<ul>
+<li>La foto del mes guarda <strong>cada factura</strong>. Cada una cae en su tipo de deudor según <strong>su propio vencimiento</strong> a la fecha de la foto (no la del cliente): una factura nueva de un cliente que también tiene deuda vieja cuenta como preventivo, y la vieja como crítica.</li>
+<li><strong>Cancelado</strong> = saldo de la factura en la foto − saldo que tiene hoy en Cartera (si ya no está, se canceló entera). Así se ve cuánto se cobró de cada tipo de deudor y se compara con su objetivo, en total, por vendedor (clic en el vendedor) y en el informe por mail.</li>
+<li>Para que esté al día hay que <strong>actualizar la cartera</strong> con el Excel de Odoo (Actualizar). El panel muestra cuándo se cargó por última vez.</li>
+<li><strong>Descargar facturas cobradas (Excel):</strong> una hoja con cada factura de la foto (cliente, vendedor, empresa, vencimiento, días vencida, tipo de deudor, saldo en la foto, saldo hoy, cancelado y estado: Cancelada / Pago parcial / Pendiente) y otra con el resumen por vendedor y tipo de deudor.</li>
+<li>No cuenta cobros de facturas emitidas después de la foto (no forman parte del objetivo). Una nota de crédito aplicada a una factura también baja su saldo y cuenta como cancelado. Lo cobrado según recibos sigue a la vista como referencia.</li>
+<li>Si la foto de un mes se tomó antes de esta versión (sin detalle de facturas), aparece un aviso para volver a cargarla desde Excel.</li>
+</ul>
+
 <h3 id="a-cobrado">Cobrado real y % de cumplimiento</h3>
 <ul>
 <li><strong>Cobrado real (mes):</strong> suma de recibos del mes que cuentan como cobrados (Pagado o Transferencia), sacados de Cumplimiento de pagos. Se toma la <strong>fecha del recibo</strong>, no la de acreditación del cheque.</li>
@@ -796,6 +844,15 @@ th.th-on{color:var(--yellow)!important}
 <li><strong>% cumplimiento</strong> = cobrado real ÷ objetivo. Verde desde 100%, amarillo desde 60%, rojo por debajo.</li>
 <li><strong>Objetivo semanal</strong> = objetivo del mes ÷ cantidad de semanas (lunes a domingo) que toca el mes. <strong>A cobrar esta semana</strong> son vencimientos y compromisos de pago de la semana en curso.</li>
 <li><strong>Gastos a cubrir</strong> es informativo (proveedores, gastos bancarios): no cambia el objetivo.</li>
+</ul>
+
+<h3 id="a-hist">Indicador: cómo se cobró en meses anteriores</h3>
+<ul>
+<li>En Objetivos, debajo del cumplimiento por tipo de deudor. Es <strong>solo una referencia</strong>: no cambia el objetivo ni los %.</li>
+<li>Para cada uno de los 3 meses anteriores al elegido: se toman las facturas <strong>pendientes el día 1</strong> (emitidas antes y sin cancelar), se clasifican por tipo de deudor según su vencimiento ese día, y se mide qué % del importe tuvo su <strong>último recibo dentro del mes</strong>.</li>
+<li>La tarjeta muestra el promedio de los 3 meses, una barra por mes y la flecha ▲▼ del último mes contra el anterior (±3 puntos = igual). Al lado figura el % objetivo general del tipo de deudor.</li>
+<li>Usa los datos de <a href="#a-real">Plazo real de pago</a> (fecha del recibo, no del cheque). Facturas con pagos parciales anteriores al día 1 cuentan por su total. La base empieza en la primera factura del Excel cargado.</li>
+<li><strong>Clientes con gestión judicial o legal:</strong> lista de clientes de la foto cuyas notas o historial de gestiones dicen judicial, juicio, abogado, legal, carta documento, mediación, demanda, embargo, concurso o quiebra. <strong>Siguen dentro del objetivo</strong>; la lista sirve para decidir qué hacer con ellos.</li>
 </ul>
 
 <h3 id="a-mail">Informe por mail y mails de vendedores</h3>
@@ -1118,6 +1175,14 @@ th.th-on{color:var(--yellow)!important}
 
 
 <!-- MODAL CARGA DE RECIBOS (vista previa) -->
+<div class="modal-bg" id="modal-pr-carga" style="z-index:250">
+  <div class="modal" style="width:780px">
+    <h2><i class="ti ti-file-upload" style="vertical-align:-2px;margin-right:8px;color:var(--yellow)"></i>Revisar carga: plazo real de pago</h2>
+    <div class="modal-sub">Todavía no se guardó nada. Revisá que los datos se vean bien y confirmá. Reemplaza solo la carga de esta empresa.</div>
+    <div id="pr-body"></div>
+    <div class="modal-footer"><button class="btn" id="pr-cancel">Cancelar</button><button class="btn btn-yellow" id="pr-ok">Confirmar carga</button></div>
+  </div>
+</div>
 <div class="modal-bg" id="modal-recibos-carga" style="z-index:250">
   <div class="modal" style="width:820px">
     <h2><i class="ti ti-cloud-upload" style="vertical-align:-2px;margin-right:8px;color:var(--yellow)"></i><span id="rc-tit">Revisar carga</span></h2>
@@ -1252,7 +1317,7 @@ async function loadPagosDesdeSupabase(){
     if(!row || !row.valor || !row.valor.mensual) return false;
     pagosMensual = row.valor.mensual;
     recibosDetalle = row.valor.detalle || recibosDetalle;
-    try{ recibosCargas = row.valor.cargas || []; recibosDesde = row.valor.desde || ''; recibosDetalle = recibosDetalle.filter(enPeriodo); pagosMensual = mensualDesdeDetalle(recibosDetalle); }catch(_){}
+    try{ recibosCargas = row.valor.cargas || []; recibosDesde = row.valor.desde || ''; recibosDetalle = sinMultiples(recibosDetalle).filter(enPeriodo); pagosMensual = mensualDesdeDetalle(recibosDetalle); }catch(_){}
     recalcPagosMensualEfectivo();
     pagosCliente = buildPagosCliente(document.getElementById('cu-mes-filter')?document.getElementById('cu-mes-filter').value:'');
     fillMesFilter();
@@ -1292,10 +1357,9 @@ let menciones=[];
 let reclamos={};
 let mailVencidosActuales=[];
 
-// Login único (Panel de Paneles): los usuarios salen del portal
-function aliasPortal(u){return ((u&&u.config&&u.config.usuario)||String((u&&u.email)||'').split('@')[0]||(u&&u.nombre)||'').trim().toLowerCase();}
 function loadUsuarios(){
-  window.PORTAL.usuarios().then(l=>{usuariosList=(l||[]).map(u=>({nombre:u.nombre,usuario:aliasPortal(u)}));}).catch(e=>console.error('Error usuarios:',e));
+  fetch(SUPABASE_URL+'/rest/v1/usuarios?select=nombre,usuario&activo=eq.true',{headers:SUPABASE_HEADERS})
+    .then(r=>r.json()).then(d=>{usuariosList=d||[];}).catch(e=>console.error('Error usuarios:',e));
 }
 
 function loadReclamos(){
@@ -2462,6 +2526,7 @@ document.getElementById('btn-apply').addEventListener('click',()=>{
   fillVendedorFilter();render();renderSaldosBtn();showToast('Actualizando y publicando...');
   saveClientesToSheets(clientes);
   saveSaldosToSheets(saldosFavor);
+  marcarCarteraActualizada();
   refrescarFotoSiPrimerDiaHabil().then(()=>asegurarFotoMesActual());
 });
 
@@ -2779,6 +2844,7 @@ function armarFotoDesdeCartera(mesKey,motivo,pctBase){
     mes:mesKey,primer_habil:isoLocal(primerDiaHabil(mesKey)),fecha_foto:hoy,
     tomada_ts:new Date().toISOString(),tomada_por:currentUser?currentUser.nombre:'',motivo:motivo||'auto',
     clientes:clientes.map((c,i)=>[c.nombre,getVend(i)||'Sin asignar',tramoClienteEnFecha(c,hoy),Math.round((c.deuda||0)*100)/100]).filter(r=>r[3]>0),
+    fc:clientes.flatMap((c,i)=>(c.deuda||0)>0?fcDesdeCliente(c,getVend(i)||'Sin asignar'):[]),
     pct:normPct(pctBase||objPctGlobal)
   };
 }
@@ -2876,7 +2942,11 @@ function baseObjetivo(foto){
     if(!porVT[v])porVT[v]=ceroTramos();
     porVT[v][t]=(porVT[v][t]||0)+(d||0);
   };
-  if(foto)foto.clientes.forEach(([n,v,t,d])=>add(n,v,t,d));
+  if(foto&&foto.fc){
+    foto.clientes.forEach(([n,v,t])=>{const k=normCli(n);if(k){mapV[k]=v;mapT[k]=t;}});
+    foto.fc.forEach(([cli,v,num,emp,vto,monto])=>{if(!veVendedor(v))return;const t=tramoFactura(vto,foto.fecha_foto);if(!porVT[v])porVT[v]=ceroTramos();porVT[v][t]+=monto||0;});
+  }
+  else if(foto)foto.clientes.forEach(([n,v,t,d])=>add(n,v,t,d));
   else{const h=hoyISO();clientes.forEach((c,i)=>add(c.nombre,getVend(i)||'Sin asignar',tramoClienteEnFecha(c,h),c.deuda));}
   return{porVT,mapV,mapT};
 }
@@ -3000,7 +3070,7 @@ function abrirModalObjVendedor(vendedor){
   const totCob=Object.values(cobT).reduce((s,x)=>s+x,0);
   wrap.innerHTML='<table class="obj-cfg" style="width:100%;font-size:12.5px;min-width:0"><thead><tr style="color:var(--text3);text-align:left">'
     +'<th style="padding:6px">Tipo de deudor</th><th style="padding:6px">Cartera en la foto</th><th style="padding:6px">% esperado</th>'
-    +'<th style="padding:6px">Objetivo</th><th style="padding:6px">Cobrado (mes)</th><th style="padding:6px">% cumpl.</th></tr></thead><tbody>'
+    +'<th style="padding:6px">Objetivo</th><th style="padding:6px">'+(ctx.cancel?'Cancelado':'Cobrado (mes)')+'</th><th style="padding:6px">% cumpl.</th></tr></thead><tbody>'
     +TRAMOS_ORDEN.map(t=>{
       const sp=saldoTramo[t]||0,obj=porTramo[t]||0,cob=cobT[t]||0;
       const pct=obj?Math.round(cob/obj*100):0;
@@ -3180,12 +3250,15 @@ async function renderObjetivos(){
 
   const cfg=pctDelMes(foto);
   const base=baseObjetivo(foto);
-  const cobrado=cobradoMesDetalle(objMesActual,base);
+  await loadCarteraActualizada();
+  const cancel=foto&&foto.fc?canceladoFoto(foto):null;
+  const recibosMes=cobradoMesDetalle(objMesActual,base);
+  const cobrado=cancel?{porV:cancel.porV,porVT:cancel.porVT}:recibosMes;
   const cobradoSemana=cobradoSemanaPorVendedor(base);
   const proy=proyectadoSemanaPorVendedor();
   const{desde,hasta}=rangoSemanaActual();
   const editable=puedeEditarObj();
-  objRenderCtx={cfg,base,cobrado,editable};
+  objRenderCtx={cfg,base,cobrado,editable,cancel};
 
   const saldoBase={};Object.entries(base.porVT).forEach(([v,st])=>{saldoBase[v]=TRAMOS_ORDEN.reduce((s,t)=>s+(st[t]||0),0);});
   const baseTotal=Object.values(saldoBase).reduce((s,x)=>s+x,0);
@@ -3196,6 +3269,12 @@ async function renderObjetivos(){
 
   renderFotoInfo(foto,baseTotal,nClientesBase);
   renderObjConfig(cfg,base,editable,objMesActual,foto);
+  renderCumplTramo(cfg,base,cancel,foto);
+  renderHistTramo(cfg,foto).catch(e=>console.warn('histórico:',e));
+  const recibosMesTotal=Object.values(recibosMes.porV).reduce((s,v)=>s+v,0);
+  {const lh=document.getElementById('obj-hero-cobrado').parentElement.querySelector('.metric-label');if(lh)lh.firstChild.nodeValue=cancel?'Cancelado de la foto ':'Llevo cobrado ';
+   const lm=cardDe('obj-m-cobrado').querySelector('.metric-label');if(lm)lm.firstChild.nodeValue=cancel?'Cancelado de la foto (mes) ':'Cobrado real (mes, acumulado) ';
+   const th=document.querySelector('#obj-tabla-vend th[data-dsort=mes]');if(th)th.firstChild.nodeValue=cancel?'Cancelado de la foto':'Cobrado real (mes)';}
 
   const cobradoMesTotal=Object.values(cobrado.porV).reduce((s,v)=>s+v,0);
   const cobradoSemanaTotal=Object.values(cobradoSemana).reduce((s,v)=>s+v,0);
@@ -3204,7 +3283,7 @@ async function renderObjetivos(){
 
   document.getElementById('obj-m-objetivo').textContent=fmtN(objetivoTotal);
   document.getElementById('obj-m-cobrado').textContent=fmtN(cobradoMesTotal);
-  document.getElementById('obj-m-pct').textContent=pctMes+'% cumplido';
+  document.getElementById('obj-m-pct').textContent=pctMes+'% cumplido'+(cancel?' · recibos del mes: '+fmtN(recibosMesTotal):'');
   document.getElementById('obj-m-semana').textContent=fmtN(cobradoSemanaTotal);
   document.getElementById('obj-m-semana-rango').textContent=fmtFecha(desde)+' al '+fmtFecha(hasta)+' · objetivo semana: '+fmtN(objetivoSemanal)+' ('+pctSemana+'%)';
   document.getElementById('obj-m-proyectado').textContent=fmtN(proy.total);
@@ -3249,7 +3328,7 @@ async function renderObjetivos(){
 
   renderObjEvolucion(objMesActual,objetivoTotal,base);
   aplicarPlegados();
-  try{explicarObjetivos({cfg,base,objetivoTotal,semanasMes,objetivoSemanal,cobradoMesTotal,cobradoSemanaTotal,pctMes,pctSemana,foto,desde,hasta,baseTotal});}catch(e){console.warn('explicar:',e);}
+  try{explicarObjetivos({cfg,base,objetivoTotal,semanasMes,objetivoSemanal,cobradoMesTotal,cobradoSemanaTotal,pctMes,pctSemana,foto,desde,hasta,baseTotal,cancel,recibosMesTotal});}catch(e){console.warn('explicar:',e);}
 
   // Publica el snapshot semanal en Supabase para que el cashflow (otro panel) lo pueda leer
   if(!carteraRestringida()&&objMesActual===mesHoy){
@@ -3360,6 +3439,7 @@ function updateCuMetrics(){
 
 function renderCumplimiento(){
   vendedorClienteCumpl._map=null;
+  renderPlazoReal().catch(e=>console.warn('plazo real:',e));
   pagosCliente=buildPagosCliente(document.getElementById('cu-mes-filter').value);
   const data=getCuFiltered();
   updateCuMetrics();
@@ -3408,6 +3488,14 @@ document.getElementById('cu-btn-clear').addEventListener('click',()=>{
 function simplifyMetodoPago(d){if(!d)return'Otro';d=d.toUpperCase();if(d.includes('CHEQUE'))return'Cheque';if(d.includes('EFECTIVO')||d.includes('CAJA'))return'Efectivo';return'Transferencia';}
 function empresaFromDiario(d){if(!d)return'?';const du=d.toUpperCase();if(du.includes('SPOTSLINE'))return'Spotsline';if(du.includes('SPL'))return'SPL';return'?';}
 const PAGOS_INTERCO=new Set(['SPOTSLINE S.R.L.','SPOTSLINE S.R.L','SPL DISTRIBUIDORA S.R.L','SPL DISTRIBUIDORA S.R.L.']);
+// Recibos con varias formas de pago: Odoo exporta las partes "RE-X … (1)", "(2)" y además una fila "Multiple payments"
+// con el total. Si esa fila ya se había cargado, se descarta (mismo número sin "(n)", misma fecha y cliente que sus partes).
+function sinMultiples(det){
+  const conPartes=new Set();
+  det.forEach(r=>{if(!r.rid)return;const [n,f,c]=r.rid.split('|');const m=n.match(/^(.*?)\s*\(\d+\)$/);if(m)conPartes.add(m[1].trim()+'|'+f+'|'+c);});
+  if(!conPartes.size)return det;
+  return det.filter(r=>{if(!r.rid)return true;const [n,f,c]=r.rid.split('|');return /\(\d+\)$/.test(n)||!conPartes.has(n.trim()+'|'+f+'|'+c);});
+}
 function excelDateToJS(v){if(v instanceof Date)return v;if(typeof v==='number')return new Date(Math.round((v-25569)*86400*1000));const d=new Date(v);return isNaN(d)?null:d;}
 
 // Formato con títulos (Pagos de Odoo exportado con columnas por nombre, agrupado por mes):
@@ -3430,6 +3518,7 @@ function parsePagosMensual(wb){
       const cliente=String(row[cih.cliente]||'').trim();
       if(!fecha||isNaN(fecha)||!cliente)continue; // filas de agrupación ("enero 2026 (1476)")
       const diario=String(row[cih.diario]||'');const metTxt=String(cih.metodo>=0?row[cih.metodo]:'');
+      if(/^multiple payments/i.test(diario.trim()))continue; // fila resumen del recibo: sus partes "(1)", "(2)" ya vienen aparte
       const total=parseFloat(row[cih.total])||0;if(!(total>0))continue;
       recibos.push({num:num||null,fecha,empresa:empresaFromDiario(diario),metodo:simplifyMetodoPago(diario||metTxt),cliente,estado:String(row[cih.estado]||'').trim(),total,cheques:[],interco:PAGOS_INTERCO.has(cliente.toUpperCase())});
     }
@@ -3438,6 +3527,7 @@ function parsePagosMensual(wb){
   for(let r=1;r<rows.length&&!cih;r++){
     const row=rows[r];
     const [fecha,num,diario,cant,cliente,estado,total,chqFecha,chqNum,chqBanco,chqImp,linea]=row;
+    if(num&&/^multiple payments/i.test(String(diario||'').trim())){if(cur)recibos.push(cur);cur=null;continue;} // total del recibo con varias partes: no se suma
     if(num){
       if(cur)recibos.push(cur);
       const isInterco=cliente&&PAGOS_INTERCO.has(String(cliente).trim().toUpperCase());
@@ -3738,8 +3828,7 @@ function aplicarPermisos(){
   set('btn-export',puede('exportar'));
   set('btn-reporte',puede('reporte'));
   set('btn-rep-mails',puede('mails_vendedores'));
-  set('btn-usuarios',false); // usuarios: en el Panel de Paneles
-  set('btn-mi-clave',false);
+  set('btn-usuarios',puede('usuarios'));
   set('btn-obj-excel',puede('editar_objetivos'));
   // Ayuda: los links "Ver instructivo" solo si tiene la solapa
   document.querySelectorAll('[data-ayuda]').forEach(a=>a.style.display=puede('tab_ayuda')?'':'none');
@@ -3757,11 +3846,6 @@ function aplicarPermisos(){
 // Todo pasa por la Edge Function secure-write (acciones list_usuarios / save_usuario / cambiar_mi_clave).
 // Las claves se encriptan en el servidor; el panel nunca las ve ni las guarda.
 async function secureCall(action,payload){
-  // Login único: usuarios, claves e ingresos se manejan en el Panel de Paneles
-  if(action==='list_usuarios'){const l=await window.PORTAL.usuarios();return {ok:true,usuarios:(l||[]).map(u=>{const c=u.config||{};return {usuario:aliasPortal(u),nombre:u.nombre,rol:u.es_admin?'admin':(c.rol||'cobranzas'),vendedor_nombre:c.vendedor_nombre||'',email:u.email,activo:true,permisos:c.permisos||{}};})};}
-  if(action==='registrar_ingreso'||action==='ping')return {ok:true};
-  if(action==='list_ingresos')return {ok:true,ingresos:[]};
-  if(action==='save_usuario'||action==='cambiar_mi_clave')throw new Error('Los usuarios y las claves ahora se manejan en Usuarios del Panel de Paneles.');
   const res=await fetch(SUPABASE_URL+'/functions/v1/secure-write',{method:'POST',headers:SUPABASE_HEADERS,body:JSON.stringify({token:currentToken,action,payload})});
   let data={};try{data=await res.json();}catch(_){}
   if(res.status===401){showToast('Tu sesión expiró, volvé a iniciar sesión');logout();throw new Error('Sesión expirada');}
@@ -4428,7 +4512,7 @@ async function datosObjetivoVendedor(fv){
     const st=base.porVT[fv]||Object.entries(base.porVT).find(([k])=>normCli(k)===normCli(fv))?.[1];
     if(!st)return null;
     const obj=objetivoVendedor(cfg,fv,st).total;
-    const cob=cobradoMesDetalle(mes,base);
+    const cob=foto&&foto.fc?canceladoFoto(foto):cobradoMesDetalle(mes,base);
     const cm=cob.porV[fv]||0;
     return{mes,objetivo:obj,cobrado:cm,pct:obj?Math.round(cm/obj*100):0,fijo:!!foto};
   }catch(e){console.warn('Objetivo vendedor:',e);return null;}
@@ -4570,14 +4654,16 @@ function prepararFotoExcel(wb,archivo){
   const filas=parsed.map(c=>{
     let v=c.vendedor||'';
     if(!v){v=vendedorActualDe(c.nombre);if(v)deCartera++;}
-    return[c.nombre,v||'Sin asignar',tramoClienteEnFecha(c,ph),Math.round(c.deuda*100)/100];
+    c._v=v||'Sin asignar';
+    return[c.nombre,c._v,tramoClienteEnFecha(c,ph),Math.round(c.deuda*100)/100];
   });
-  return{mes,ph,archivo,filas,deCartera};
+  const fc=parsed.flatMap(c=>fcDesdeCliente(c,c._v));
+  return{mes,ph,archivo,filas,fc,deCartera};
 }
 function pintarPreviewFotoExcel(){
   const P=fotoExcelPend;const cfg=pctDelMes(objFotoCache[P.mes]||null);
-  const porV={};P.filas.forEach(([n,v,t,d])=>{if(!porV[v])porV[v]=ceroTramos();porV[v][t]+=d;});
-  const tot=P.filas.reduce((s,r)=>s+r[3],0);
+  const porV={};P.fc.forEach(([n,v,num,emp,vto,d])=>{if(!porV[v])porV[v]=ceroTramos();porV[v][tramoFactura(vto,P.ph)]+=d;});
+  const tot=P.fc.reduce((s,r)=>s+r[5],0);
   const vs=Object.keys(porV).sort((a,b)=>TRAMOS_ORDEN.reduce((s,t)=>s+porV[b][t],0)-TRAMOS_ORDEN.reduce((s,t)=>s+porV[a][t],0));
   let objT=0;
   const rows=vs.map(v=>{const st=porV[v];const o=objetivoVendedor(cfg,v,st).total;objT+=o;
@@ -4617,7 +4703,7 @@ document.getElementById('fe-ok').addEventListener('click',async()=>{
   const btn=document.getElementById('fe-ok');btn.disabled=true;btn.textContent='Guardando…';
   try{
     const previa=await loadFotoMes(P.mes,true);
-    const foto={mes:P.mes,primer_habil:P.ph,fecha_foto:P.ph,tomada_ts:new Date().toISOString(),tomada_por:currentUser?currentUser.nombre:'',motivo:'excel',archivo:P.archivo,clientes:P.filas,pct:normPct((previa&&previa.pct)||objPctGlobal)};
+    const foto={mes:P.mes,primer_habil:P.ph,fecha_foto:P.ph,tomada_ts:new Date().toISOString(),tomada_por:currentUser?currentUser.nombre:'',motivo:'excel',archivo:P.archivo,clientes:P.filas,fc:P.fc,pct:normPct((previa&&previa.pct)||objPctGlobal)};
     await guardarFoto(P.mes,foto,true);
     await loadFotoMes(P.mes,true);
     document.getElementById('modal-foto-excel').classList.remove('open');fotoExcelPend=null;
@@ -4671,7 +4757,7 @@ function refrescarCumplimientoTodo(){
 async function aplicarCambioRecibos(nuevoDetalle,nuevasCargas,mensaje,nuevoDesde){
   const previo=estadoRecibosActual();
   if(nuevoDesde!==undefined)recibosDesde=nuevoDesde||'';
-  recibosDetalle=nuevoDetalle.filter(enPeriodo);recibosCargas=nuevasCargas;
+  recibosDetalle=sinMultiples(nuevoDetalle).filter(enPeriodo);recibosCargas=nuevasCargas;
   pagosMensual=mensualDesdeDetalle(recibosDetalle);
   refrescarCumplimientoTodo();
   try{await guardarRecibos(previo);showToast(mensaje+' ✓');}
@@ -4681,7 +4767,7 @@ async function aplicarCambioRecibos(nuevoDetalle,nuevasCargas,mensaje,nuevoDesde
 const FORMATO_RECIBOS_HTML='<div class="tbl" style="overflow-x:auto"><table class="obj-cfg" style="min-width:0;font-size:12px"><tr><th>Col.</th><th>Qué tiene que tener</th><th>Ejemplo</th></tr>'
   +[['A','Fecha del recibo','15/10/2026'],['B','Número del recibo (solo en la primera fila de cada recibo)','PAY/2026/01234'],['C','Diario: define empresa y medio (tiene que decir SPL o SPOTSLINE, y CHEQUE / EFECTIVO / CAJA; lo demás se toma como transferencia)','Cheques SPL'],['D','(cualquier dato, no se usa)',''],['E','Cliente','ACME SA'],['F','Estado','Pagado / En proceso'],['G','Importe total del recibo','1.250.000'],['H','Fecha de cobro del cheque (si hay cheques)','30/11/2026'],['I','Número de cheque','12345678'],['J','Banco del cheque','Galicia'],['K','Importe del cheque','625.000']]
     .map(r=>'<tr><td><strong>'+r[0]+'</strong></td><td>'+r[1]+'</td><td style="color:var(--text3)">'+r[2]+'</td></tr>').join('')
-  +'</table></div><div style="font-size:11.5px;color:var(--text3);margin-top:4px">Es el listado de <strong>Pagos de clientes</strong> de Odoo (account.payment) exportado con las líneas de cheques. La primera fila son los títulos. Si un recibo tiene varios cheques, cada cheque va en una fila abajo, con las columnas A–G vacías.</div>';
+  +'</table></div><div style="font-size:11.5px;color:var(--text3);margin-top:4px">Es el listado de <strong>Pagos de clientes</strong> de Odoo (account.payment) exportado con las líneas de cheques. La primera fila son los títulos. Si un recibo tiene varios cheques, cada cheque va en una fila abajo, con las columnas A–G vacías. Las filas con Diario <em>Multiple payments</em> se saltean: son el total de un recibo pagado con varias formas, cuyas partes (1), (2)… ya vienen aparte.</div>';
 
 // --- Subida con vista previa ---
 document.getElementById('cu-btn-upload').addEventListener('click',()=>document.getElementById('cu-file-input').click());
@@ -4887,8 +4973,8 @@ const PLEGADOS_DEF={'obj-vend-wrap':true,'obj-cfg-vend':true};
 function plegado(id){try{const v=localStorage.getItem('pleg_'+id);return v===null?!!PLEGADOS_DEF[id]:v==='1';}catch(_){return !!PLEGADOS_DEF[id];}}
 function setPlegado(id,v){try{localStorage.setItem('pleg_'+id,v?'1':'0');}catch(_){}}
 function aplicarPlegados(){
-  const w=document.getElementById('obj-vend-wrap');if(w)w.style.display=plegado('obj-vend-wrap')?'none':'';
-  document.querySelectorAll('.plegable .pleg-ic').forEach(ic=>{const id=ic.closest('.plegable').dataset.plegar;ic.textContent=plegado(id)?'▸ ver por vendedor':'▾ ocultar';});
+  ['obj-vend-wrap','obj-hist-body'].forEach(id=>{const w=document.getElementById(id);if(w)w.style.display=plegado(id)?'none':'';});
+  document.querySelectorAll('.plegable .pleg-ic').forEach(ic=>{const id=ic.closest('.plegable').dataset.plegar;ic.textContent=plegado(id)?(id==='obj-vend-wrap'?'▸ ver por vendedor':'▸ ver'):'▾ ocultar';});
 }
 document.addEventListener('click',e=>{
   const b=e.target.closest&&e.target.closest('[data-plegar]');if(!b)return;
@@ -4931,7 +5017,7 @@ function explicarObjetivos(X){
   const porTB={},porTO={};TRAMOS_ORDEN.forEach(t=>{porTB[t]=0;porTO[t]=0;});
   Object.entries(base.porVT).forEach(([v,st])=>{const o=objetivoVendedor(cfg,v,st);TRAMOS_ORDEN.forEach(t=>{porTB[t]+=st[t]||0;porTO[t]+=o.porTramo[t]||0;});});
   const nInd=Object.keys(cfg.vendedores||{}).length;
-  const objHtml='<p>Se parte de la <strong>cartera de la foto</strong> ('+(foto?'del '+fmtFecha(foto.fecha_foto):'de hoy, provisoria')+') separada por tipo de deudor, y a cada parte se le aplica el % de cobro esperado:</p>'
+  const objHtml='<p>Se parte de la <strong>cartera de la foto</strong> ('+(foto?'del '+fmtFecha(foto.fecha_foto):'de hoy, provisoria')+') separada por tipo de deudor'+(X.cancel?' <strong>factura por factura</strong> (cada factura según su propio vencimiento)':' (por cliente, según su factura más vieja)')+', y a cada parte se le aplica el % de cobro esperado:</p>'
     +TRAMOS_ORDEN.map(t=>cRow(TRAMO_LBL[t]+': '+fmtN(porTB[t])+' × '+pctGeneral(cfg,t)+'%',fmtN(porTO[t]))).join('')
     +cRow('Objetivo del mes',fmtN(objetivoTotal),'calc-tot')
     +(nInd?'<p class="calc-nota">'+nInd+' vendedor'+(nInd!==1?'es tienen':' tiene')+' % individual: en esos casos se usa su %, por eso el resultado por tramo puede no coincidir exacto con el % general.</p>':'')
@@ -4964,10 +5050,14 @@ function explicarObjetivos(X){
     +cRow('Compromisos de pago cargados para esta semana ('+comp[0]+')',fmtN(comp[1]))
     +cRow('A cobrar esta semana',fmtN(venc[1]+comp[1]),'calc-tot')
     +'<p class="calc-nota">Si un cliente tiene un compromiso de pago cargado en su gestión, se usa la fecha y el monto del compromiso en lugar de sus facturas. Lo que vence sábado o domingo se pasa al lunes. <strong>No incluye</strong> la deuda que ya estaba vencida antes del lunes ni lo ya cobrado.</p>';
-  setCalc(cardDe('obj-m-objetivo'),objHtml);setCalc(cardDe('obj-m-cobrado'),cobHtml);setCalc(cardDe('obj-m-semana'),semHtml);setCalc(cardDe('obj-m-proyectado'),proHtml);
+  const cobFinal=X.cancel?'<p>Facturas que estaban en la <strong>foto del '+fmtFecha(foto.fecha_foto)+'</strong> y que hoy <strong>ya no están en Cartera o bajaron su saldo</strong>. Lo que bajó cuenta como cancelado, en el tipo de deudor de esa factura:</p>'
+    +TRAMOS_ORDEN.map(t=>cRow(TRAMO_LBL[t],fmtN(X.cancel.porT[t]))).join('')+cRow('Cancelado de la foto',fmtN(X.cancel.total),'calc-tot')
+    +cRow('% cumplido = '+fmtN(X.cancel.total)+' ÷ '+fmtN(objetivoTotal),pctMes+'%')
+    +'<p class="calc-nota">Depende de que la cartera esté actualizada (Actualizar con el Excel de Odoo). No incluye cobros de facturas emitidas después de la foto. Una nota de crédito aplicada a una factura también la baja. Recibos cobrados en el mes, como referencia: '+fmtN(X.recibosMesTotal)+'.</p>':cobHtml;
+  setCalc(cardDe('obj-m-objetivo'),objHtml);setCalc(cardDe('obj-m-cobrado'),cobFinal);setCalc(cardDe('obj-m-semana'),semHtml);setCalc(cardDe('obj-m-proyectado'),proHtml);
   setCalc(document.getElementById('obj-hero-objetivo').parentElement,objHtml);
-  setCalc(document.getElementById('obj-hero-cobrado').parentElement,cobHtml);
-  setCalc(document.getElementById('obj-hero-pct').parentElement,'<p>Cuánto del objetivo del mes ya se cobró.</p>'+cRow(fmtN(cobradoMesTotal)+' ÷ '+fmtN(objetivoTotal),pctMes+'%','calc-tot')+'<p class="calc-nota">Verde desde 100%, amarillo desde 60%, rojo por debajo.</p>');
+  setCalc(document.getElementById('obj-hero-cobrado').parentElement,cobFinal);
+  setCalc(document.getElementById('obj-hero-pct').parentElement,'<p>Cuánto del objetivo del mes ya se '+(X.cancel?'canceló (facturas de la foto)':'cobró')+'.</p>'+cRow(fmtN(cobradoMesTotal)+' ÷ '+fmtN(objetivoTotal),pctMes+'%','calc-tot')+'<p class="calc-nota">Verde desde 100%, amarillo desde 60%, rojo por debajo.</p>');
   const hs=document.getElementById('obj-hero-semanal');hs.classList.add('calc-lbl-wrap');setCalc(hs,semHtml);if(!hs.querySelector('.calc-ic'))hs.insertAdjacentHTML('beforeend',' <i class="ti ti-info-circle calc-ic"></i>');
 }
 // --- Cartera y Cumplimiento (definiciones fijas) ---
@@ -4989,7 +5079,384 @@ function explicarFijos(){
 }
 explicarFijos();
 
+// ===================== OBJETIVO Y CUMPLIMIENTO POR FACTURA =====================
+// La foto guarda cada factura (fc: [cliente, vendedor, número, empresa, vencimiento, saldo]).
+// Cada factura cae en su tipo de deudor según SU vencimiento a la fecha de la foto.
+// Cancelado = saldo de la factura en la foto − saldo que tiene hoy en Cartera (0 si ya no está).
+function tramoFactura(vto,ref){if(!vto||vto==='-')return 'Preventivo';const d=Math.round((new Date(ref+'T00:00:00')-new Date(vto+'T00:00:00'))/86400000);return isNaN(d)?'Preventivo':tramo(d);}
+function fcDesdeCliente(c,v){return (c.facturas||[]).filter(f=>(f.monto||0)>0).map(f=>[c.nombre,v,String(f.num||'').trim(),f.emp||c.empresa||'',f.vto||'',Math.round((f.monto||0)*100)/100]);}
+function mapaFacturasHoy(){const m={},porNum={};clientes.forEach(c=>(c.facturas||[]).forEach(f=>{const n=String(f.num||'').trim();if(!n)return;const k=normCli(c.nombre)+'|'+n;m[k]=(m[k]||0)+(f.monto||0);porNum[n]=(porNum[n]||0)+(f.monto||0);}));return{m,porNum};}
+let carteraActualizada=null;
+async function loadCarteraActualizada(){try{const r=await fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE_OBJ+'?id=eq.cartera_actualizada&select=valor',{headers:SUPABASE_HEADERS});const rows=await r.json();carteraActualizada=(rows&&rows[0]&&rows[0].valor)||null;}catch(_){}return carteraActualizada;}
+async function marcarCarteraActualizada(){try{await fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE_OBJ+'?on_conflict=id',{method:'POST',headers:{...SUPABASE_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:'cartera_actualizada',valor:{ts:new Date().toISOString(),por:currentUser?currentUser.nombre:''},updated_at:new Date().toISOString()})});}catch(_){}}
+function canceladoFoto(foto){
+  const{m,porNum}=mapaFacturasHoy();
+  const porV={},porVT={},porT=ceroTramos();let total=0;const filas=[];
+  (foto.fc||[]).forEach(([cli,v,num,emp,vto,monto])=>{
+    const t=tramoFactura(vto,foto.fecha_foto);
+    let resto;if(!num)resto=monto;else{const k=normCli(cli)+'|'+num;resto=m[k]!==undefined?m[k]:(porNum[num]!==undefined?porNum[num]:0);}
+    resto=Math.min(resto,monto);const canc=Math.max(0,monto-resto);
+    filas.push({cli,v,num,emp,vto,t,monto,resto,canc});
+    if(!veVendedor(v))return;
+    porV[v]=(porV[v]||0)+canc;(porVT[v]=porVT[v]||ceroTramos())[t]+=canc;porT[t]+=canc;total+=canc;
+  });
+  return{porV,porVT,porT,total,filas};
+}
+function renderCumplTramo(cfg,base,cancel,foto){
+  const el=document.getElementById('obj-cumpl-tramo');if(!el)return;
+  if(!foto){el.innerHTML='';el.style.display='none';return;}
+  el.style.display='';
+  if(!cancel){
+    el.innerHTML='<h3>Cumplimiento por tipo de deudor</h3><div class="cump-banner" style="background:var(--orange-bg);border-color:#3a2510;margin:0"><i class="ti ti-alert-triangle" style="color:var(--orange)"></i><div>La foto de '+escH(nombreMesObj(objMesActual))+' no tiene el detalle de facturas, así que no se puede saber qué tipo de deuda se canceló. '+(puedeEditarObj()?'Volvé a cargarla con <strong>Cargar foto desde Excel</strong> (el mismo archivo del primer día hábil) y queda medido factura por factura.':'Pedile a administración que la vuelva a cargar desde Excel.')+'</div></div>';
+    return;
+  }
+  const porTB=ceroTramos(),porTO=ceroTramos();
+  Object.entries(base.porVT).forEach(([v,st])=>{const o=objetivoVendedor(cfg,v,st);TRAMOS_ORDEN.forEach(t=>{porTB[t]+=st[t]||0;porTO[t]+=o.porTramo[t]||0;});});
+  const nF=cancel.filas.filter(f=>veVendedor(f.v)),nCanc=nF.filter(f=>f.canc>0).length,nTot=nF.filter(f=>f.resto<=0.5&&f.canc>0).length;
+  const cart=carteraActualizada&&carteraActualizada.ts?new Date(carteraActualizada.ts).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):null;
+  const fila=(lbl,col,b,o,c,cls)=>{const p=o?Math.round(c/o*100):0;const pc=p>=100?'p-bajo':(p>=60?'p-med':'p-alto');
+    return '<tr'+(cls?' class="'+cls+'"':'')+'><td style="font-weight:700;color:'+col+'">'+lbl+'</td><td style="text-align:right">'+fmtN(b)+'</td><td style="text-align:right" class="amount">'+fmtN(o)+'</td><td style="text-align:right;color:var(--green);font-weight:700">'+fmtN(c)+'</td><td style="text-align:right">'+(b?Math.round(c/b*100):0)+'%</td><td style="text-align:center" class="dias-plazo '+pc+'">'+p+'%</td><td style="text-align:right;color:'+(o-c>0?'var(--red)':'var(--green)')+'">'+(o-c>0?fmtN(o-c):'cumplido')+'</td></tr>';};
+  const totB=TRAMOS_ORDEN.reduce((s,t)=>s+porTB[t],0),totO=TRAMOS_ORDEN.reduce((s,t)=>s+porTO[t],0);
+  el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap"><h3 style="margin:0">Cumplimiento por tipo de deudor <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--text3)">· facturas de la foto canceladas</span></h3>'
+    +'<button class="btn" id="btn-fc-canceladas"><i class="ti ti-file-spreadsheet"></i> Descargar facturas cobradas (Excel)</button></div>'
+    +'<div style="font-size:12px;color:var(--text3);margin:6px 0 10px">Se compara cada factura de la foto del '+fmtFecha(foto.fecha_foto)+' con la cartera '+(cart?'cargada el <strong style="color:var(--text2)">'+cart+'</strong>':'actual')+': si ya no está o bajó su saldo, lo que bajó cuenta como cancelado en el tipo de deudor de esa factura. '+nCanc+' facturas con pagos ('+nTot+' canceladas completas). <strong style="color:var(--text2)">Para que esté al día, actualizá la cartera con el Excel de Odoo.</strong></div>'
+    +'<div class="table-scroll"><table class="obj-cfg" style="min-width:720px"><thead><tr><th>Tipo de deudor</th><th style="text-align:right">Deuda en la foto</th><th style="text-align:right">Objetivo</th><th style="text-align:right">Cancelado</th><th style="text-align:right">% de la deuda</th><th style="text-align:center">% del objetivo</th><th style="text-align:right">Falta</th></tr></thead><tbody>'
+    +TRAMOS_ORDEN.map(t=>fila(TRAMO_LBL[t],tramoColor[t],porTB[t],porTO[t],cancel.porT[t])).join('')
+    +fila('Total','var(--yellow2)',totB,totO,cancel.total,'obj-cfg-gen')+'</tbody></table></div>';
+  document.getElementById('btn-fc-canceladas').onclick=()=>descargarFacturasCanceladas(cfg,base,cancel,foto);
+}
+function descargarFacturasCanceladas(cfg,base,cancel,foto){
+  const est=f=>f.canc<=0?'Pendiente':(f.resto<=0.5?'Cancelada':'Pago parcial');
+  const filas=cancel.filas.filter(f=>veVendedor(f.v)).sort((a,b)=>b.canc-a.canc||String(a.cli).localeCompare(String(b.cli)));
+  const ref=new Date(foto.fecha_foto+'T00:00:00');
+  const fac=[['Cliente','Vendedor','Empresa','Factura','Vencimiento','Días vencida al '+fmtFecha(foto.fecha_foto),'Tipo de deudor','Saldo en la foto','Saldo hoy','Cancelado','Estado']]
+    .concat(filas.map(f=>{const okV=/^\d{4}-\d{2}-\d{2}$/.test(f.vto||'');return[f.cli,f.v,f.emp,f.num,okV?fmtFecha(f.vto):'',okV?Math.round((ref-new Date(f.vto+'T00:00:00'))/86400000):'',f.t,Math.round(f.monto*100)/100,Math.round(f.resto*100)/100,Math.round(f.canc*100)/100,est(f)];}));
+  const res=[['Vendedor','Tipo de deudor','Deuda en la foto','% esperado','Objetivo','Cancelado','% cumplimiento']];
+  Object.keys(base.porVT).sort().forEach(v=>{const st=base.porVT[v];const o=objetivoVendedor(cfg,v,st);TRAMOS_ORDEN.forEach(t=>{if(!st[t])return;const c=(cancel.porVT[v]||{})[t]||0;res.push([v,t,Math.round(st[t]),pctVend(cfg,v,t),Math.round(o.porTramo[t]),Math.round(c),o.porTramo[t]?Math.round(c/o.porTramo[t]*100)/100:'']);});});
+  const wb=XLSX.utils.book_new();
+  const ws1=XLSX.utils.aoa_to_sheet(fac);ws1['!cols']=[{wch:34},{wch:20},{wch:12},{wch:22},{wch:12},{wch:10},{wch:14},{wch:14},{wch:14},{wch:14},{wch:13}];ws1['!autofilter']={ref:'A1:K'+fac.length};
+  const ws2=XLSX.utils.aoa_to_sheet(res);ws2['!cols']=[{wch:24},{wch:16},{wch:16},{wch:10},{wch:16},{wch:16},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,ws1,'Facturas');XLSX.utils.book_append_sheet(wb,ws2,'Resumen por vendedor');
+  XLSX.writeFile(wb,'facturas_cobradas_'+objMesActual+'_al_'+hoyISO()+'.xlsx');
+  showToast('Excel descargado ✓');
+}
+
 // ===================== AYUDA / INSTRUCTIVO =====================
+// ===================== PLAZO REAL DE PAGO (factura → dinero disponible) — oct-2026 =====================
+// Se carga por empresa con 2 Excel de Odoo juntos:
+//  1) Facturas con recibos (account.move "explotado"): Estado en pago, Fecha de la factura, Fecha de vencimiento,
+//     Fecha del Recibo, Importe sin impuestos, Nombre del contacto, Número, Pagos conciliados, Total en divisa firmado.
+//     Una fila por factura y filas de continuación (solo "Pagos conciliados") cuando tiene más de un recibo.
+//  2) Pagos con cheques (account.payment, columnas A–L): Fecha, Número, Diario, Cantidad, Cliente, Estado, Total,
+//     Cheques/Fecha de Pago, Cheques/Número, Cheques/Banco, Cheques/Importe, Líneas conciliadas/Asiento contable.
+// Se guarda en objetivos_cobranza id plazo_real_<Empresa> = {empresa,archivos,cargado,por,f:[[num,cli,A,B,total,est,C,D,C1,nrec]]}
+//   A=emisión B=vencimiento C=último recibo C1=primer recibo D=dinero disponible (cheques ponderados por importe)
+const PR_EMPRESAS=['SPL','Spotsline'];
+const PR_EXCLUIR_ESTADO=/revertid|cancelad|borrador/i;
+let prCache={},prCargado=false,prCargando=null,prPend=null,prVentana='6',prVerTodos=false;
+const prISO=d=>{if(!d)return null;const x=d instanceof Date?d:excelDateToJS(d);return x&&!isNaN(x)?isoLocal(x):null;};
+const prDias=(a,b)=>Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);
+const prSumaDias=(iso,n)=>{const d=new Date(iso+'T00:00:00');d.setDate(d.getDate()+n);return isoLocal(d);};
+function prTipo(num){return /^0001\//.test(num)?'AJ':'Oficial';}
+function prEsInterco(cli){return PAGOS_INTERCO.has(String(cli||'').trim().toUpperCase());}
+
+async function prLoad(force){
+  if(prCargado&&!force)return prCache;
+  if(prCargando&&!force)return prCargando;
+  prCargando=(async()=>{
+    try{
+      const r=await fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE_OBJ+'?id=in.(plazo_real_SPL,plazo_real_Spotsline)&select=id,valor',{headers:SUPABASE_HEADERS});
+      const rows=await r.json();prCache={};
+      (rows||[]).forEach(x=>{if(x.valor&&x.valor.f)prCache[x.valor.empresa||x.id.replace('plazo_real_','')]=x.valor;});
+      prCargado=true;
+    }catch(e){console.error('Plazo real:',e);}
+    prCargando=null;return prCache;
+  })();
+  return prCargando;
+}
+async function prGuardar(emp,valor){
+  const r=await fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE_OBJ+'?on_conflict=id',{method:'POST',headers:{...SUPABASE_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify({id:'plazo_real_'+emp,valor,updated_at:new Date().toISOString()})});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+}
+
+// --- Detección y lectura de los Excel ---
+function prTipoArchivo(rows){
+  const h=(rows[0]||[]).map(x=>normTxt(x).trim());
+  if(h.some(t=>t==='pagos conciliados')&&h.some(t=>t.startsWith('fecha de vencimiento')))return'facturas';
+  if(h.some(t=>t.startsWith('cheques/fecha'))||(h[0]==='fecha'&&h[1]&&h[1].startsWith('numero')&&rows[0].length>=11))return'pagos';
+  return null;
+}
+function prLeerFacturas(rows){
+  const h=rows[0].map(x=>normTxt(x).trim());const ix=(...ps)=>h.findIndex(t=>ps.some(p=>p instanceof RegExp?p.test(t):t===p));
+  const c={est:ix('estado en pago'),A:ix('fecha de la factura'),B:ix('fecha de vencimiento'),C1:ix('fecha del recibo'),cli:ix(/^nombre del contacto/,'cliente'),
+    num:ix('numero'),rec:ix('pagos conciliados'),tot:ix('total en divisa firmado',/^total/)};
+  if([c.est,c.A,c.B,c.cli,c.num,c.rec,c.tot].some(i=>i<0))throw new Error('Al Excel de facturas le faltan columnas (Estado en pago, Fecha de la factura, Fecha de vencimiento, Nombre del contacto, Número, Pagos conciliados, Total).');
+  const fac=[];let cur=null;
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r];const num=String(row[c.num]||'').trim();const rec=String(row[c.rec]||'').trim();
+    if(num){
+      cur={num,cli:String(row[c.cli]||'').trim(),A:prISO(row[c.A]),B:prISO(row[c.B]),C1:c.C1>=0?prISO(row[c.C1]):null,
+        tot:parseFloat(row[c.tot])||0,estTxt:String(row[c.est]||'').trim(),recs:new Set()};
+      fac.push(cur);if(rec)cur.recs.add(rec);
+    }else if(cur&&rec)cur.recs.add(rec);
+  }
+  return fac;
+}
+function prLeerPagos(rows){
+  // posicional A–L (mismo formato que "Sumar recibos nuevos", con la columna L de facturas conciliadas)
+  const partes={};const empCont={};let cur=null;let nMult=0,nInter=0;
+  for(let r=1;r<rows.length;r++){
+    const [fecha,num,diario,cant,cliente,estado,total,chqF,chqN,chqB,chqI,linea]=rows[r];
+    if(num){
+      const n=String(num).trim();const d=String(diario||'');
+      if(/^multiple payments/i.test(d.trim())){cur={skip:true};nMult++;continue;} // es el total del recibo: sus partes ya vienen aparte
+      const f=prISO(fecha);if(!f){cur={skip:true};continue;}
+      const emp=empresaFromDiario(d);empCont[emp]=(empCont[emp]||0)+1;
+      cur={num:n,f,emp,cli:String(cliente||'').trim(),m:parseFloat(cant)||parseFloat(total)||0,cheq:[],fac:new Set(),met:simplifyMetodoPago(d)};
+      if(prEsInterco(cur.cli))nInter++;
+      partes[n]=cur;
+    }
+    if(!cur||cur.skip)continue;
+    if(chqF){const d=prISO(chqF);const y=d?+d.slice(0,4):0;if(d&&y>=2023&&y<=2028)cur.cheq.push({f:d<cur.f?cur.f:d,m:parseFloat(chqI)||0});}
+    if(linea)cur.fac.add(String(linea).trim());
+  }
+  // fecha en que el dinero está disponible: cheques ponderados por importe; lo que no es cheque, la fecha del recibo
+  Object.values(partes).forEach(p=>{
+    const mCh=p.cheq.reduce((s,x)=>s+x.m,0);
+    if(!mCh){p.D=p.f;return;}
+    const base=Math.max(p.m,mCh);const resto=Math.max(0,base-mCh);
+    const prom=(p.cheq.reduce((s,x)=>s+prDias(p.f,x.f)*x.m,0))/(mCh+resto);
+    p.D=prSumaDias(p.f,Math.round(prom));p.Dmax=p.cheq.reduce((mx,x)=>x.f>mx?x.f:mx,p.f);
+  });
+  const emp=Object.entries(empCont).sort((a,b)=>b[1]-a[1])[0];
+  return{partes,empresa:emp?emp[0]:'?',nMult,nInter};
+}
+function prArmar(facs,pag){
+  // facturas conciliadas por recibo (columna L) → completa las que vienen sin "Pagos conciliados"
+  const porFac={};Object.values(pag.partes).forEach(p=>p.fac.forEach(n=>{(porFac[n]=porFac[n]||new Set()).add(p.num);}));
+  const out=[];let excl=0,sinD=0,conRec=0,encontrados=0,totRecs=0;
+  facs.forEach(x=>{
+    if(PR_EXCLUIR_ESTADO.test(x.estTxt)||!x.A||!(x.tot>0)){excl++;return;}
+    (porFac[x.num]||[]).forEach(n=>x.recs.add(n));
+    const est=/parcial/i.test(x.estTxt)?'PP':(/pagado|proceso/i.test(x.estTxt)?'P':'S');
+    let C=null,D=null,C1=x.C1,faltaD=false;
+    x.recs.forEach(n=>{totRecs++;const p=pag.partes[n];if(!p){faltaD=true;return;}encontrados++;
+      if(!C||p.f>C)C=p.f;if(!C1||p.f<C1)C1=p.f;if(!D||p.D>D)D=p.D;});
+    if(est==='P'){
+      if(!C)C=x.C1||null;
+      if(faltaD||!D)D=null;
+      if(C)conRec++;if(C&&!D)sinD++;
+    }else{C=null;D=null;}
+    out.push([x.num,x.cli,x.A,x.B,Math.round(x.tot*100)/100,est,C,D,C1||null,x.recs.size]);
+  });
+  return{f:out,excl,sinD,conRec,cobertura:totRecs?encontrados/totRecs:0};
+}
+
+// --- Carga con vista previa ---
+function prAbrirCarga(){document.getElementById('pr-file-input').click();}
+async function prLeerArchivos(files){
+  const leidos=await Promise.all([...files].map(file=>new Promise((res)=>{const rd=new FileReader();rd.onload=ev=>{try{const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:'',cellDates:true});res({file:file.name,rows,tipo:prTipoArchivo(rows)});}catch(e){res({file:file.name,error:e.message});}};rd.readAsArrayBuffer(file);})));
+  const P={archivos:leidos.map(l=>l.file),errores:[]};
+  leidos.forEach(l=>{if(l.error)P.errores.push(l.file+': '+l.error);else if(!l.tipo)P.errores.push(l.file+': '+(l.rows&&l.rows[0]&&detectarColumnasPagos(l.rows[0])?'es el listado de Pagos sin las líneas de cheques. Exportalo con Cheques/Fecha de pago, Número, Banco, Importe y Líneas conciliadas (columnas A–L).':'no lo reconozco (no es el de facturas con recibos ni el de pagos con cheques).'));else P[l.tipo]=l;});
+  try{
+    if(P.facturas&&P.pagos){
+      const facs=prLeerFacturas(P.facturas.rows);const pag=prLeerPagos(P.pagos.rows);
+      const arm=prArmar(facs,pag);
+      Object.assign(P,{empresa:pag.empresa,nFac:facs.length,arm,pag});
+      if(!PR_EMPRESAS.includes(pag.empresa))P.errores.push('No pude saber de qué empresa son los pagos (la columna Diario tiene que decir SPL o SPOTSLINE).');
+      if(arm.cobertura<0.5)P.errores.push('Solo el '+Math.round(arm.cobertura*100)+'% de los recibos de las facturas aparecen en el Excel de pagos: ¿son de la misma empresa y del mismo período?');
+    }else if(!P.errores.length)P.errores.push('Subí los <strong>dos</strong> archivos juntos (facturas con recibos + pagos con cheques). Llegó solo: '+(P.facturas?'facturas':P.pagos?'pagos':'ninguno reconocido')+'.');
+  }catch(e){P.errores.push(e.message);}
+  prPend=P;prPintarPreview();document.getElementById('modal-pr-carga').classList.add('open');
+}
+function prPintarPreview(){
+  const P=prPend;const el=document.getElementById('pr-body');const ok=document.getElementById('pr-ok');
+  let h='<div style="font-size:12.5px;color:var(--text2);margin-bottom:8px">Archivos: '+P.archivos.map(escH).join(' · ')+'</div>';
+  if(P.arm){
+    const f=P.arm.f,cob=f.filter(x=>x[5]==='P');const fechas=f.map(x=>x[2]).sort();
+    const ya=prCache[P.empresa];
+    h+='<div class="tbl"><table class="obj-cfg" style="min-width:0;font-size:12.5px">'
+      +'<tr><td>Empresa</td><td><strong>'+escH(P.empresa)+'</strong>'+(ya?' <span style="color:var(--orange)">· reemplaza la carga del '+fmtFecha((ya.cargado||'').slice(0,10))+'</span>':'')+'</td></tr>'
+      +'<tr><td>Facturas</td><td>'+f.length+' (emitidas '+fmtFecha(fechas[0])+' al '+fmtFecha(fechas[fechas.length-1])+') · '+P.arm.excl+' descartadas (revertidas, canceladas o sin importe)</td></tr>'
+      +'<tr><td>Cobradas</td><td>'+cob.length+' · '+fmtN(cob.reduce((s,x)=>s+x[4],0))+'</td></tr>'
+      +'<tr><td>Con fecha de dinero disponible</td><td>'+(P.arm.conRec-P.arm.sinD)+' de '+P.arm.conRec+(P.arm.sinD?' <span style="color:var(--orange)">· '+P.arm.sinD+' con algún recibo que no está en el Excel de pagos (cuentan para el atraso, no para el plazo real)</span>':'')+'</td></tr>'
+      +'<tr><td>Recibos de pagos</td><td>'+Object.keys(P.pag.partes).length+' partes leídas · '+P.pag.nMult+' filas "Multiple payments" salteadas (son el total del recibo) · '+P.pag.nInter+' pagos entre empresas</td></tr>'
+      +'<tr><td>Oficial / AJ</td><td>'+f.filter(x=>prTipo(x[0])==='Oficial').length+' / '+f.filter(x=>prTipo(x[0])==='AJ').length+'</td></tr></table></div>';
+  }
+  if(P.errores.length)h+='<div class="cump-banner" style="background:var(--orange-bg);border-color:#3a2510;margin-top:10px"><i class="ti ti-alert-triangle" style="color:var(--orange)"></i><div>'+P.errores.join('<br>')+'</div></div>';
+  h+='<div style="font-size:11.5px;color:var(--text3);margin-top:10px;line-height:1.5">Cómo bajarlos de Odoo: <strong>1)</strong> Facturación › Facturas, agrupar nada, exportar Estado en pago, Fecha de la factura, Fecha de vencimiento, Fecha del recibo, Importe sin impuestos, Nombre del contacto, Número, Pagos conciliados y Total. <strong>2)</strong> Pagos de clientes con las líneas de Cheques (Fecha de pago, Número, Banco, Importe) y Líneas conciliadas/Asiento contable. Mismo período y una empresa por vez.</div>';
+  el.innerHTML=h;ok.disabled=!(P.arm&&!P.errores.some(e=>/empresa|dos/.test(e)));
+}
+async function prConfirmar(){
+  const P=prPend;if(!P||!P.arm)return;
+  const valor={empresa:P.empresa,archivos:P.archivos,cargado:new Date().toISOString(),por:currentUser?currentUser.nombre:'',f:P.arm.f};
+  try{await prGuardar(P.empresa,valor);prCache[P.empresa]=valor;showToast('Plazo real '+P.empresa+' guardado ✓');}
+  catch(e){showToast('No se pudo guardar: '+e.message);return;}
+  document.getElementById('modal-pr-carga').classList.remove('open');prPend=null;
+  renderPlazoReal();
+}
+
+// --- Cálculos ---
+function prFilas(){
+  const out=[];
+  Object.entries(prCache).forEach(([emp,v])=>(v.f||[]).forEach(r=>out.push({emp,num:r[0],cli:r[1],A:r[2],B:r[3],tot:r[4],est:r[5],C:r[6],D:r[7],C1:r[8],nrec:r[9],tipo:prTipo(r[0])})));
+  return out;
+}
+function prPond(lista,fn){let s=0,w=0;lista.forEach(x=>{const v=fn(x);if(v===null||v===undefined||isNaN(v))return;s+=v*x.tot;w+=x.tot;});return w?s/w:null;}
+function prMetricas(l){
+  const conD=l.filter(x=>x.D);
+  const enT=l.reduce((s,x)=>s+(x.C<=x.B?x.tot:0),0),tot=l.reduce((s,x)=>s+x.tot,0);
+  return{n:l.length,tot,otorgado:prPond(l,x=>prDias(x.A,x.B)),aRecibo:prPond(l,x=>prDias(x.A,x.C)),atraso:prPond(l,x=>prDias(x.B,x.C)),
+    cheque:prPond(conD,x=>prDias(x.C,x.D)),real:prPond(conD,x=>prDias(x.A,x.D)),realVto:prPond(conD,x=>prDias(x.B,x.D)),enTermino:tot?enT/tot:null,nD:conD.length,ult:l.reduce((m,x)=>x.C>m?x.C:m,'')};
+}
+function prCobradas(meses,emp,busca){
+  const desde=prSumaDias(hoyISO(),-Math.round(meses*30.4));
+  return prFilas().filter(x=>x.est==='P'&&x.C&&x.C>=desde&&x.C>=x.A&&!prEsInterco(x.cli)
+    &&(!emp||emp==='Ambas'||x.emp===emp)&&(!busca||normTxt(x.cli).includes(busca))&&veClienteCumpl(x.cli));
+}
+const prFmtD=v=>v===null||v===undefined?'—':(Math.round(v)+'d');
+const prFmtS=v=>v===null||v===undefined?'—':((v>0?'+':'')+Math.round(v)+'d');
+
+// --- Pantalla: Cumplimiento ---
+async function renderPlazoReal(){
+  const wrap=document.getElementById('pr-wrap');if(!wrap)return;
+  await prLoad();
+  const btn=document.getElementById('pr-btn-upload');if(btn)btn.style.display=puede('actualizar')?'':'none';
+  const info=PR_EMPRESAS.map(e=>prCache[e]?'<strong>'+e+'</strong> cargado el '+fmtFecha(prCache[e].cargado.slice(0,10))+' ('+prCache[e].f.length+' facturas)':'<span style="color:var(--orange)">'+e+': sin cargar</span>').join(' · ');
+  document.getElementById('pr-fuente').innerHTML=info;
+  if(!Object.keys(prCache).length){wrap.innerHTML='<div class="empty" style="padding:1.2rem"><i class="ti ti-file-upload"></i>Todavía no hay datos. '+(puede('actualizar')?'Tocá <strong>Cargar facturas + pagos</strong> y subí los dos Excel de Odoo de una empresa.':'Pedile a administración que cargue los Excel de facturas y pagos.')+'</div>';return;}
+  const emp=document.getElementById('cu-empresa-filter').value;const busca=normTxt(document.getElementById('cu-search').value||'').trim();
+  const meses=+prVentana;
+  const l=prCobradas(meses,emp,busca);const M=prMetricas(l);
+  const card=(id,lbl,val,sub,cls)=>'<div class="metric '+cls+'" id="'+id+'"><div class="metric-label">'+lbl+'</div><div class="metric-value">'+val+'</div><div class="metric-sub">'+sub+'</div></div>';
+  let h='<div class="metrics" style="margin-top:6px">'
+    +card('pr-k-real','Plazo real de pago',prFmtD(M.real),'factura → dinero disponible','m-all')
+    +card('pr-k-atraso','Atraso en pagar',prFmtS(M.atraso),'vencimiento → recibo','m-med')
+    +card('pr-k-cheque','Estiramiento con cheque',prFmtD(M.cheque),'recibo → cobro del cheque','m-temp')
+    +card('pr-k-term','Cobrado en término',M.enTermino===null?'—':Math.round(M.enTermino*100)+'%','recibo hasta el vencimiento','m-prev')
+    +card('pr-k-otorg','Plazo otorgado',prFmtD(M.otorgado),'factura → vencimiento','m-crit')
+    +'</div>';
+  // por cliente
+  const porC={};l.forEach(x=>{(porC[x.cli]=porC[x.cli]||[]).push(x);});
+  const l3=prCobradas(3,emp,busca);const porC3={};l3.forEach(x=>{(porC3[x.cli]=porC3[x.cli]||[]).push(x);});
+  const filas=Object.entries(porC).map(([c,xs])=>{const m=prMetricas(xs);const m3=porC3[c]?prMetricas(porC3[c]):null;
+    const emps=[...new Set(xs.map(x=>x.emp))];const aj=xs.filter(x=>x.tipo==='AJ').reduce((s,x)=>s+x.tot,0);
+    let tend='';if(meses>3&&m3&&m3.real!==null&&m.real!==null){const d=m3.real-m.real;tend=d<-3?'<span style="color:var(--green)">▼ mejora</span>':d>3?'<span style="color:var(--red)">▲ empeora</span>':'<span style="color:var(--text3)">= estable</span>';}
+    return{c,m,emp:emps.length>1?'Ambas':emps[0],aj,tend,tv:m3&&m.real!==null&&m3.real!==null?m3.real-m.real:0};}).sort((a,b)=>b.m.tot-a.m.tot);
+  const ver=prVerTodos?filas:filas.slice(0,40);
+  const cl=v=>v===null?'':(v>60?'p-alto':v>30?'p-med':'p-bajo');
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0">'
+    +'<div style="font-size:12px;color:var(--text3)">'+filas.length+' clientes · '+M.n+' facturas cobradas · '+fmtN(M.tot)+' · '+M.nD+' con fecha de dinero disponible. Promedios ponderados por importe. Sin pagos entre empresas.</div>'
+    +'<div style="display:flex;gap:6px"><button class="btn" id="pr-xls"><i class="ti ti-file-spreadsheet"></i> Excel detalle</button></div></div>'
+    +'<div class="table-scroll"><table id="pr-tabla"><thead><tr><th data-dsort="c">Cliente</th><th data-dsort="e">Empresa</th><th style="text-align:center" data-dsort="n" data-num>Facturas</th><th data-dsort="t" data-num>Cobrado</th>'
+    +'<th style="text-align:center" data-dsort="o" data-num title="Vencimiento − emisión">Plazo otorgado</th><th style="text-align:center" data-dsort="at" data-num title="Recibo − vencimiento. Negativo = pagó antes">Atraso</th>'
+    +'<th style="text-align:center" data-dsort="ch" data-num title="Cobro del cheque − recibo">Cheque</th><th style="text-align:center" data-dsort="r" data-num title="Dinero disponible − emisión">Plazo real</th>'
+    +'<th style="text-align:center" data-dsort="pt" data-num>% en término</th>'+(meses>3?'<th data-dsort="tv" data-num title="Plazo real de los últimos 3 meses contra la ventana elegida (±3 días = estable)">Tendencia</th>':'')+'<th data-dsort="u">Último pago</th></tr></thead><tbody>'
+    +ver.map(f=>{const m=f.m;return'<tr><td style="font-weight:600">'+escH(f.c)+(f.aj/f.m.tot>=0.01?' <span style="font-size:10.5px;color:var(--text3)" title="Parte cobrada en AJ (sin IVA)">AJ '+Math.round(f.aj/m.tot*100)+'%</span>':'')+'</td><td>'+empBadge(f.emp)+'</td>'
+      +'<td style="text-align:center">'+m.n+'</td><td class="amount" data-v="'+Math.round(m.tot)+'">'+fmtN(m.tot)+'</td>'
+      +'<td style="text-align:center" data-v="'+(m.otorgado??'')+'">'+prFmtD(m.otorgado)+'</td><td style="text-align:center;color:'+(m.atraso>0?'var(--red)':'var(--green)')+'" data-v="'+(m.atraso??'')+'">'+prFmtS(m.atraso)+'</td>'
+      +'<td style="text-align:center" data-v="'+(m.cheque??'')+'">'+prFmtD(m.cheque)+'</td><td style="text-align:center" class="dias-plazo '+cl(m.real)+'" data-v="'+(m.real??'')+'">'+prFmtD(m.real)+'</td>'
+      +'<td style="text-align:center" data-v="'+(m.enTermino??'')+'">'+(m.enTermino===null?'—':Math.round(m.enTermino*100)+'%')+'</td>'+(meses>3?'<td data-v="'+f.tv+'">'+f.tend+'</td>':'')+'<td style="color:var(--text3);font-size:12px" data-v="'+m.ult+'">'+fmtFecha(m.ult)+'</td></tr>';}).join('')
+    +'</tbody></table></div>'
+    +(filas.length>40?'<div style="text-align:center;margin-top:8px"><button class="btn" id="pr-vertodos">'+(prVerTodos?'Ver solo los 40 que más pagaron':'Ver los '+filas.length+' clientes')+'</button></div>':'');
+  wrap.innerHTML=h;
+  aplicarOrdenDom('pr-tabla');
+  const vt=document.getElementById('pr-vertodos');if(vt)vt.onclick=()=>{prVerTodos=!prVerTodos;renderPlazoReal();};
+  document.getElementById('pr-xls').onclick=()=>prDescargar(l);
+  const ej='<div style="margin-top:6px;color:var(--text3)">Ventana: facturas con último recibo en los últimos '+meses+' meses. Cada factura pesa según su importe.</div>';
+  setCalc('pr-k-real','<div>Para cada factura cobrada: <strong>fecha en que el dinero está disponible − fecha de la factura</strong>.</div><div style="margin-top:6px">Dinero disponible: efectivo y transferencia = fecha del recibo; cheques = fecha de cobro de cada cheque, ponderada por su importe. Si la factura tuvo varios recibos se toma el último.</div>'+cRow('Facturas con el dato',M.nD+' de '+M.n)+cRow('Promedio',prFmtD(M.real),'calc-tot')+ej);
+  setCalc('pr-k-atraso','<div><strong>Fecha del recibo − vencimiento</strong> de cada factura. Negativo = pagó antes de que venza.</div>'+cRow('Facturas',M.n)+cRow('Promedio',prFmtS(M.atraso),'calc-tot')+ej);
+  setCalc('pr-k-cheque','<div><strong>Cobro de los cheques − fecha del recibo</strong> (solo facturas con fecha de dinero disponible; si se pagó en efectivo o transferencia da 0).</div>'+cRow('Promedio',prFmtD(M.cheque),'calc-tot')+cRow('Plazo real = a recibo + cheque',prFmtD(M.aRecibo)+' + '+prFmtD(M.cheque))+ej);
+  setCalc('pr-k-term','<div>Importe de facturas cuyo último recibo es <strong>hasta el día del vencimiento</strong>, sobre el total cobrado.</div>'+cRow('Total cobrado',fmtN(M.tot))+cRow('En término',M.enTermino===null?'—':Math.round(M.enTermino*100)+'%','calc-tot')+ej);
+  setCalc('pr-k-otorg','<div><strong>Vencimiento − fecha de la factura</strong>: el plazo que se le dio al cliente.</div>'+cRow('Promedio',prFmtD(M.otorgado),'calc-tot')+cRow('Plazo real − otorgado',M.real!==null&&M.otorgado!==null?prFmtS(M.real-M.otorgado):'—')+ej);
+}
+function prDescargar(l){
+  const aoa=[['Cliente','Empresa','Tipo','Factura','Emisión (A)','Vencimiento (B)','Último recibo (C)','Dinero disponible (D)','Total','Plazo otorgado (B−A)','Atraso (C−B)','Cheque (D−C)','Plazo real (D−A)','Recibos']];
+  l.slice().sort((a,b)=>a.cli.localeCompare(b.cli)||a.A.localeCompare(b.A)).forEach(x=>aoa.push([x.cli,x.emp,x.tipo,x.num,x.A,x.B,x.C,x.D||'',x.tot,prDias(x.A,x.B),prDias(x.B,x.C),x.D?prDias(x.C,x.D):'',x.D?prDias(x.A,x.D):'',x.nrec]));
+  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(aoa),'Plazo real');
+  XLSX.writeFile(wb,'plazo_real_pago_'+hoyISO()+'.xlsx');
+}
+
+// --- Objetivos: indicador de meses anteriores + gestión judicial ---
+function prHistorico(mesKey,n){
+  const filas=prFilas().filter(x=>!prEsInterco(x.cli)&&veClienteCumpl(x.cli));
+  const res=[];let [y,m]=mesKey.split('-').map(Number);
+  for(let i=0;i<n;i++){
+    m--;if(m<1){m=12;y--;}
+    const k=y+'-'+String(m).padStart(2,'0');const d0=k+'-01';const d1=isoLocal(new Date(y,m,0));
+    const porT={};TRAMOS_ORDEN.forEach(t=>porT[t]={s:0,c:0,n:0});
+    filas.forEach(x=>{
+      if(x.A>=d0)return;                 // emitida después del 1°
+      if(x.est==='P'&&x.C&&x.C<d0)return; // ya estaba cancelada
+      const t=tramo(x.B?prDias(x.B,d0):0);const o=porT[t];o.s+=x.tot;o.n++;
+      if(x.est==='P'&&x.C&&x.C<=d1)o.c+=x.tot;
+    });
+    res.unshift({k,porT});
+  }
+  return res;
+}
+const PR_JUDICIAL=/judicial|juicio|abogad|legal|carta documento|mediaci[oó]n|demanda|estudio jur|embargo|concurso|quiebra/i;
+function prClientesJudiciales(){
+  const out={};
+  const rev=(nombre,g)=>{if(!g)return;const txt=(g.nota||'')+' '+JSON.stringify(g.historial||[]);const mt=txt.match(PR_JUDICIAL);if(!mt)return;
+    const i=normTxt(txt).indexOf(normTxt(mt[0]));const ini=Math.max(0,i-50);
+    out[normCli(nombre)]={nombre,frag:(ini>0?'…':'')+txt.slice(ini,i+90).replace(/["{}\[\]]/g,' ').replace(/\s+/g,' ').trim()+'…'};};
+  Object.entries(gestiones||{}).forEach(([i,g])=>{const c=clientes[i];if(c)rev(c.nombre,g);});
+  Object.entries(gestionesPorNombre||{}).forEach(([n,g])=>{if(!out[normCli(n)])rev(n,g);});
+  return out;
+}
+async function renderHistTramo(cfg,foto){
+  const el=document.getElementById('obj-hist-tramo');if(!el)return;
+  await prLoad();
+  const jud=prClientesJudiciales();
+  let h='<div class="section-title plegable" data-plegar="obj-hist-body" style="cursor:pointer;margin-top:0">INDICADOR: CÓMO SE COBRÓ EN MESES ANTERIORES <span class="pleg-ic" style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--text3)"></span></div><div id="obj-hist-body">';
+  if(!Object.keys(prCache).length){
+    h+='<div style="font-size:12.5px;color:var(--text3)">Se arma con los Excel de facturas + pagos que se cargan en <strong>Cumplimiento › Plazo real de pago</strong>. Todavía no hay ninguno cargado.</div>';
+  }else{
+    const H=prHistorico(objMesActual,3);
+    const emps=Object.keys(prCache).join(' y ');
+    h+='<div style="font-size:12px;color:var(--text3);margin-bottom:8px">De la deuda que había el 1° de cada mes, qué % se canceló en ese mes (por factura, con fecha del recibo). Datos de '+escH(emps)+'. Es una referencia: no cambia el objetivo.</div><div class="metrics" style="margin:0">';
+    TRAMOS_ORDEN.forEach(t=>{
+      const ps=H.map(x=>x.porT[t].s?x.porT[t].c/x.porT[t].s:null);const val=ps.filter(p=>p!==null);
+      const prom=val.length?val.reduce((s,p)=>s+p,0)/val.length:null;
+      const ult=ps[ps.length-1],ant=ps[ps.length-2];
+      const fl=ult!==null&&ant!==null&&ant!==undefined?(ult-ant>0.03?'<span style="color:var(--green)">▲</span>':ult-ant<-0.03?'<span style="color:var(--red)">▼</span>':'<span style="color:var(--text3)">=</span>'):'';
+      const obj=cfg?pctGeneral(cfg,t):null;
+      const barras='<div style="display:flex;gap:4px;align-items:flex-end;height:34px;margin-top:6px">'+ps.map((p,i)=>'<div title="'+nombreMesObj(H[i].k)+': '+(p===null?'sin datos':Math.round(p*100)+'%')+'" style="flex:1;background:'+tramoColor[t]+';opacity:'+(i===ps.length-1?1:.55)+';height:'+Math.max(2,Math.round((p||0)*34))+'px;border-radius:2px"></div>').join('')+'</div>'
+        +'<div style="display:flex;gap:4px;font-size:10px;color:var(--text3)">'+H.map((x,i)=>'<span style="flex:1;text-align:center">'+nombreMesObj(x.k).slice(0,3)+' '+(ps[i]===null?'—':Math.round(ps[i]*100)+'%')+'</span>').join('')+'</div>';
+      h+='<div class="metric" id="obj-hist-'+t.replace(/\s/g,'-')+'" style="border-left:3px solid '+tramoColor[t]+'"><div class="metric-label">'+TRAMO_LBL[t]+'</div><div class="metric-value">'+(prom===null?'—':Math.round(prom*100)+'%')+' '+fl+'</div><div class="metric-sub">promedio 3 meses'+(obj!==null?' · objetivo '+Math.round(obj)+'%':'')+'</div>'+barras+'</div>';
+    });
+    h+='</div>';
+  }
+  // gestión judicial (solo aclaración: la deuda sigue contando en el objetivo)
+  const deudaFoto={};(foto&&foto.fc||[]).forEach(([cli,v,num,emp,vto,monto])=>{if(!veVendedor(v))return;const k=normCli(cli);const o=deudaFoto[k]=deudaFoto[k]||{m:0,v,crit:0};o.m+=monto;if(tramoFactura(vto,foto.fecha_foto)==='Mora crítica')o.crit+=monto;});
+  const jl=Object.entries(jud).map(([k,j])=>({...j,d:deudaFoto[k]})).filter(j=>j.d&&j.d.m>0).sort((a,b)=>b.d.m-a.d.m);
+  h+='<div style="margin-top:14px"><div style="font-weight:700;font-size:13px;margin-bottom:4px"><i class="ti ti-gavel" style="vertical-align:-2px"></i> Clientes con gestión judicial o legal (según las notas) <span style="font-weight:400;color:var(--text3);font-size:12px">· siguen dentro del objetivo; es para decidir qué hacer</span></div>';
+  if(!jl.length)h+='<div style="font-size:12px;color:var(--text3)">'+(foto?'Ningún cliente de la foto tiene en sus notas palabras como judicial, abogado, legal, carta documento, mediación o demanda.':'Sin foto del mes.')+'</div>';
+  else{const tot=jl.reduce((s,j)=>s+j.d.m,0);
+    h+='<div class="table-scroll"><table class="obj-cfg" style="min-width:640px;font-size:12.5px"><thead><tr><th>Cliente</th><th>Vendedor</th><th style="text-align:right">Deuda en la foto</th><th style="text-align:right">De eso, crítica</th><th>Lo que dice la nota</th></tr></thead><tbody>'
+      +jl.map(j=>'<tr><td style="font-weight:600">'+escH(j.nombre)+'</td><td>'+escH(j.d.v)+'</td><td style="text-align:right">'+fmtN(j.d.m)+'</td><td style="text-align:right;color:var(--red)">'+(j.d.crit?fmtN(j.d.crit):'—')+'</td><td style="color:var(--text2);font-size:11.5px">'+escH(j.frag)+'</td></tr>').join('')
+      +'<tr class="obj-cfg-gen"><td>Total</td><td></td><td style="text-align:right">'+fmtN(tot)+'</td><td style="text-align:right">'+fmtN(jl.reduce((s,j)=>s+j.d.crit,0))+'</td><td></td></tr></tbody></table></div>';}
+  h+='</div></div>';
+  el.innerHTML=h;el.style.display='';
+  aplicarPlegados();
+  if(Object.keys(prCache).length){const H=prHistorico(objMesActual,3);
+    TRAMOS_ORDEN.forEach(t=>setCalc('obj-hist-'+t.replace(/\s/g,'-'),'<div>Para cada mes: facturas pendientes el día 1 en el tramo <strong>'+TRAMO_LBL[t]+'</strong> (según su vencimiento ese día) y cuánto de eso tuvo su último recibo dentro del mes.</div>'
+      +H.map(x=>cRow(nombreMesObj(x.k),fmtN(x.porT[t].c)+' de '+fmtN(x.porT[t].s)+' = '+(x.porT[t].s?Math.round(x.porT[t].c/x.porT[t].s*100):0)+'%')).join('')
+      +'<div style="margin-top:6px;color:var(--text3)">Promedio simple de los 3 meses. ▲▼ = último mes contra el anterior (±3 puntos). Las facturas con pagos parciales previos cuentan por su total.</div>'));}
+}
+
+(function(){
+  const fi=document.getElementById('pr-file-input');if(!fi)return;
+  document.getElementById('pr-btn-upload').addEventListener('click',prAbrirCarga);
+  fi.addEventListener('change',function(){const fs=[...this.files];this.value='';if(fs.length)prLeerArchivos(fs);});
+  document.getElementById('pr-cancel').addEventListener('click',()=>{document.getElementById('modal-pr-carga').classList.remove('open');prPend=null;});
+  document.getElementById('pr-ok').addEventListener('click',prConfirmar);
+  document.getElementById('pr-ventana').addEventListener('change',function(){prVentana=this.value;renderPlazoReal();});
+})();
+
 function irAyuda(sec){
   switchMainView('ayuda');
   setTimeout(()=>{const el=document.getElementById(sec);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},30);
@@ -4999,66 +5466,21 @@ document.getElementById('view-ayuda').addEventListener('click',e=>{const a=e.tar
 
 
 // Helper para llamar a la función segura de escritura
-// Escrituras de Cobranzas. Antes pasaban por la función secure-write del Supabase viejo;
-// ahora van directo a las tablas, que solo aceptan usuarios logueados con el panel Cobranzas.
-async function _rest(ruta,opt){
-  const r=await fetch(SUPABASE_URL+'/rest/v1/'+ruta,Object.assign({},opt||{},{headers:Object.assign({},SUPABASE_HEADERS,(opt&&opt.headers)||{})}));
-  if(!r.ok)throw new Error(await r.text());
-  const t=await r.text();return t?JSON.parse(t):null;
-}
-const _q=v=>encodeURIComponent(String(v));
-const _in=l=>'in.('+l.map(x=>'"'+String(x).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"').join(',')+')';
-async function _reemplazar(tabla,rows){
-  await _rest(tabla+'?id=gte.0',{method:'DELETE'});
-  for(let i=0;i<rows.length;i+=50)await _rest(tabla,{method:'POST',body:JSON.stringify(rows.slice(i,i+50))});
-}
 async function secureWrite(action,payload){
   try{
-    const p=payload||{};const ahora=new Date().toISOString();
-    if(action==='save_gestion'){
-      const row={cliente:p.cliente,nota:p.nota,email:p.email,telefono:p.telefono,vendedor:p.vendedor,fecha_comp:p.fecha_comp,monto_comp:p.monto_comp,historial:p.historial,gestionado_por:p.gestionado_por,ts:ahora};
-      const ex=await _rest('gestiones?select=cliente&cliente=eq.'+_q(p.cliente)+'&limit=1',{headers:{Prefer:''}});
-      if(ex&&ex.length)await _rest('gestiones?cliente=eq.'+_q(p.cliente),{method:'PATCH',body:JSON.stringify(row)});
-      else await _rest('gestiones',{method:'POST',body:JSON.stringify(row)});
-      return true;
+    const res=await fetch(SUPABASE_URL+'/functions/v1/secure-write',{
+      method:'POST',
+      headers:SUPABASE_HEADERS,
+      body:JSON.stringify({token:currentToken,action,payload})
+    });
+    const data=await res.json();
+    if(!res.ok||data.error){
+      console.error('secure-write error:',data.error);
+      if(res.status===401){showToast('Tu sesión expiró, volvé a iniciar sesión');logout();}
+      return false;
     }
-    if(action==='replace_clientes'||action==='replace_saldos_favor'){
-      if(!puede('actualizar')){showToast('No tenés permiso para actualizar datos');return false;}
-      await _reemplazar(action==='replace_clientes'?'clientes':'saldos_favor',action==='replace_clientes'?(p.clientes||[]):(p.saldos||[]));
-      return true;
-    }
-    if(action==='save_mencion'){
-      await _rest('menciones',{method:'POST',body:JSON.stringify({cliente:p.cliente,mencionado:p.mencionado,autor:p.autor,autor_usuario:p.autor_usuario||null,nota:p.nota,leida:false,resuelta:false,tipo:'mencion',ts:ahora})});
-      return true;
-    }
-    if(action==='mark_leida'){
-      await _rest('menciones?id=eq.'+_q(p.id),{method:'PATCH',body:JSON.stringify({leida:true})});
-      return true;
-    }
-    if(action==='resolver_menciones'){
-      const pend=await _rest('menciones?select=*&cliente=eq.'+_q(p.cliente)+'&mencionado=eq.'+_q(p.mencionado)+'&resuelta=eq.false&tipo=eq.mencion',{headers:{Prefer:''}})||[];
-      if(!pend.length)return true;
-      await _rest('menciones?id='+_q(_in(pend.map(x=>x.id))),{method:'PATCH',body:JSON.stringify({resuelta:true,respuesta:String(p.respuesta||'').slice(0,300),resuelta_ts:ahora})});
-      const notifs=pend.filter(x=>x.autor_usuario).map(x=>({cliente:p.cliente,mencionado:x.autor_usuario,autor:p.respondido_por||'',autor_usuario:p.respondido_por_usuario||null,
-        nota:'Respondió tu mención: '+String(p.respuesta||'').slice(0,250),leida:false,resuelta:true,tipo:'resolucion',ts:ahora}));
-      if(notifs.length)await _rest('menciones',{method:'POST',body:JSON.stringify(notifs)});
-      return true;
-    }
-    if(action==='registrar_reclamo'){
-      const nombres=p.clientes||[];if(!nombres.length)return true;
-      const ex=await _rest('reclamos_mail?select=*&cliente='+_q(_in(nombres)),{headers:{Prefer:''}})||[];
-      const mapa={};ex.forEach(r=>{mapa[r.cliente]=r;});
-      for(const n of nombres.filter(n=>mapa[n]))await _rest('reclamos_mail?cliente=eq.'+_q(n),{method:'PATCH',body:JSON.stringify({veces:(mapa[n].veces||0)+1,ultima_fecha:ahora})});
-      const nuevos=nombres.filter(n=>!mapa[n]).map(n=>({cliente:n,veces:1,primera_fecha:ahora,ultima_fecha:ahora}));
-      if(nuevos.length)await _rest('reclamos_mail',{method:'POST',body:JSON.stringify(nuevos)});
-      return true;
-    }
-    if(action==='reset_reclamo'){
-      await _rest('reclamos_mail?cliente=eq.'+_q(p.cliente),{method:'PATCH',body:JSON.stringify({veces:0,ultima_fecha:ahora})});
-      return true;
-    }
-    console.error('Acción desconocida:',action);return false;
-  }catch(e){console.error('Error al guardar ('+action+'):',e);return false;}
+    return true;
+  }catch(e){console.error('secure-write fetch error:',e);return false;}
 }
 
 fillVendedorFilter();
@@ -5157,16 +5579,6 @@ loadUsuarios();
 loadReclamos();
 loadSaldosFromSheets();
 setTimeout(loadFromSheets, 1500);
-// Login único: el usuario y sus permisos vienen del Panel de Paneles
-window.PORTAL_ACCESO.then(a=>{
-  const c=a.config||{};const esAdm=!!a.es_admin||c.rol==='admin';
-  const permisos=esAdm?Object.fromEntries(PERMISOS_DEF.map(d=>[d.k,true])):Object.assign({},c.permisos||{});
-  permisos.usuarios=false;
-  permisos.cartera=esAdm?'todos':(c.cartera==null?(c.rol==='vendedor'?[]:'todos'):c.cartera);
-  currentUser={nombre:a.nombre||a.email,usuario:aliasPortal(a),rol:esAdm?'admin':(c.rol||'cobranzas'),vendedor_nombre:c.vendedor_nombre||'',email:a.email||'',activo:true,permisos};
-  currentToken='portal';
-  showApp();
-});
 // Auto-sync every 2 minutes
 setInterval(()=>{loadClientesFromSheets();setTimeout(loadFromSheets,1500);if(currentUser)loadMenciones();loadSaldosFromSheets();}, 120000);
 
