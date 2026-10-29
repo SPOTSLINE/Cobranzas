@@ -3032,12 +3032,13 @@ function rangoSemanaActual(){
   const domingo=new Date(lunes);domingo.setDate(lunes.getDate()+6);
   return{desde:isoLocal(lunes),hasta:isoLocal(domingo),lunes,domingo};
 }
-function cobradoSemanaPorVendedor(base){
-  const{desde,hasta}=rangoSemanaActual();
+function cobradoSemanaPorVendedor(base,rango){
+  const{desde,hasta}=rango||rangoSemanaActual();
   const mapHoy=buildClienteVendedorMap();
   const out={};
   recibosDetalle.forEach(r=>{
     if(r.f<desde||r.f>hasta)return;
+    if(objEmpresaSel()&&r.e!==objEmpresaSel())return;
     if(!esCobrado(r.edo,r.met))return;
     const v=vendedorDeCliente(base,mapHoy,r.c);
     if(!veVendedor(v))return;
@@ -3075,18 +3076,12 @@ function evolucionSemanalMes(mesKey,objetivoTotal,base){
     if(objEmpresaSel()&&r.e!==objEmpresaSel())return;
     if(!esCobrado(r.edo,r.met))return;
     if(!veVendedor(vendedorDeCliente(base,mapHoy,r.c)))return;
-    const d=new Date(r.f+'T00:00:00');
-    if(isNaN(d))return;
-    const lunes=isoLocal(mondayOf(d));
-    porSemana[lunes]=(porSemana[lunes]||0)+(r.m||0);
+    const n=semanaObjDe(mesKey,r.f);porSemana[n]=(porSemana[n]||0)+(r.m||0);
   });
-  const semanas=Object.keys(porSemana).sort();
-  let acumulado=0;
-  return semanas.map(lunes=>{
-    const dom=new Date(lunes+'T00:00:00');dom.setDate(dom.getDate()+6);
-    acumulado+=porSemana[lunes];
-    return{desde:lunes,hasta:isoLocal(dom),cobrado:porSemana[lunes],acumulado,pctAcumulado:objetivoTotal?Math.round(acumulado/objetivoTotal*100):0};
-  });
+  if(!Object.keys(porSemana).length)return[];
+  let acumulado=0;const objSem=objetivoTotal/SEMANAS_OBJ;
+  return semanasObjMes(mesKey).map(s=>{const c=porSemana[s.n]||0;acumulado+=c;
+    return{n:s.n,desde:s.desde,hasta:s.hasta,cobrado:c,acumulado,objSem,pctSem:objSem?Math.round(c/objSem*100):0,pctAcumulado:objetivoTotal?Math.round(acumulado/objetivoTotal*100):0};});
 }
 function renderObjEvolucion(mesKey,objetivoTotal,base){
   const semanas=evolucionSemanalMes(mesKey,objetivoTotal,base);
@@ -3107,9 +3102,9 @@ function renderObjEvolucion(mesKey,objetivoTotal,base){
       +'<span class="method-bar-val">'+fmtN(s.acumulado)+' · '+s.pctAcumulado+'%</span></div>';
   }).join('');
   wrapTabla.innerHTML='<table style="width:100%;font-size:12.5px;min-width:0"><thead><tr style="color:var(--text3);text-align:left">'
-    +'<th style="padding:4px 6px">Semana</th><th style="padding:4px 6px">Cobrado</th><th style="padding:4px 6px">Acumulado</th><th style="padding:4px 6px">% del objetivo</th></tr></thead><tbody>'
-    +semanas.map(s=>'<tr><td style="padding:4px 6px">'+fmtFecha(s.desde)+' al '+fmtFecha(s.hasta)+'</td>'
-      +'<td style="padding:4px 6px">'+fmtN(s.cobrado)+'</td><td style="padding:4px 6px">'+fmtN(s.acumulado)+'</td>'
+    +'<th style="padding:4px 6px">Semana</th><th style="padding:4px 6px">Cobrado</th><th style="padding:4px 6px">Objetivo semana</th><th style="padding:4px 6px">% semana</th><th style="padding:4px 6px">Acumulado</th><th style="padding:4px 6px">% del objetivo</th></tr></thead><tbody>'
+    +semanas.map(s=>'<tr><td style="padding:4px 6px">Sem '+s.n+' · '+fmtFecha(s.desde)+' al '+fmtFecha(s.hasta)+'</td>'
+      +'<td style="padding:4px 6px">'+fmtN(s.cobrado)+'</td><td style="padding:4px 6px">'+fmtN(s.objSem)+'</td><td style="padding:4px 6px;font-weight:600;color:'+(s.pctSem>=100?'var(--green)':(s.pctSem>=60?'var(--yellow2)':'var(--red)'))+'">'+s.pctSem+'%</td><td style="padding:4px 6px">'+fmtN(s.acumulado)+'</td>'
       +'<td style="padding:4px 6px;font-weight:600">'+s.pctAcumulado+'%</td></tr>').join('')
     +'</tbody></table>';
 }
@@ -3178,6 +3173,12 @@ async function loadObjetivoExterno(){
   return objObjetivoExternoCache;
 }
 
+// Objetivos: el mes se divide en 4 semanas fijas: del 1 al 7, del 8 al 14, del 15 al 21 y del 22 a fin de mes.
+const SEMANAS_OBJ=4;
+function semanasObjMes(mesKey){const[y,m]=mesKey.split('-').map(Number);const fin=new Date(y,m,0).getDate();const p=d=>mesKey+'-'+String(d).padStart(2,'0');
+  return[[1,7],[8,14],[15,21],[22,fin]].map(([a,b],i)=>({n:i+1,desde:p(a),hasta:p(b)}));}
+function semanaObjDe(mesKey,iso){const d=+String(iso).slice(8,10);return d<=7?1:d<=14?2:d<=21?3:4;}
+function rangoSemanaObj(mesKey){const ss=semanasObjMes(mesKey);const hoy=hoyISO();if(hoy.slice(0,7)===mesKey)return ss[semanaObjDe(mesKey,hoy)-1];return hoy.slice(0,7)>mesKey?ss[3]:ss[0];}
 function semanasDelMes(mesKey){
   const[y,m]=mesKey.split('-').map(Number);
   const primerDia=new Date(y,m-1,1);
@@ -3313,9 +3314,10 @@ async function renderObjetivos(){
   const cancel=foto&&foto.fc?canceladoFoto(foto):null;
   const recibosMes=cobradoMesDetalle(objMesActual,base);
   const cobrado=cancel?{porV:cancel.porV,porVT:cancel.porVT}:recibosMes;
-  const cobradoSemana=cobradoSemanaPorVendedor(base);
+  const semObj=rangoSemanaObj(objMesActual);
+  const cobradoSemana=cobradoSemanaPorVendedor(base,semObj);
   const proy=proyectadoSemanaPorVendedor();
-  const{desde,hasta}=rangoSemanaActual();
+  const{desde,hasta}=semObj;
   const editable=puedeEditarObj();
   objRenderCtx={cfg,base,cobrado,editable,cancel};
 
@@ -3323,7 +3325,7 @@ async function renderObjetivos(){
   const baseTotal=Object.values(saldoBase).reduce((s,x)=>s+x,0);
   const nClientesBase=foto?(foto.fc&&objEmpresaSel()?new Set(fcFoto(foto).filter(r=>veVendedor(r[1])).map(r=>normCli(r[0]))).size:foto.clientes.filter(c=>veVendedor(c[1])).length):clientes.filter((c,i)=>veCliente(c,i)).length;
   const objetivoTotal=Object.entries(base.porVT).reduce((s,[v,st])=>s+objetivoVendedor(cfg,v,st).total,0);
-  const semanasMes=semanasDelMes(objMesActual);
+  const semanasMes=SEMANAS_OBJ;
   const objetivoSemanal=objetivoTotal/semanasMes;
 
   renderFotoInfo(foto,baseTotal,nClientesBase);
@@ -3353,7 +3355,7 @@ async function renderObjetivos(){
   pctHeroEl.textContent=pctMes+'%';
   pctHeroEl.style.color=pctMes>=100?'var(--green)':(pctMes>=60?'var(--yellow2)':'var(--red)');
   const heroSemEl=document.getElementById('obj-hero-semanal');
-  if(heroSemEl)heroSemEl.textContent='Objetivo semanal: '+fmtN(objetivoSemanal)+' (mes ÷ '+semanasMes+' semanas) · esta semana llevo '+fmtN(cobradoSemanaTotal)+' ('+pctSemana+'%)';
+  if(heroSemEl)heroSemEl.textContent='Objetivo semanal: '+fmtN(objetivoSemanal)+' (mes ÷ 4 semanas) · semana '+semObj.n+' ('+fmtFecha(desde).slice(0,5)+' al '+fmtFecha(hasta).slice(0,5)+') llevo '+fmtN(cobradoSemanaTotal)+' ('+pctSemana+'%)';
 
   const vendedores=[...new Set([...Object.keys(saldoBase),...Object.keys(cobrado.porV),...Object.keys(cobradoSemana)])].filter(v=>v!=='Sin vendedor asignado');
   vendedores.sort((a,b)=>(saldoBase[b]||0)-(saldoBase[a]||0));
@@ -5110,7 +5112,7 @@ function explicarObjetivos(X){
     +cRow('Cobrado esta semana',fmtN(cobradoSemanaTotal),'calc-tot')
     +cRow('Objetivo semanal = '+fmtN(objetivoTotal)+' ÷ '+semanasMes+' semanas',fmtN(objetivoSemanal))
     +cRow('Avance = '+fmtN(cobradoSemanaTotal)+' ÷ '+fmtN(objetivoSemanal),pctSemana+'%')
-    +'<p class="calc-nota">'+semanasMes+' = cantidad de semanas (lunes a domingo) que tocan '+nombreMesObj(objMesActual)+', aunque sea con un día.</p>';
+    +'<p class="calc-nota">El mes se divide en 4 semanas fijas: del 1 al 7, del 8 al 14, del 15 al 21 y del 22 a fin de mes. La semana que se muestra es la de hoy (en meses cerrados, la última).</p>';
   // proyectado
   const items=getProyecciones();let comp=[0,0],venc=[0,0];
   items.forEach(it=>{const raw=new Date(it.fechaRaw+'T00:00:00');if(isNaN(raw))return;let eff=raw;if(raw.getDay()===6)eff=new Date(raw.getFullYear(),raw.getMonth(),raw.getDate()+2);else if(raw.getDay()===0)eff=new Date(raw.getFullYear(),raw.getMonth(),raw.getDate()+1);
