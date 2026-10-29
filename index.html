@@ -1032,6 +1032,7 @@ th.th-on{color:var(--yellow)!important}
       <button class="btn btn-yellow" id="mv-abrir" style="font-size:14px;padding:9px 16px"><i class="ti ti-mail-forward"></i> Abrir mi correo con el informe</button>
       <label style="display:flex;align-items:center;gap:6px;margin:0;font-size:12px;color:var(--text3)">Abrir con <select class="sel-correo" style="padding:6px 8px"><option value="gmail">Gmail</option><option value="outlook">Outlook web</option><option value="app">Programa de correo (Outlook de escritorio)</option></select></label>
       <button class="btn" id="mv-copiar" title="Si ya tenés el correo abierto"><i class="ti ti-copy"></i> Copiar de nuevo</button>
+      <button class="btn" id="mv-wa" style="color:#25d366;border-color:#1d4a2e" title="Arma el PDF con el mismo formato del mail. En el celular lo comparte directo por WhatsApp; en la PC lo descarga y abre WhatsApp con el texto para adjuntarlo"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button><button class="btn" id="mv-pdf" title="Descarga el mismo mail en PDF (para imprimir o mandar)"><i class="ti ti-file-type-pdf"></i> PDF</button>
       <button class="btn" id="mv-eml" style="margin-left:auto"><i class="ti ti-download"></i> Borrador para Outlook (.eml)</button>
     </div>
   </div>
@@ -1174,6 +1175,7 @@ th.th-on{color:var(--yellow)!important}
       <button class="btn btn-yellow" id="mc-abrir" style="font-size:14px;padding:9px 16px"><i class="ti ti-mail-forward"></i> Abrir mi correo con el mail</button>
       <label style="display:flex;align-items:center;gap:6px;margin:0;font-size:12px;color:var(--text3)">Abrir con <select class="sel-correo" style="padding:6px 8px"><option value="gmail">Gmail</option><option value="outlook">Outlook web</option><option value="app">Programa de correo (Outlook de escritorio)</option></select></label>
       <button class="btn" id="mc-copiar" title="Si ya tenés el correo abierto"><i class="ti ti-copy"></i> Copiar de nuevo</button>
+      <button class="btn" id="mc-wa" style="color:#25d366;border-color:#1d4a2e" title="Arma el PDF con el mismo formato del mail. En el celular lo comparte directo por WhatsApp; en la PC lo descarga y abre WhatsApp con el texto para adjuntarlo"><i class="ti ti-brand-whatsapp"></i> WhatsApp</button><button class="btn" id="mc-pdf" title="Descarga el mismo mail en PDF (para imprimir o mandar)"><i class="ti ti-file-type-pdf"></i> PDF</button>
       <button class="btn" id="mc-eml" title="Borrador listo para Outlook de escritorio" style="margin-left:auto"><i class="ti ti-download"></i> Borrador para Outlook (.eml)</button>
     </div>
   </div>
@@ -4588,6 +4590,42 @@ function descargarEml(para,asunto,html,txt,nombreArchivo){
   a.download=nombreArchivo.replace(/[^\wÁÉÍÓÚáéíóúÑñ ]+/g,'').trim().replace(/\s+/g,'_')+'.eml';
   document.body.appendChild(a);a.click();a.remove();
 }
+// ===== PDF y WhatsApp con el mismo formato del mail =====
+function cargarScriptPdf(u){return new Promise((ok,err)=>{const sc=document.createElement('script');sc.src=u;sc.onload=ok;sc.onerror=()=>err(new Error('No se pudo cargar el generador de PDF'));document.head.appendChild(sc);});}
+async function cargarLibsPdf(){if(!window.html2canvas)await cargarScriptPdf('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');if(!window.jspdf)await cargarScriptPdf('https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js');}
+// Se dibuja dentro de un iframe aparte para que los estilos del panel no deformen el mail; después se corta en hojas A4.
+async function htmlAPdfBlob(html){
+  await cargarLibsPdf();
+  const ifr=document.createElement('iframe');ifr.style.cssText='position:fixed;left:-10000px;top:0;width:760px;height:1200px;border:0';document.body.appendChild(ifr);
+  try{
+    const doc=ifr.contentDocument;doc.open();doc.write('<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;background:#fff;font-family:Arial,Helvetica,sans-serif}</style></head><body>'+html+'</body></html>');doc.close();
+    await new Promise(r=>setTimeout(r,250));
+    const canvas=await html2canvas(doc.body,{scale:2,backgroundColor:'#ffffff',windowWidth:760,width:760,useCORS:true});
+    const{jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
+    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight(),mg=8,iw=pw-2*mg,pxmm=canvas.width/iw,hp=Math.floor((ph-2*mg)*pxmm);
+    for(let y=0,p=0;y<canvas.height;y+=hp,p++){const h=Math.min(hp,canvas.height-y);const c=document.createElement('canvas');c.width=canvas.width;c.height=h;
+      c.getContext('2d').drawImage(canvas,0,y,canvas.width,h,0,0,canvas.width,h);if(p)pdf.addPage();pdf.addImage(c.toDataURL('image/jpeg',0.92),'JPEG',mg,mg,iw,h/pxmm);}
+    return pdf.output('blob');
+  }finally{ifr.remove();}
+}
+function nombrePdf(s){return String(s||'').replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,' ').trim().slice(0,80)||'documento';}
+function descargarBlob(b,n){const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);}
+async function conBoton(btn,fn){const t=btn.innerHTML;btn.disabled=true;btn.innerHTML='<i class="ti ti-loader"></i> Generando…';try{return await fn();}catch(e){showToast(e.message||'No se pudo generar el PDF');}finally{btn.disabled=false;btn.innerHTML=t;}}
+async function bajarPdfMail(html,nombre){const b=await htmlAPdfBlob(html);descargarBlob(b,nombrePdf(nombre)+'.pdf');showToast('PDF descargado ✓');}
+async function whatsappPdfMail(html,nombre,tel,texto){
+  const b=await htmlAPdfBlob(html);const file=new File([b],nombrePdf(nombre)+'.pdf',{type:'application/pdf'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})&&/Android|iPhone|iPad|Mobile/i.test(navigator.userAgent)){
+    try{await navigator.share({files:[file],title:nombrePdf(nombre)});return'share';}catch(e){if(e&&e.name==='AbortError')return'cancel';}
+  }
+  descargarBlob(b,file.name);
+  const t=String(tel||'').replace(/\D/g,'').replace(/^0+/,'');const num=t?(t.startsWith('54')?t:'54'+t):'';
+  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(String(texto||'').slice(0,3500)),'_blank');
+  showToast('PDF descargado: adjuntalo en el chat de WhatsApp que se abrió');return'desktop';
+}
+document.getElementById('mc-pdf').addEventListener('click',e=>conBoton(e.currentTarget,()=>{const c=clientes[mailCliIdx];const m=construirMailCliente(c,opcionesMailCli());return bajarPdfMail(m.html,'Cuenta '+c.nombre+' '+hoyISO());}));
+document.getElementById('mc-wa').addEventListener('click',e=>conBoton(e.currentTarget,()=>{const c=clientes[mailCliIdx];const m=construirMailCliente(c,opcionesMailCli());return whatsappPdfMail(m.html,'Cuenta '+c.nombre+' '+hoyISO(),getTel(mailCliIdx),m.txt);}));
+document.getElementById('mv-pdf').addEventListener('click',e=>conBoton(e.currentTarget,()=>{if(!mvEstado)return;const nota=document.getElementById('mv-nota').value.trim();return bajarPdfMail(construirMailVendedor(mvEstado,nota),'Informe '+mvEstado.fv+' '+hoyISO());}));
+document.getElementById('mv-wa').addEventListener('click',e=>conBoton(e.currentTarget,()=>{if(!mvEstado)return;const nota=document.getElementById('mv-nota').value.trim();return whatsappPdfMail(construirMailVendedor(mvEstado,nota),'Informe '+mvEstado.fv+' '+hoyISO(),'',document.getElementById('mv-cuerpo').value+(nota?'\n\n'+nota:''));}));
 document.getElementById('mc-eml').addEventListener('click',()=>{
   const c=clientes[mailCliIdx];const m=construirMailCliente(c,opcionesMailCli());
   const para=document.getElementById('mc-para').value.trim();
