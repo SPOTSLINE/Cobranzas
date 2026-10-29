@@ -4602,9 +4602,22 @@ async function htmlAPdfBlob(html){
     await new Promise(r=>setTimeout(r,250));
     const canvas=await html2canvas(doc.body,{scale:2,backgroundColor:'#ffffff',windowWidth:760,width:760,useCORS:true});
     const{jsPDF}=window.jspdf;const pdf=new jsPDF({unit:'mm',format:'a4',orientation:'portrait'});
-    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight(),mg=8,iw=pw-2*mg,pxmm=canvas.width/iw,hp=Math.floor((ph-2*mg)*pxmm);
-    for(let y=0,p=0;y<canvas.height;y+=hp,p++){const h=Math.min(hp,canvas.height-y);const c=document.createElement('canvas');c.width=canvas.width;c.height=h;
-      c.getContext('2d').drawImage(canvas,0,y,canvas.width,h,0,0,canvas.width,h);if(p)pdf.addPage();pdf.addImage(c.toDataURL('image/jpeg',0.92),'JPEG',mg,mg,iw,h/pxmm);}
+    const pw=pdf.internal.pageSize.getWidth(),ph=pdf.internal.pageSize.getHeight(),mg=8,iw=pw-2*mg,ih=ph-2*mg,pxmm=canvas.width/iw,hp=Math.floor(ih*pxmm);
+    // 1) Si achicándolo hasta un 65% entra en una hoja, va en una sola hoja (centrado).
+    const altoMm=canvas.height/pxmm;
+    if(altoMm<=ih/0.65){const k=Math.min(1,ih/altoMm),w=iw*k,h=altoMm*k;pdf.addImage(canvas.toDataURL('image/jpeg',0.92),'JPEG',mg+(iw-w)/2,mg,w,h);return pdf.output('blob');}
+    // 2) Si no, se corta en hojas, pero siempre en una franja en blanco (nunca en medio de un texto o una fila).
+    const ctx=canvas.getContext('2d');
+    // Fila "segura": casi sin cambios de color a lo ancho (fondo, bordes de tabla). Un renglón de texto tiene muchos.
+    const filaLisa=y=>{const d=ctx.getImageData(0,y,canvas.width,1).data;let cambios=0,prev=-1;for(let i=0;i<d.length;i+=8){const l=(d[i]*3+d[i+1]*6+d[i+2])/10;if(prev>=0&&Math.abs(l-prev)>28){if(++cambios>8)return false;}prev=l;}return true;};
+    let y=0,p=0;
+    while(y<canvas.height){
+      let fin=Math.min(y+hp,canvas.height);
+      if(fin<canvas.height){let z=fin;const min=y+Math.floor(hp*0.6);while(z>min&&!filaLisa(z))z--;if(z>min)fin=z;}
+      const h=fin-y;const c=document.createElement('canvas');c.width=canvas.width;c.height=h;
+      c.getContext('2d').drawImage(canvas,0,y,canvas.width,h,0,0,canvas.width,h);if(p)pdf.addPage();pdf.addImage(c.toDataURL('image/jpeg',0.92),'JPEG',mg,mg,iw,h/pxmm);
+      y=fin;p++;
+    }
     return pdf.output('blob');
   }finally{ifr.remove();}
 }
