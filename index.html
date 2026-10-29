@@ -5432,6 +5432,9 @@ async function prLeerArchivos(files){
     let rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:'',cellDates:true});let tipo=prTipoArchivo(rows);
     if(!tipo&&rows[0]&&/^(compania|empresa)$/.test(normTxt(rows[0][0]).trim())){rows=rows.map(x=>x.slice(1));tipo=prTipoArchivo(rows);} // pagos con "Compañía" como primera columna
     res({file:file.name,rows,tipo});}catch(e){res({file:file.name,error:e.message});}};rd.readAsArrayBuffer(file);})));
+  prPend=prArmarCarga(leidos);prPintarPreview();document.getElementById('modal-pr-carga').classList.add('open');
+}
+function prArmarCarga(leidos){
   const P={archivos:leidos.map(l=>l.file),errores:[]};
   leidos.forEach(l=>{if(l.error)P.errores.push(l.file+': '+l.error);else if(!l.tipo)P.errores.push(l.file+': '+(l.rows&&l.rows[0]&&detectarColumnasPagos(l.rows[0])?'es el listado de Pagos sin las líneas de cheques. Exportalo con Cheques/Fecha de pago, Número, Banco, Importe y Líneas conciliadas (columnas A–L).':'no lo reconozco (no es el de facturas con recibos ni el de pagos con cheques).'));else P[l.tipo]=l;});
   try{
@@ -5448,7 +5451,7 @@ async function prLeerArchivos(files){
       P.grupos.forEach(g=>{if(g.arm.cobertura<0.5)P.errores.push(g.empresa+': solo el '+Math.round(g.arm.cobertura*100)+'% de los recibos de las facturas aparecen en el Excel de pagos. ¿Es el mismo período?');});
     }else if(!P.errores.length)P.errores.push('Subí los <strong>dos</strong> archivos juntos (facturas con recibos + pagos con cheques). Llegó solo: '+(P.facturas?'facturas':P.pagos?'pagos':'ninguno reconocido')+'.');
   }catch(e){P.errores.push(e.message);}
-  prPend=P;prPintarPreview();document.getElementById('modal-pr-carga').classList.add('open');
+  return P;
 }
 function prPintarPreview(){
   const P=prPend;const el=document.getElementById('pr-body');const ok=document.getElementById('pr-ok');
@@ -5482,6 +5485,51 @@ async function prSumarRecibos(P){
     const carga={id:cg,archivo:P.pagos.file+' (desde Plazo real)',ts:new Date().toISOString(),por:currentUser?currentUser.nombre:'',n:nuevos.length,total:Math.round(nuevos.reduce((s,r)=>s+r.m,0)),desde:fechas[0],hasta:fechas[fechas.length-1]};
     await aplicarCambioRecibos(recibosDetalle.concat(nuevos.map(r=>({...r,cg}))),recibosCargas.concat([carga]),nuevos.length+' recibos sumados a Cumplimiento');
   }catch(e){console.warn('Recibos desde Plazo real:',e);showToast('No se pudieron sumar los recibos a Cumplimiento: '+e.message);}
+}
+async function prGuardarCarga(P){
+  for(const G of P.grupos){const prev=prCache[G.empresa]||{};const nums=new Set(G.arm.f.map(r=>r[0]));
+    const f=(prev.f||[]).filter(r=>!nums.has(r[0])).concat(G.arm.f);
+    const valor={empresa:G.empresa,archivos:[...new Set((prev.archivos||[]).concat(P.archivos))].slice(-20),cargado:new Date().toISOString(),por:currentUser?currentUser.nombre:'',f};
+    await prGuardar(G.empresa,valor);prCache[G.empresa]=valor;}
+}
+// ===== Carga automática desde Odoo (facturas de clientes + recibos "Explotado- Recibos") =====
+// El robot de GitHub (odoo_pagos.py) deja los dos listados, con el mismo formato que los Excel de Odoo,
+// en objetivos_cobranza id=odoo_plazo_real. La primera persona con permiso de actualizar que abre el panel
+// los aplica con la misma lógica que "Cargar facturas + pagos" y queda anotado en odoo_plazo_real_aplicado.
+let prOdooInfo=null,prOdooCorriendo=false;
+function prOdooFilas(rows){const re=/^(\d{4})-(\d{2})-(\d{2})(?:[ T]\d{2}:\d{2}(?::\d{2})?)?$/;
+  return(rows||[]).map(r=>(r||[]).map(v=>{if(typeof v==='string'){const m=v.match(re);if(m)return new Date(+m[1],+m[2]-1,+m[3]);}return v===null||v===false?'':v;}));}
+async function prOdooLeer(id,sel){const r=await fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE_OBJ+'?id=eq.'+id+'&select='+(sel||'valor'),{headers:SUPABASE_HEADERS});const x=await r.json();return x&&x[0]?x[0]:null;}
+async function prOdooAuto(){
+  if(prOdooCorriendo||!currentUser)return;prOdooCorriendo=true;
+  try{
+    const meta=await prOdooLeer('odoo_plazo_real','ts:valor->>ts,desde:valor->>desde,hasta:valor->>hasta,nf:valor->>n_facturas,nr:valor->>n_recibos');
+    const apr=await prOdooLeer('odoo_plazo_real_aplicado');const ap=apr&&apr.valor||null;
+    prOdooInfo=meta&&meta.ts?{...meta,aplicado:ap}:null;
+    if(!prOdooInfo||(ap&&ap.ts>=meta.ts)||!puede('actualizar'))return;
+    const v=(await prOdooLeer('odoo_plazo_real')||{}).valor;if(!v||!v.facturas||!v.pagos)return;
+    const leidos=[{file:'Odoo automático · facturas',rows:prOdooFilas(v.facturas)},{file:'Odoo automático · recibos',rows:prOdooFilas(v.pagos)}];
+    leidos.forEach(l=>l.tipo=prTipoArchivo(l.rows));
+    if(leidos.some(l=>!l.tipo)){console.warn('Odoo automático: formato no reconocido',leidos.map(l=>l.rows[0]));return;}
+    await prLoad(true);
+    const P=prArmarCarga(leidos);
+    const fatal=!P.arm||P.errores.some(e=>/empresa|dos|faltan/.test(e));
+    if(fatal){console.warn('Odoo automático:',P.errores);showToast('Carga automática de Odoo sin aplicar: '+P.errores.join(' · ').replace(/<[^>]+>/g,''));return;}
+    await prGuardarCarga(P);
+    const nuevos=prRecibosNuevos(P).length;await prSumarRecibos(P);
+    const valor={ts:meta.ts,aplicado:new Date().toISOString(),por:currentUser.nombre,desde:meta.desde,hasta:meta.hasta,facturas:P.grupos.reduce((s,G)=>s+G.arm.f.length,0),recibos_nuevos:nuevos,avisos:P.errores};
+    await fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE_OBJ+'?on_conflict=id',{method:'POST',headers:{...SUPABASE_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},
+      body:JSON.stringify({id:'odoo_plazo_real_aplicado',valor,updated_at:new Date().toISOString()})});
+    prOdooInfo.aplicado=valor;
+    showToast('Odoo: facturas y recibos actualizados ✓ ('+valor.facturas+' facturas, '+nuevos+' recibos nuevos)');
+    const pw=document.getElementById('pr-wrap');if(pw&&pw.offsetParent)renderPlazoReal();
+  }catch(e){console.warn('Odoo automático:',e);}
+  finally{prOdooCorriendo=false;}
+}
+function prOdooTexto(){
+  const I=prOdooInfo;if(!I)return'';const h=t=>{try{return new Date(t).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(_){return'';}};
+  const pend=!I.aplicado||I.aplicado.ts<I.ts;
+  return' · <i class="ti ti-refresh"></i> Odoo automático: '+(pend?'<span style="color:var(--orange)">bajado '+h(I.ts)+', se aplica cuando lo abre alguien con permiso de actualizar</span>':'aplicado '+h(I.aplicado.aplicado)+' (datos del '+h(I.ts)+', facturas desde '+fmtFecha(I.desde)+')');
 }
 async function prConfirmar(){
   const P=prPend;if(!P||!P.grupos)return;
@@ -5546,7 +5594,7 @@ async function renderPlazoReal(){
   await prLoad();
   const btn=document.getElementById('pr-btn-upload');if(btn)btn.style.display=puede('actualizar')?'':'none';
   const info=PR_EMPRESAS.map(e=>prCache[e]?'<strong>'+e+'</strong> cargado el '+fmtFecha(prCache[e].cargado.slice(0,10))+' ('+prCache[e].f.length+' facturas)':'<span style="color:var(--orange)">'+e+': sin cargar</span>').join(' · ');
-  document.getElementById('pr-fuente').innerHTML=info;
+  document.getElementById('pr-fuente').innerHTML=info+prOdooTexto();
   if(!Object.keys(prCache).length){wrap.innerHTML='<div class="empty" style="padding:1.2rem"><i class="ti ti-file-upload"></i>Todavía no hay datos. '+(puede('actualizar')?'Tocá <strong>Cargar facturas + pagos</strong> y subí los dos Excel de Odoo de una empresa.':'Pedile a administración que cargue los Excel de facturas y pagos.')+'</div>';return;}
   const emp=document.getElementById('cu-empresa-filter').value;const busca=normTxt(document.getElementById('cu-search').value||'').trim();
   const meses=+prVentana;
@@ -5909,7 +5957,7 @@ function showApp(){
   renderSaldosBtn();
   document.getElementById('ped-fab').style.display='';
   cargarPedidos();
-  loadPagosDesdeSupabase();
+  loadPagosDesdeSupabase().then(ok=>{if(ok)return prOdooAuto();}).catch(e=>console.warn(e));
   loadMenciones();
   loadClientesFromSheets();
 }
