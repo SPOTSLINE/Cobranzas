@@ -2467,10 +2467,22 @@ function parseCobranzas(wb){
   for(let r=1;r<rows.length;r++){
     const row=rows[r];const nombreCell=String(row[0]||'').trim();
     if(re.test(nombreCell)){if(cur)result.push(cur);cur={nombre:nombreCell.replace(/\s*\(\d+\)$/,'').trim(),deuda:Math.round((parseFloat(row[ci.monto])||0)*100)/100,empresa:'',dias_vencidos:0,vendedor:'',facturas:[],email:'',telefono:'',ciudad:'',zona:'',categoria:''};}
-    else if(cur){const m=parseFloat(row[ci.monto])||0;if(m>0){const num=String(row[ci.num]||'');const vtoD=toD(row[ci.pago]);const vto=vtoD?vtoD.toISOString().slice(0,10):'-';const emisD=toD(row[ci.fec]);const fecha_emision=emisD?emisD.toISOString().slice(0,10):'-';let emp='';if(ci.emp_col!==undefined&&row[ci.emp_col]){const ev=String(row[ci.emp_col]).trim().toUpperCase();emp=ev.includes('SPL')?'SPL':'Spotsline';}else if(num.includes('00001'))emp='SPL';else if(num.includes('00005'))emp='Spotsline';cur.facturas.push({num,monto:Math.round(m*100)/100,vto,fecha_emision,emp});}const v=String(row[ci.vend]||'').trim();if(v&&!cur.vendedor)cur.vendedor=v;}
+    else if(cur){const m=parseFloat(row[ci.monto])||0;const num=String(row[ci.num]||'');let emp='';if(ci.emp_col!==undefined&&row[ci.emp_col]){const ev=String(row[ci.emp_col]).trim().toUpperCase();emp=ev.includes('SPL')?'SPL':'Spotsline';}else if(num.includes('00001'))emp='SPL';else if(num.includes('00005'))emp='Spotsline';
+      cur._net=cur._net||{};if(m)cur._net[emp||'?']=(cur._net[emp||'?']||0)+m;
+      if(m<0){const fD=toD(row[ci.pago])||toD(row[ci.fec]);(cur.creditos=cur.creditos||[]).push({num,monto:Math.round(m*100)/100,fecha:fD?fD.toISOString().slice(0,10):'-',emp});}
+      if(m>0){const vtoD=toD(row[ci.pago]);const vto=vtoD?vtoD.toISOString().slice(0,10):'-';const emisD=toD(row[ci.fec]);const fecha_emision=emisD?emisD.toISOString().slice(0,10):'-';cur.facturas.push({num,monto:Math.round(m*100)/100,vto,fecha_emision,emp});}const v=String(row[ci.vend]||'').trim();if(v&&!cur.vendedor)cur.vendedor=v;}
   }
   if(cur)result.push(cur);
-  result.forEach(c=>{const emps=new Set(c.facturas.map(f=>f.emp).filter(Boolean));c.empresa=emps.size>1?'Ambas':emps.size===1?[...emps][0]:(()=>{const ns=c.facturas.map(f=>f.num).join(' ');return ns.includes('00001')&&ns.includes('00005')?'Ambas':ns.includes('00005')?'Spotsline':'SPL';})();const vtos=c.facturas.map(f=>f.vto).filter(v=>v!=='-').sort();if(vtos.length)c.dias_vencidos=Math.round((today-new Date(vtos[0]))/86400000);});
+  // Spotsline y SPL son empresas distintas: el saldo a favor en una NO compensa la deuda en la otra.
+  // Si un cliente debe en una empresa y tiene saldo a favor en la otra, queda la deuda en Cartera y el saldo a favor aparte.
+  const sep=[];result.forEach(c=>{const net=c._net||{};delete c._net;const ks=Object.keys(net).filter(k=>Math.abs(net[k])>=0.5);
+    const pos=ks.filter(k=>net[k]>0),neg=ks.filter(k=>net[k]<0);
+    if(pos.length&&neg.length&&!ks.includes('?')){
+      neg.forEach(e=>sep.push({...c,deuda:Math.round(net[e]*100)/100,empresa:e,facturas:c.facturas.filter(f=>f.emp===e),creditos:(c.creditos||[]).filter(x=>x.emp===e),separado_de:pos.join('+')}));
+      c.deuda=Math.round(pos.reduce((s,k)=>s+net[k],0)*100)/100;c.facturas=c.facturas.filter(f=>pos.includes(f.emp));c.creditos=(c.creditos||[]).filter(x=>pos.includes(x.emp));c.separado_de=neg.join('+');
+    }});
+  result.push(...sep);
+  result.forEach(c=>{const emps=new Set(c.facturas.map(f=>f.emp).filter(Boolean));c.empresa=emps.size>1?'Ambas':emps.size===1?[...emps][0]:c.empresa?c.empresa:(()=>{const ns=c.facturas.map(f=>f.num).join(' ');return ns.includes('00001')&&ns.includes('00005')?'Ambas':ns.includes('00005')?'Spotsline':'SPL';})();const vtos=c.facturas.map(f=>f.vto).filter(v=>v!=='-').sort();if(vtos.length)c.dias_vencidos=Math.round((today-new Date(vtos[0]))/86400000);});
   return result;
 }
 
