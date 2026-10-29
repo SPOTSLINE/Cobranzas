@@ -3310,7 +3310,7 @@ async function renderObjetivos(){
 
   const cfg=pctDelMes(foto);
   const base=baseObjetivo(foto);
-  await loadCarteraActualizada();await prLoad();
+  await loadCarteraActualizada();await prLoad();if(objMesActual<mesHoyKey())await loadFotoMes(mesSiguiente(objMesActual));
   const cancel=foto&&foto.fc?canceladoFoto(foto):null;
   const recibosMes=cobradoMesDetalle(objMesActual,base);
   const cobrado=cancel?{porV:cancel.porV,porVT:cancel.porVT}:recibosMes;
@@ -5161,26 +5161,31 @@ function mapaFacturasHoy(){const m={},porNum={};clientes.forEach(c=>(c.facturas|
 let carteraActualizada=null;
 async function loadCarteraActualizada(){try{const r=await fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE_OBJ+'?id=eq.cartera_actualizada&select=valor',{headers:SUPABASE_HEADERS});const rows=await r.json();carteraActualizada=(rows&&rows[0]&&rows[0].valor)||null;}catch(_){}return carteraActualizada;}
 async function marcarCarteraActualizada(){try{await fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE_OBJ+'?on_conflict=id',{method:'POST',headers:{...SUPABASE_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({id:'cartera_actualizada',valor:{ts:new Date().toISOString(),por:currentUser?currentUser.nombre:''},updated_at:new Date().toISOString()})});}catch(_){}}
+function mesSiguiente(k){const[y,m]=k.split('-').map(Number);return isoLocal(new Date(y,m,1)).slice(0,7);}
 function canceladoFoto(foto){
   const{m,porNum}=mapaFacturasHoy();
   // Mes cerrado: si la factura está en Plazo real (facturas + pagos), cuenta como cancelada solo si su último recibo
   // es de ese mes o antes; así lo que se pagó después no infla el mes. Si no está en Plazo real, se usa la cartera.
   const cerrado=!!(foto.mes&&foto.mes<mesHoyKey());const fin=(foto.mes||'')+'-31';
   let prMap=null;if(cerrado&&typeof prCache!=='undefined'&&Object.keys(prCache).length){prMap={};Object.values(prCache).forEach(x=>(x.f||[]).forEach(r=>{prMap[String(r[0]).trim()]=r;}));}
-  let viaRec=0,viaCart=0;
+  // Mejor todavía: si existe la foto del mes siguiente, lo que una factura todavía debía ese día es lo que NO se canceló en el mes.
+  let sig=null,mesSig='';if(cerrado){mesSig=mesSiguiente(foto.mes);const nf=objFotoCache[mesSig];
+    if(nf&&nf.fc&&nf.fc.length){sig={};nf.fc.forEach(r=>{const k=normCli(r[0])+'|'+String(r[2]||'').trim();sig[k]=(sig[k]||0)+(r[5]||0);});}}
+  let viaRec=0,viaCart=0,viaFoto=0;
   const porV={},porVT={},porT=ceroTramos();let total=0;const filas=[];
   fcFoto(foto).forEach(([cli,v,num,emp,vto,monto])=>{
     const t=tramoFactura(vto,foto.fecha_foto);
     let resto,via='cartera';const pr=prMap&&num?prMap[String(num).trim()]:null;
-    if(pr){via='recibos';resto=(pr[5]==='P'&&pr[6]&&pr[6]<=fin)?0:monto;}
+    if(sig&&num){via='foto';const k2=normCli(cli)+'|'+String(num).trim();resto=sig[k2]!==undefined?sig[k2]:0;}
+    else if(pr){via='recibos';resto=(pr[5]==='P'&&pr[6]&&pr[6]<=fin)?0:monto;}
     else if(!num)resto=monto;else{const k=normCli(cli)+'|'+num;resto=m[k]!==undefined?m[k]:(porNum[num]!==undefined?porNum[num]:0);}
     resto=Math.min(resto,monto);const canc=Math.max(0,monto-resto);
     filas.push({cli,v,num,emp,vto,t,monto,resto,canc,via});
     if(!veVendedor(v))return;
-    if(via==='recibos')viaRec++;else viaCart++;
+    if(via==='foto')viaFoto++;else if(via==='recibos')viaRec++;else viaCart++;
     porV[v]=(porV[v]||0)+canc;(porVT[v]=porVT[v]||ceroTramos())[t]+=canc;porT[t]+=canc;total+=canc;
   });
-  return{porV,porVT,porT,total,filas,viaRec,viaCart,cerrado};
+  return{porV,porVT,porT,total,filas,viaRec,viaCart,viaFoto,mesSig,cerrado};
 }
 function renderCumplTramo(cfg,base,cancel,foto){
   const el=document.getElementById('obj-cumpl-tramo');if(!el)return;
@@ -5199,7 +5204,7 @@ function renderCumplTramo(cfg,base,cancel,foto){
   const totB=TRAMOS_ORDEN.reduce((s,t)=>s+porTB[t],0),totO=TRAMOS_ORDEN.reduce((s,t)=>s+porTO[t],0);
   el.innerHTML='<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap"><h3 style="margin:0">Cumplimiento por tipo de deudor <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--text3)">· facturas de la foto canceladas</span></h3>'
     +'<button class="btn" id="btn-fc-canceladas"><i class="ti ti-file-spreadsheet"></i> Descargar facturas cobradas (Excel)</button></div>'
-    +'<div style="font-size:12px;color:var(--text3);margin:6px 0 10px">Se compara cada factura de la foto del '+fmtFecha(foto.fecha_foto)+' con la cartera '+(cart?'cargada el <strong style="color:var(--text2)">'+cart+'</strong>':'actual')+': si ya no está o bajó su saldo, lo que bajó cuenta como cancelado en el tipo de deudor de esa factura. '+nCanc+' facturas con pagos ('+nTot+' canceladas completas). '+(cancel.viaRec?'<strong style="color:var(--text2)">Mes cerrado:</strong> '+cancel.viaRec+' facturas medidas con los recibos de Plazo real (pagadas hasta fin de mes = canceladas) y '+cancel.viaCart+' con la cartera (no están en Plazo real). ':(cancel.cerrado?'<span style="color:var(--orange)">Mes cerrado sin datos en Plazo real: lo pagado después del mes también cuenta. Cargá facturas + pagos de ese mes para medirlo bien.</span> ':''))+'<strong style="color:var(--text2)">Para que esté al día, actualizá la cartera con el Excel de Odoo.</strong></div>'
+    +'<div style="font-size:12px;color:var(--text3);margin:6px 0 10px">Se compara cada factura de la foto del '+fmtFecha(foto.fecha_foto)+' con la cartera '+(cart?'cargada el <strong style="color:var(--text2)">'+cart+'</strong>':'actual')+': si ya no está o bajó su saldo, lo que bajó cuenta como cancelado en el tipo de deudor de esa factura. '+nCanc+' facturas con pagos ('+nTot+' canceladas completas). '+(cancel.viaFoto?'<strong style="color:var(--text2)">Mes cerrado:</strong> '+cancel.viaFoto+' facturas comparadas con la foto de '+escH(nombreMesObj(cancel.mesSig))+' (lo que ya no figuraba o bajó su saldo = cancelado en el mes)'+(cancel.viaRec||cancel.viaCart?', '+cancel.viaRec+' con los recibos de Plazo real y '+cancel.viaCart+' con la cartera':'')+'. ':cancel.viaRec?'<strong style="color:var(--text2)">Mes cerrado:</strong> '+cancel.viaRec+' facturas medidas con los recibos de Plazo real (pagadas hasta fin de mes = canceladas) y '+cancel.viaCart+' con la cartera (no están en Plazo real). ':(cancel.cerrado?'<span style="color:var(--orange)">Mes cerrado sin datos en Plazo real: lo pagado después del mes también cuenta. Cargá facturas + pagos de ese mes para medirlo bien.</span> ':''))+'<strong style="color:var(--text2)">Para que esté al día, actualizá la cartera con el Excel de Odoo.</strong></div>'
     +'<div class="table-scroll"><table class="obj-cfg" style="min-width:720px"><thead><tr><th>Tipo de deudor</th><th style="text-align:right">Deuda en la foto</th><th style="text-align:right">Objetivo</th><th style="text-align:right">Cancelado</th><th style="text-align:right">% de la deuda</th><th style="text-align:center">% del objetivo</th><th style="text-align:right">Falta</th></tr></thead><tbody>'
     +TRAMOS_ORDEN.map(t=>fila(TRAMO_LBL[t],tramoColor[t],porTB[t],porTO[t],cancel.porT[t])).join('')
     +fila('Total','var(--yellow2)',totB,totO,cancel.total,'obj-cfg-gen')+'</tbody></table></div>';
