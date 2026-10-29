@@ -5544,17 +5544,34 @@ function prClientesJudiciales(){
   Object.entries(gestionesPorNombre||{}).forEach(([n,g])=>{if(!out[normCli(n)])rev(n,g);});
   return out;
 }
+// Indicador de meses anteriores desde las fotos: deuda de la foto de cada mes por tramo y cuánto se canceló en el mes
+// (cada factura comparada con la foto del mes siguiente, igual que el cumplimiento de los meses cerrados).
+function mesAnterior(k){const[y,m]=k.split('-').map(Number);return isoLocal(new Date(y,m-2,1)).slice(0,7);}
+async function histDesdeFotos(mesKey,n){
+  const res=[];let k=mesKey;
+  for(let i=0;i<n;i++){
+    k=mesAnterior(k);const f=await loadFotoMes(k);const nf=await loadFotoMes(mesSiguiente(k));
+    const porT={};TRAMOS_ORDEN.forEach(t=>porT[t]={s:0,c:0,n:0});
+    if(f&&f.fc&&f.fc.length&&nf&&nf.fc&&nf.fc.length){
+      fcFoto(f).forEach(r=>{if(!veVendedor(r[1]))return;const t=tramoFactura(r[4],f.fecha_foto);porT[t].s+=r[5]||0;porT[t].n++;});
+      const c=canceladoFoto(f);TRAMOS_ORDEN.forEach(t=>{porT[t].c=c.porT[t]||0;});
+      res.unshift({k,porT,fuente:'foto'});
+    }else res.unshift({k,porT,fuente:null});
+  }
+  return res;
+}
 async function renderHistTramo(cfg,foto){
   const el=document.getElementById('obj-hist-tramo');if(!el)return;
   await prLoad();
   const jud=prClientesJudiciales();
   let h='<div class="section-title plegable" data-plegar="obj-hist-body" style="cursor:pointer;margin-top:0">INDICADOR: CÓMO SE COBRÓ EN MESES ANTERIORES <span class="pleg-ic" style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--text3)"></span></div><div id="obj-hist-body">';
-  if(!Object.keys(prCache).length){
-    h+='<div style="font-size:12.5px;color:var(--text3)">Se arma con los Excel de facturas + pagos que se cargan en <strong>Cumplimiento › Plazo real de pago</strong>. Todavía no hay ninguno cargado.</div>';
+  const Hf=await histDesdeFotos(objMesActual,3);const Hp=Object.keys(prCache).length?prHistorico(objMesActual,3):null;
+  const H=Hf.map((x,i)=>x.fuente?x:(Hp&&Hp[i]&&Hp[i].k===x.k?{...Hp[i],fuente:'pr'}:x));
+  if(!H.some(x=>x.fuente)){
+    h+='<div style="font-size:12.5px;color:var(--text3)">Se arma con las fotos de los meses anteriores (cargadas desde Excel) o, si faltan, con los Excel de facturas + pagos de <strong>Cumplimiento › Plazo real de pago</strong>. Todavía no hay datos.</div>';
   }else{
-    const H=prHistorico(objMesActual,3);
-    const emps=Object.keys(prCache).join(' y ');
-    h+='<div style="font-size:12px;color:var(--text3);margin-bottom:8px">De la deuda que había el 1° de cada mes, qué % se canceló en ese mes (por factura, con fecha del recibo). Datos de '+escH(emps)+'. Es una referencia: no cambia el objetivo.</div><div class="metrics" style="margin:0">';
+    const sinF=H.filter(x=>x.fuente==='pr').map(x=>nombreMesObj(x.k));
+    h+='<div style="font-size:12px;color:var(--text3);margin-bottom:8px">De la deuda de la foto de cada mes, qué % se canceló en ese mes: cada factura se compara con la foto del mes siguiente'+(sinF.length?' ('+escH(sinF.join(', '))+': sin foto, sale de Plazo real)':'')+'. Es una referencia: no cambia el objetivo.</div><div class="metrics" style="margin:0">';
     TRAMOS_ORDEN.forEach(t=>{
       const ps=H.map(x=>x.porT[t].s?x.porT[t].c/x.porT[t].s:null);const val=ps.filter(p=>p!==null);
       const prom=val.length?val.reduce((s,p)=>s+p,0)/val.length:null;
@@ -5579,8 +5596,8 @@ async function renderHistTramo(cfg,foto){
   h+='</div></div>';
   el.innerHTML=h;el.style.display='';
   aplicarPlegados();
-  if(Object.keys(prCache).length){const H=prHistorico(objMesActual,3);
-    TRAMOS_ORDEN.forEach(t=>setCalc('obj-hist-'+t.replace(/\s/g,'-'),'<div>Para cada mes: facturas pendientes el día 1 en el tramo <strong>'+TRAMO_LBL[t]+'</strong> (según su vencimiento ese día) y cuánto de eso tuvo su último recibo dentro del mes.</div>'
+  if(H.some(x=>x.fuente)){
+    TRAMOS_ORDEN.forEach(t=>setCalc('obj-hist-'+t.replace(/\s/g,'-'),'<div>Para cada mes: deuda de la foto en el tramo <strong>'+TRAMO_LBL[t]+'</strong> (según el vencimiento de cada factura ese día) y cuánto de eso se canceló dentro del mes (ya no figuraba, o bajó su saldo, en la foto del mes siguiente).</div>'
       +H.map(x=>cRow(nombreMesObj(x.k),fmtN(x.porT[t].c)+' de '+fmtN(x.porT[t].s)+' = '+(x.porT[t].s?Math.round(x.porT[t].c/x.porT[t].s*100):0)+'%')).join('')
       +'<div style="margin-top:6px;color:var(--text3)">Promedio simple de los 3 meses. ▲▼ = último mes contra el anterior (±3 puntos). Las facturas con pagos parciales previos cuentan por su total.</div>'));}
 }
