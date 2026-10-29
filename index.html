@@ -1195,7 +1195,7 @@ th.th-on{color:var(--yellow)!important}
 <div class="modal-bg" id="modal-seguimiento">
   <div class="modal" style="width:760px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><h2><i class="ti ti-at" style="vertical-align:-2px;margin-right:8px;color:var(--yellow)"></i>Seguimiento de menciones</h2><button class="btn" id="seg-cerrar">Cerrar</button></div>
-    <div class="modal-sub" style="margin-top:6px">Lo que te preguntaron y todavía no respondiste, y lo que preguntaste vos y estás esperando. <span class="help-link" data-ayuda="a-menciones">¿cómo funciona?</span></div>
+    <div class="modal-sub" style="margin-top:6px">Cada caso queda abierto hasta que se responde o se cierra; ahí sale de la campana y de los pendientes. Podés responder o cerrar desde acá, o ir a la gestión del cliente. <span class="help-link" data-ayuda="a-menciones">¿cómo funciona?</span></div>
     <div id="seg-body" style="max-height:62vh;overflow-y:auto"></div>
   </div>
 </div>
@@ -5640,11 +5640,11 @@ async function renderHistTramo(cfg,foto){
   document.getElementById('pr-ventana').addEventListener('change',function(){prVentana=this.value;renderPlazoReal();});
 })();
 
-// ===================== SEGUIMIENTO DE MENCIONES (@) — oct-2026 =====================
-// Tres listas: "Tengo que responder" (me mencionaron y todavía no cargué gestión en ese cliente),
-// "Esperando respuesta" (yo mencioné y el otro no respondió) y "Respondidas" (las mías que ya contestaron).
-// Una mención se responde cargando una gestión con nota en ese cliente (resolver_menciones en secure-write).
-let segData={pend:[],esp:[],resp:[]},segTab='pend';
+// ===================== MENCIONES (@): CASOS ABIERTOS / CERRADOS — oct-2026 =====================
+// Cada caso = cliente + quién preguntó + a quién. Queda abierto mientras alguna de sus menciones no esté resuelta.
+// Se cierra desde este panel (el mencionado responde, o quien preguntó lo cierra) o cargando una gestión con nota en el cliente.
+// Al cerrarse, las menciones quedan leídas: dejan de aparecer en la campana y en los contadores.
+let segData={pend:[],esp:[],resp:[],todas:[]},segTab='ab';
 function segNombre(u){const x=(usuariosList||[]).find(v=>String(v.usuario).toLowerCase()===String(u||'').toLowerCase());return x?x.nombre:(u||'—');}
 function segDias(iso){return iso?Math.floor((Date.now()-new Date(iso).getTime())/86400000):0;}
 function segDemora(a,b){const h=Math.round((new Date(b)-new Date(a))/3600000);return h<24?h+' h':Math.round(h/24)+' días';}
@@ -5653,64 +5653,99 @@ async function loadSeguimiento(){
   const u=encodeURIComponent(currentUser.usuario);const base=SUPABASE_URL+'/rest/v1/menciones?tipo=eq.mencion&select=*&order=ts.desc';
   try{
     const [a,b]=await Promise.all([
-      fetch(base+'&mencionado=eq.'+u+'&resuelta=eq.false&limit=200',{headers:SUPABASE_HEADERS}).then(r=>r.json()),
-      fetch(base+'&autor_usuario=eq.'+u+'&limit=300',{headers:SUPABASE_HEADERS}).then(r=>r.json())]);
-    const mias=Array.isArray(b)?b:[];
-    segData={pend:Array.isArray(a)?a:[],esp:mias.filter(m=>!m.resuelta),resp:mias.filter(m=>m.resuelta).sort((x,y)=>String(y.resuelta_ts||y.ts).localeCompare(String(x.resuelta_ts||x.ts)))};
+      fetch(base+'&mencionado=eq.'+u+'&limit=400',{headers:SUPABASE_HEADERS}).then(r=>r.json()),
+      fetch(base+'&autor_usuario=eq.'+u+'&limit=400',{headers:SUPABASE_HEADERS}).then(r=>r.json())]);
+    const A=Array.isArray(a)?a:[],B=Array.isArray(b)?b:[];const ids=new Set();
+    const todas=A.concat(B).filter(m=>{if(ids.has(m.id))return false;ids.add(m.id);return true;});
+    segData={todas,pend:A.filter(m=>!m.resuelta),esp:B.filter(m=>!m.resuelta),resp:B.filter(m=>m.resuelta)};
   }catch(e){console.error('Seguimiento menciones:',e);}
+  const cs=segCasos().filter(c=>c.abierto);const n=cs.length,nR=cs.filter(c=>c.soyMencionado).length;
   const c=document.getElementById('seg-count');
-  if(c){const n=segData.pend.length;c.hidden=!n;c.textContent=n>9?'9+':n;c.title=n+' para responder · '+segData.esp.length+' esperando respuesta';}
+  if(c){c.hidden=!n;c.textContent=n>9?'9+':n;c.title=n+' casos abiertos · '+nR+' para responder vos';}
   if(document.getElementById('modal-seguimiento').classList.contains('open'))pintarSeguimiento();
   return segData;
 }
-function segAgrupar(lista,clave){const g={};lista.forEach(m=>{const k=normCli(m.cliente)+'|'+String(m[clave]||'').toLowerCase();(g[k]=g[k]||[]).push(m);});return Object.values(g);}
+function segCasos(){
+  const me=String(currentUser&&currentUser.usuario||'').toLowerCase();const g={};
+  (segData.todas||[]).forEach(m=>{const k=normCli(m.cliente)+'|'+String(m.autor_usuario||'').toLowerCase()+'|'+String(m.mencionado||'').toLowerCase();(g[k]=g[k]||[]).push(m);});
+  return Object.entries(g).map(([key,ms])=>{
+    ms.sort((x,y)=>String(x.ts).localeCompare(String(y.ts)));
+    const ab=ms.filter(m=>!m.resuelta);const ult=ms[ms.length-1];
+    const res=ms.filter(m=>m.resuelta).sort((x,y)=>String(x.resuelta_ts||'').localeCompare(String(y.resuelta_ts||''))).pop()||null;
+    const abierto=ab.length>0;const visibles=abierto?ab:ms;
+    return{key,cliente:ult.cliente,autor:ult.autor||segNombre(ult.autor_usuario),autorU:ult.autor_usuario,menU:ult.mencionado,ms:visibles,abiertos:ab,abierto,
+      desde:(ab[0]||ms[0]).ts,ult,res,orden:abierto?ult.ts:((res&&res.resuelta_ts)||ult.ts),
+      soyMencionado:String(ult.mencionado||'').toLowerCase()===me,soyAutor:String(ult.autor_usuario||'').toLowerCase()===me};
+  }).sort((a,b)=>String(b.orden).localeCompare(String(a.orden)));
+}
 function pintarSeguimiento(){
-  const el=document.getElementById('seg-body');
-  const tabs=[['pend','Tengo que responder',segData.pend.length],['esp','Esperando respuesta',segData.esp.length],['resp','Respondidas',segData.resp.length]];
-  let h='<div class="tab-bar" style="margin-bottom:12px">'+tabs.map(([k,l,n])=>'<button class="tab'+(segTab===k?' active':'')+'" data-segtab="'+k+'">'+l+' <span class="pcount"'+(n?'':' style="opacity:.5"')+'>'+n+'</span></button>').join('')+'</div>';
+  const el=document.getElementById('seg-body');const cs=segCasos();
+  const ab=cs.filter(c=>c.abierto),ce=cs.filter(c=>!c.abierto);
+  let h='<div class="ped-fil" style="margin-bottom:10px">'+[['ab','Abiertos',ab.length],['ce','Cerrados',ce.length],['to','Todos',cs.length]].map(([k,l,n])=>'<button type="button" class="lnk'+(segTab===k?' on':'')+'" data-segtab="'+k+'">'+l+' ('+n+')</button>').join('')+'</div>';
+  const lista=segTab==='ab'?ab:segTab==='ce'?ce.slice(0,80):cs.slice(0,120);
   const colorDias=d=>d>=5?'var(--red)':d>=2?'var(--orange)':'var(--text3)';
-  const cli=m=>'<span style="font-weight:700;color:var(--yellow)">'+escH(m.cliente)+'</span>';
-  if(segTab==='pend'){
-    const grupos=segAgrupar(segData.pend,'autor_usuario');
-    h+='<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Te mencionaron y todavía no cargaste una gestión en ese cliente. Se responde <strong>cargando la gestión en la ficha</strong> (con nota): a quien te mencionó le llega el aviso.</div>';
-    h+=grupos.length?grupos.map(gr=>{const m=gr[0];const d=segDias(gr[gr.length-1].ts);const hay=clientes.some(c=>c.nombre===m.cliente);
-      return'<div class="notif-hist-item" style="cursor:default"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div>'+cli(m)+' <span style="color:var(--text2)">· te mencionó <strong>'+escH(m.autor||segNombre(m.autor_usuario))+'</strong>'+(gr.length>1?' ('+gr.length+' veces)':'')+'</span></div><div style="color:'+colorDias(d)+';font-weight:700;font-size:12px">'+haceCuanto(gr[gr.length-1].ts)+'</div></div>'
-        +'<div style="color:var(--text2);margin:4px 0">'+escH(m.nota||'')+'</div>'
-        +(hay?'<button class="btn btn-yellow" data-segficha="'+escH(m.cliente)+'"><i class="ti ti-pencil"></i> Responder en la ficha</button>'
-          :'<div style="font-size:11.5px;color:var(--text3);margin-bottom:4px">El cliente ya no está en Cartera: respondé acá.</div><textarea data-segresp="'+escH(m.cliente)+'" rows="2" style="width:100%;padding:7px;border:1px solid var(--border2);border-radius:6px;background:var(--bg3);color:var(--text)"></textarea><button class="btn btn-yellow" style="margin-top:4px" data-segenviar="'+escH(m.cliente)+'">Enviar respuesta</button>')
-        +'</div>';}).join(''):'<div class="notif-empty">No tenés menciones sin responder 🎉</div>';
-  }else if(segTab==='esp'){
-    const grupos=segAgrupar(segData.esp,'mencionado');
-    h+='<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Mencionaste a alguien y todavía no cargó gestión en ese cliente. <strong>Recordar</strong> le vuelve a llegar la notificación.</div>';
-    h+=grupos.length?grupos.map(gr=>{const m=gr[0];const pri=gr[gr.length-1];const d=segDias(pri.ts);
-      return'<div class="notif-hist-item" style="cursor:default"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div>'+cli(m)+' <span style="color:var(--text2)">· le preguntaste a <strong>'+escH(segNombre(m.mencionado))+'</strong>'+(gr.length>1?' ('+gr.length+' veces)':'')+'</span></div><div style="color:'+colorDias(d)+';font-weight:700;font-size:12px">esperando · '+haceCuanto(pri.ts)+'</div></div>'
-        +'<div style="color:var(--text2);margin:4px 0">'+escH(m.nota||'')+'</div>'
-        +'<div style="display:flex;gap:6px"><button class="btn" data-segrecordar="'+escH(m.cliente)+'" data-para="'+escH(m.mencionado)+'" data-nota="'+escH(String(m.nota||'').replace(/^Recordatorio:\s*/,''))+'"><i class="ti ti-bell-ringing"></i> Recordar</button>'
-        +(clientes.some(c=>c.nombre===m.cliente)?'<button class="btn" data-segficha="'+escH(m.cliente)+'">Ver ficha</button>':'')+'</div></div>';}).join(''):'<div class="notif-empty">No estás esperando ninguna respuesta.</div>';
-  }else{
-    const lista=segData.resp.slice(0,60);
-    h+='<div style="font-size:12px;color:var(--text3);margin-bottom:8px">Tus menciones que ya fueron respondidas (últimas 60), con lo que contestaron y cuánto tardaron.</div>';
-    h+=lista.length?lista.map(m=>'<div class="notif-hist-item" data-segficha="'+escH(m.cliente)+'"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div>✅ '+cli(m)+' <span style="color:var(--text2)">· respondió <strong>'+escH(segNombre(m.mencionado))+'</strong></span></div><div style="color:var(--text3);font-size:11px">'+(m.resuelta_ts?new Date(m.resuelta_ts).toLocaleString('es-AR')+' · tardó '+segDemora(m.ts,m.resuelta_ts):'')+'</div></div>'
-      +'<div style="color:var(--text3);font-size:11.5px;margin-top:3px">Vos: '+escH(m.nota||'')+'</div><div style="color:var(--text);margin-top:3px">↳ '+escH(m.respuesta||'(sin texto)')+'</div></div>').join(''):'<div class="notif-empty">Todavía no hay respuestas.</div>';
-  }
+  if(!lista.length)h+='<div class="notif-empty">'+(segTab==='ab'?'No hay casos abiertos 🎉':'Todavía no hay casos cerrados.')+'</div>';
+  h+=lista.map(c=>{
+    const id=escH(c.key);const hay=clientes.some(x=>x.nombre===c.cliente);const d=segDias(c.desde);
+    const quien=c.soyMencionado&&c.soyAutor?'nota para vos':c.soyMencionado?'te preguntó <strong>'+escH(c.autor)+'</strong>':c.soyAutor?'le preguntaste a <strong>'+escH(segNombre(c.menU))+'</strong>':escH(c.autor)+' → '+escH(segNombre(c.menU));
+    const estado=c.abierto?'<span style="color:'+colorDias(d)+';font-weight:700;font-size:12px">Abierto · '+haceCuanto(c.desde)+'</span>'
+      :'<span style="color:var(--green);font-weight:700;font-size:12px">✅ Cerrado'+(c.res&&c.res.resuelta_ts?' · '+new Date(c.res.resuelta_ts).toLocaleDateString('es-AR')+' · tardó '+segDemora(c.ms[0].ts,c.res.resuelta_ts):'')+'</span>';
+    let x='<div class="notif-hist-item" style="cursor:default"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><span style="font-weight:700;color:var(--yellow)">'+escH(c.cliente)+'</span> <span style="color:var(--text2)">· '+quien+(c.ms.length>1?' ('+c.ms.length+' mensajes)':'')+'</span></div>'+estado+'</div>';
+    x+='<div style="margin:6px 0 2px">'+c.ms.map(m=>'<div style="color:var(--text2);font-size:12.5px;margin-top:3px"><span style="color:var(--text3);font-size:11px">'+new Date(m.ts).toLocaleString('es-AR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span> '+escH(m.nota||'')+'</div>').join('')+'</div>';
+    if(!c.abierto&&c.res)x+='<div style="color:var(--text);margin-top:4px">↳ '+escH(c.res.respuesta||'(sin texto)')+'</div>';
+    if(c.abierto){
+      x+='<textarea data-segtxt="'+id+'" rows="2" placeholder="'+(c.soyMencionado?'Tu respuesta…':'Comentario de cierre (opcional)…')+'" style="width:100%;margin-top:6px;padding:7px;border:1px solid var(--border2);border-radius:6px;background:var(--bg3);color:var(--text);font-family:inherit"></textarea><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">';
+      if(c.soyMencionado)x+='<button class="btn btn-yellow" data-segresp="'+id+'"><i class="ti ti-send"></i> Responder y cerrar</button>';
+      if(c.soyAutor)x+='<button class="btn'+(c.soyMencionado?'':' btn-yellow')+'" data-segcerrar="'+id+'"><i class="ti ti-circle-check"></i> Cerrar caso</button>'+(c.soyMencionado?'':'<button class="btn" data-segrecordar="'+id+'"><i class="ti ti-bell-ringing"></i> Recordar</button>');
+      x+=(hay?'<button class="btn" data-segficha="'+escH(c.cliente)+'"><i class="ti ti-file-text"></i> Ver gestión del cliente</button>':'')+'</div>';
+    }else if(hay)x+='<div style="margin-top:6px"><button class="btn" data-segficha="'+escH(c.cliente)+'"><i class="ti ti-file-text"></i> Ver gestión del cliente</button></div>';
+    return x+'</div>';
+  }).join('');
   el.innerHTML=h;
+}
+// Agrega una nota al historial de gestión del cliente (para que la respuesta quede también ahí).
+function agregarNotaGestion(nombre,nota){
+  const idx=clientes.findIndex(c=>c.nombre===nombre);const prev=(idx>=0?gestiones[idx]:gestionesPorNombre[nombre])||{};const d=new Date();
+  const hist=(prev.historial||[]).slice();hist.push({fecha:d.toLocaleDateString('es-AR')+' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),ts:d.toISOString(),nota,por:currentUser?currentUser.nombre:''});
+  const vend=prev.vendedor||(idx>=0?getVend(idx):'')||'';
+  const data={...prev,nota,vendedor:vend,historial:hist,ts:d.toISOString()};if(idx>=0)gestiones[idx]=data;gestionesPorNombre[nombre]=data;
+  return secureWrite('save_gestion',{cliente:nombre,nota,email:prev.email||'',telefono:prev.telefono||'',vendedor:vend,fecha_comp:prev.fecha_comp||null,monto_comp:prev.monto_comp||null,historial:JSON.stringify(hist),gestionado_por:currentUser?currentUser.nombre:''});
+}
+async function segCerrarCaso(c,texto,comoMencionado){
+  const ahora=new Date().toISOString();const ids=c.abiertos.map(m=>m.id);if(!ids.length)return;
+  const quien=currentUser.nombre;const respuesta=String(texto||('Cerrado por '+quien)).slice(0,300);
+  await _rest('menciones?id='+_q(_in(ids)),{method:'PATCH',body:JSON.stringify({resuelta:true,leida:true,respuesta,resuelta_ts:ahora})});
+  const para=comoMencionado?c.autorU:c.menU;
+  if(para&&String(para).toLowerCase()!==String(currentUser.usuario).toLowerCase())
+    await _rest('menciones',{method:'POST',body:JSON.stringify({cliente:c.cliente,mencionado:para,autor:quien,autor_usuario:currentUser.usuario,nota:(comoMencionado?'Respondió tu mención: ':'Cerró el caso: ')+respuesta.slice(0,250),leida:false,resuelta:true,tipo:'resolucion',ts:ahora})});
+  if(texto)await agregarNotaGestion(c.cliente,(comoMencionado?'Respuesta a '+c.autor+': ':'Cierre de consulta a '+segNombre(c.menU)+': ')+texto);
+}
+function segMarcarAvisosLeidos(){
+  if(!currentUser)return;
+  _rest('menciones?mencionado=eq.'+_q(currentUser.usuario)+'&tipo=eq.resolucion&leida=eq.false',{method:'PATCH',body:JSON.stringify({leida:true})}).then(()=>loadMenciones()).catch(()=>{});
 }
 function abrirSeguimiento(tab){if(tab)segTab=tab;document.getElementById('modal-seguimiento').classList.add('open');pintarSeguimiento();loadSeguimiento();}
 (function(){
   const md=document.getElementById('modal-seguimiento');if(!md)return;
   document.getElementById('btn-seguimiento').addEventListener('click',()=>abrirSeguimiento());
   document.getElementById('seg-cerrar').addEventListener('click',()=>md.classList.remove('open'));
+  const caso=k=>segCasos().find(c=>c.key===k);
+  const txt=k=>{const ta=md.querySelector('textarea[data-segtxt="'+CSS.escape(k)+'"]');return(ta&&ta.value||'').trim();};
   md.addEventListener('click',async e=>{
     if(e.target===md){md.classList.remove('open');return;}
-    const t=e.target.closest('[data-segtab]');if(t){segTab=t.dataset.segtab;pintarSeguimiento();return;}
-    const f=e.target.closest('[data-segficha]');if(f&&!e.target.closest('textarea')){const idx=clientes.findIndex(c=>c.nombre===f.dataset.segficha);
+    const t=e.target.closest('[data-segtab]');if(t){segTab=t.dataset.segtab;if(segTab!=='ab')segMarcarAvisosLeidos();pintarSeguimiento();return;}
+    const f=e.target.closest('[data-segficha]');if(f){const idx=clientes.findIndex(c=>c.nombre===f.dataset.segficha);
       if(idx!==-1){md.classList.remove('open');openModal(idx);switchTab('gestion');}else showToast('Ese cliente no está en la lista actual');return;}
-    const r=e.target.closest('[data-segrecordar]');if(r){r.disabled=true;
-      const ok=await secureWrite('save_mencion',{cliente:r.dataset.segrecordar,mencionado:r.dataset.para,autor:currentUser.nombre,autor_usuario:currentUser.usuario,nota:('Recordatorio: '+r.dataset.nota).slice(0,300)});
-      showToast(ok?'Recordatorio enviado a '+segNombre(r.dataset.para)+' ✓':'No se pudo enviar');loadSeguimiento();return;}
-    const s=e.target.closest('[data-segenviar]');if(s){const ta=md.querySelector('textarea[data-segresp="'+CSS.escape(s.dataset.segenviar)+'"]');const txt=(ta&&ta.value||'').trim();if(!txt){showToast('Escribí la respuesta');return;}
-      s.disabled=true;const ok=await secureWrite('resolver_menciones',{cliente:s.dataset.segenviar,mencionado:currentUser.usuario,respuesta:txt,respondido_por:currentUser.nombre,respondido_por_usuario:currentUser.usuario});
-      showToast(ok?'Respuesta enviada ✓':'No se pudo enviar');loadSeguimiento();}
+    const r=e.target.closest('[data-segresp]');if(r){const c=caso(r.dataset.segresp);const tx=txt(r.dataset.segresp);if(!c)return;if(!tx){showToast('Escribí la respuesta');return;}
+      r.disabled=true;try{await segCerrarCaso(c,tx,true);showToast('Respondido y cerrado ✓');}catch(err){showToast('No se pudo guardar: '+err.message);r.disabled=false;}
+      await loadSeguimiento();loadMenciones();return;}
+    const z=e.target.closest('[data-segcerrar]');if(z){const c=caso(z.dataset.segcerrar);if(!c)return;const tx=txt(z.dataset.segcerrar);
+      z.disabled=true;try{await segCerrarCaso(c,tx,false);showToast('Caso cerrado ✓');}catch(err){showToast('No se pudo guardar: '+err.message);z.disabled=false;}
+      await loadSeguimiento();loadMenciones();return;}
+    const rc=e.target.closest('[data-segrecordar]');if(rc){const c=caso(rc.dataset.segrecordar);if(!c)return;rc.disabled=true;
+      const base=String((c.abiertos[0]||c.ult).nota||'').replace(/^Recordatorio:\s*/,'');
+      const ok=await secureWrite('save_mencion',{cliente:c.cliente,mencionado:c.menU,autor:currentUser.nombre,autor_usuario:currentUser.usuario,nota:('Recordatorio: '+base).slice(0,300)});
+      showToast(ok?'Recordatorio enviado a '+segNombre(c.menU)+' ✓':'No se pudo enviar');loadSeguimiento();return;}
   });
 })();
 
@@ -5762,7 +5797,7 @@ async function secureWrite(action,payload){
     if(action==='resolver_menciones'){
       const pend=await _rest('menciones?select=*&cliente=eq.'+_q(p.cliente)+'&mencionado=eq.'+_q(p.mencionado)+'&resuelta=eq.false&tipo=eq.mencion',{headers:{Prefer:''}})||[];
       if(!pend.length)return true;
-      await _rest('menciones?id='+_q(_in(pend.map(x=>x.id))),{method:'PATCH',body:JSON.stringify({resuelta:true,respuesta:String(p.respuesta||'').slice(0,300),resuelta_ts:ahora})});
+      await _rest('menciones?id='+_q(_in(pend.map(x=>x.id))),{method:'PATCH',body:JSON.stringify({resuelta:true,leida:true,respuesta:String(p.respuesta||'').slice(0,300),resuelta_ts:ahora})});
       const notifs=pend.filter(x=>x.autor_usuario).map(x=>({cliente:p.cliente,mencionado:x.autor_usuario,autor:p.respondido_por||'',autor_usuario:p.respondido_por_usuario||null,
         nota:'Respondió tu mención: '+String(p.respuesta||'').slice(0,250),leida:false,resuelta:true,tipo:'resolucion',ts:ahora}));
       if(notifs.length)await _rest('menciones',{method:'POST',body:JSON.stringify(notifs)});
