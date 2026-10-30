@@ -143,6 +143,8 @@ tr:hover td{background:var(--bg3)}
 .rep-card-name{font-size:13px;font-weight:700;color:var(--yellow);margin-bottom:6px}
 .rep-row{display:flex;justify-content:space-between;font-size:12px;color:var(--text2);padding:2px 0}
 .rep-row span:last-child{font-weight:600;color:var(--text)}
+.rep-click{cursor:pointer;border-radius:4px;margin:0 -4px;padding:2px 4px}.rep-click:hover{background:var(--bg3,rgba(255,255,255,.06))}.rep-click:hover span:first-child{color:var(--yellow)}
+.rep-card.rep-sel{border-color:var(--yellow)}
 .rep-total{color:var(--yellow2);font-weight:700}
 .section-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin:0 0 10px;display:flex;align-items:center;gap:8px}
 .section-title::after{content:'';flex:1;height:1px;background:var(--border)}
@@ -2230,17 +2232,20 @@ function renderReporte(){
   const listaEmpresa=fv?clientes.filter((c,i)=>getVend(i)===fv||(!getVend(i)&&fv==='Sin asignar')):clientes;
   const emp=deudaPorEmpresaList(listaEmpresa);
   let html='<div class="cal-summary" style="margin-bottom:14px">Deuda real por empresa'+(fv?' ('+fv+')':'')+': <strong>SPL '+fmtN(emp.spl)+'</strong> &nbsp;·&nbsp; <strong>Spotsline '+fmtN(emp.spots)+'</strong></div>';
+  html+='<div id="rep-drill"></div><div style="font-size:11.5px;color:var(--text3);margin:-6px 0 10px"><i class="ti ti-pointer"></i> Tocá cualquier número para ver esos clientes, su deuda y su última gestión.</div>';
   html+='<div class="reporte-grid">';
-  vendedores.forEach(([v,d])=>{
-    html+='<div class="rep-card"><div class="rep-card-name"><i class="ti ti-user" style="font-size:13px;vertical-align:-1px;margin-right:5px"></i>'+v+'</div>';
-    html+='<div class="rep-row"><span>Clientes</span><span>'+d.clientes.length+'</span></div>';
-    html+='<div class="rep-row"><span>Deuda total</span><span class="rep-total">'+fmtN(d.deuda)+'</span></div>';
-    if(d.crit)html+='<div class="rep-row"><span>Mora crítica</span><span style="color:var(--red)">'+d.crit+'</span></div>';
-    if(d.med)html+='<div class="rep-row"><span>Mora media</span><span style="color:var(--orange)">'+d.med+'</span></div>';
-    if(d.temp)html+='<div class="rep-row"><span>Mora temprana</span><span style="color:#f39c12">'+d.temp+'</span></div>';
-    if(d.prev)html+='<div class="rep-row"><span>Preventivo</span><span style="color:var(--green)">'+d.prev+'</span></div>';
-    html+='<div class="rep-row"><span>Con gestión</span><span>'+d.conGestion+'</span></div>';
-    if(d.estancados)html+='<div class="rep-row" style="border-top:1px solid var(--border);margin-top:4px;padding-top:6px"><span style="color:var(--red)"><i class="ti ti-alert-triangle" style="font-size:12px;vertical-align:-1px"></i> Sin gestión '+UMBRAL_ESTANCADO+'+ días</span><span style="color:var(--red);font-weight:700">'+d.estancados+' ('+fmtN(d.estancadosDeuda)+')</span></div>';
+  window._repVend=vendedores;
+  vendedores.forEach(([v,d],vi)=>{
+    const rk=k=>' rep-click" data-vi="'+vi+'" data-k="'+k+'" title="Ver los clientes';
+    html+='<div class="rep-card" data-vi="'+vi+'"><div class="rep-card-name"><i class="ti ti-user" style="font-size:13px;vertical-align:-1px;margin-right:5px"></i>'+v+'</div>';
+    html+='<div class="rep-row'+rk('todos')+'"><span>Clientes</span><span>'+d.clientes.length+'</span></div>';
+    html+='<div class="rep-row'+rk('deuda')+'"><span>Deuda total</span><span class="rep-total">'+fmtN(d.deuda)+'</span></div>';
+    if(d.crit)html+='<div class="rep-row'+rk('crit')+'"><span>Mora crítica</span><span style="color:var(--red)">'+d.crit+'</span></div>';
+    if(d.med)html+='<div class="rep-row'+rk('med')+'"><span>Mora media</span><span style="color:var(--orange)">'+d.med+'</span></div>';
+    if(d.temp)html+='<div class="rep-row'+rk('temp')+'"><span>Mora temprana</span><span style="color:#f39c12">'+d.temp+'</span></div>';
+    if(d.prev)html+='<div class="rep-row'+rk('prev')+'"><span>Preventivo</span><span style="color:var(--green)">'+d.prev+'</span></div>';
+    html+='<div class="rep-row'+rk('gestion')+'"><span>Con gestión</span><span>'+d.conGestion+'</span></div>';
+    if(d.estancados)html+='<div class="rep-row'+rk('estancados')+'" style="border-top:1px solid var(--border);margin-top:4px;padding-top:6px"><span style="color:var(--red)"><i class="ti ti-alert-triangle" style="font-size:12px;vertical-align:-1px"></i> Sin gestión '+UMBRAL_ESTANCADO+'+ días</span><span style="color:var(--red);font-weight:700">'+d.estancados+' ('+fmtN(d.estancadosDeuda)+')</span></div>';
     html+='</div>';
   });
   html+='</div>';
@@ -2262,7 +2267,44 @@ function renderReporte(){
     });
     html+='</tbody></table>';
   }
-  document.getElementById('reporte-content').innerHTML=html;
+  const rc=document.getElementById('reporte-content');rc.innerHTML=html;
+  if(!rc._drill){rc._drill=true;rc.addEventListener('click',e=>{
+    const ab=e.target.closest('[data-abrir]');if(ab){repAbrirCliente(+ab.dataset.abrir);return;}
+    if(e.target.closest('[data-cerrar-drill]')){document.getElementById('rep-drill').innerHTML='';rc.querySelectorAll('.rep-card.rep-sel').forEach(x=>x.classList.remove('rep-sel'));return;}
+    const r=e.target.closest('.rep-click');if(r)repDrill(+r.dataset.vi,r.dataset.k);});}
+}
+// Detalle al tocar un número del reporte: los clientes de ese vendedor y esa categoría, con deuda y gestión.
+function repAbrirCliente(i){document.getElementById('modal-reporte').classList.remove('open');openModal(i);switchTab('gestion');}
+function repDrill(vi,k){
+  const e=(window._repVend||[])[vi];const el=document.getElementById('rep-drill');if(!e||!el)return;
+  const[v,d]=e;const tr=x=>tramo(x.c.dias_vencidos);
+  const est=x=>{if(!(x.c.dias_vencidos>0))return false;const s=diasSinGestion(x.i);return s===null||s>=UMBRAL_ESTANCADO;};
+  const T={todos:['Clientes',()=>true],deuda:['Deuda total',()=>true],crit:['Mora crítica',x=>tr(x)==='Mora crítica'],med:['Mora media',x=>tr(x)==='Mora media'],
+    temp:['Mora temprana',x=>tr(x)==='Mora temprana'],prev:['Preventivo',x=>tr(x)==='Preventivo'],gestion:['Con gestión',x=>gestiones[x.i]&&gestiones[x.i].nota],
+    estancados:['Sin gestión '+UMBRAL_ESTANCADO+'+ días (en mora)',est]};
+  const[tit,fn]=T[k]||T.todos;
+  const l=d.clientes.filter(fn).sort((a,b)=>k==='estancados'||/crit|med|temp/.test(k)?(b.c.dias_vencidos-a.c.dias_vencidos||b.c.deuda-a.c.deuda):b.c.deuda-a.c.deuda);
+  const tot=l.reduce((s,x)=>s+(x.c.deuda||0),0);
+  document.querySelectorAll('#reporte-content .rep-card').forEach(x=>x.classList.toggle('rep-sel',x.dataset.vi===String(vi)));
+  const filas=l.map(({c,i})=>{const g=gestiones[i]||{};const h=(g.historial||[]).filter(x=>x.ts);const u=h[h.length-1];
+    const dsg=diasSinGestion(i);const cerr=gestionCerrada(g);
+    const cuando=cerr?'<span style="color:var(--green)">Cerrada</span>':dsg===null?'<span style="color:var(--red)">Nunca</span>':'<span style="color:'+(c.dias_vencidos>0&&dsg>=UMBRAL_ESTANCADO?'var(--red)':'var(--text2)')+'">'+(dsg===0?'Hoy':'Hace '+dsg+'d')+'</span>';
+    const nota=g.nota||(u&&u.nota)||'';
+    const comp=g.fecha_comp?'<div style="font-size:11px;color:var(--yellow2)"><i class="ti ti-calendar"></i> Compromiso '+fmtFecha(g.fecha_comp)+(g.monto_comp?' · '+fmtN(+g.monto_comp):'')+'</div>':'';
+    return'<tr style="border-bottom:1px solid var(--border);cursor:pointer" data-abrir="'+i+'" title="Abrir la ficha del cliente">'
+      +'<td style="padding:6px 8px;color:var(--text);font-weight:600">'+escH(c.nombre)+'</td>'
+      +'<td style="padding:6px 8px"><span class="badge '+bc(tramo(c.dias_vencidos))+'">'+tramo(c.dias_vencidos)+'</span>'+(c.dias_vencidos>0?'<div style="font-size:11px;color:var(--text3)">'+c.dias_vencidos+' días</div>':'')+'</td>'
+      +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:var(--yellow2);white-space:nowrap">'+fmtN(c.deuda)+'<div style="font-size:11px;color:var(--text3);font-weight:400">'+(c.facturas||[]).length+' comp.</div></td>'
+      +'<td style="padding:6px 8px;font-size:12px">'+cuando+(nota?'<div style="color:var(--text2);max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escH(nota)+'">'+escH(nota)+'</div>':'')+comp+'</td>'
+      +'<td style="padding:6px 8px;text-align:right"><span class="btn" style="padding:3px 8px;font-size:11px"><i class="ti ti-external-link"></i> Ficha</span></td></tr>';}).join('');
+  el.innerHTML='<div style="border:1px solid var(--yellow);border-radius:10px;padding:10px 12px;margin-bottom:14px;background:var(--bg2,transparent)">'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><strong style="color:var(--yellow)">'+escH(v)+' · '+escH(tit)+'</strong>'
+    +'<span style="color:var(--text3);font-size:12px">'+l.length+' cliente'+(l.length!==1?'s':'')+' · '+fmtN(tot)+'</span>'
+    +'<button class="btn" data-cerrar-drill style="margin-left:auto;padding:3px 8px;font-size:11px"><i class="ti ti-x"></i> Cerrar</button></div>'
+    +(l.length?'<div style="overflow-x:auto;max-height:360px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="border-bottom:1px solid var(--border)"><th style="padding:6px 8px;color:var(--text3);text-align:left">Cliente</th><th style="padding:6px 8px;color:var(--text3);text-align:left">Estado</th><th style="padding:6px 8px;color:var(--text3);text-align:right">Deuda</th><th style="padding:6px 8px;color:var(--text3);text-align:left">Última gestión</th><th></th></tr></thead><tbody>'+filas+'</tbody></table></div>'
+      :'<div style="color:var(--text3)">Sin clientes.</div>')
+    +'<div style="font-size:11px;color:var(--text3);margin-top:6px">Tocá un cliente para abrir su ficha en la pestaña Gestión.</div></div>';
+  el.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 document.getElementById('btn-reporte').addEventListener('click',()=>{
