@@ -449,7 +449,7 @@ th.th-on{color:var(--yellow)!important}
   </div>
 
   <div class="metrics">
-    <div class="metric m-all" data-filter="" onclick="setMetricFilter('')">
+    <div class="metric m-all" data-filter="mora" onclick="setMetricFilter('mora')">
       <div class="metric-label">Total en mora</div>
       <div class="metric-value" id="m-total">0</div>
       <div class="metric-sub" id="m-deuda-total">$0</div>
@@ -1707,6 +1707,7 @@ function getFiltered(){
     // Vendedor only sees their clients
     if(!veCliente(c,i))return null;
     if(activeFilter==='gestion'){if(!(gestiones[i]&&gestiones[i].nota))return null;}
+    else if(activeFilter==='mora'){if(!(c.dias_vencidos>0))return null;} // crítica + media + temprana (sin preventivo)
     else if(activeFilter&&tramo(c.dias_vencidos)!==activeFilter)return null;
     let view=c;
     if(fe==='SPL'||fe==='Spotsline'){
@@ -1771,8 +1772,10 @@ function updateMetrics(){
   document.getElementById('hero-sub').textContent=isF?'Filtro: '+fmtN(sumD(filt))+' · '+filt.length+' clientes':all.length+(isVendedor?' clientes en tu cartera':' clientes en cartera');
   const emp=deudaPorEmpresaList(all);
   document.getElementById('hero-empresas').textContent='SPL: '+fmtN(emp.spl)+'   ·   Spotsline: '+fmtN(emp.spots);
-  document.getElementById('m-total').textContent=all.length;
-  document.getElementById('m-deuda-total').textContent=fmtN(allD);
+  // Total en mora = crítica + media + temprana. Lo que está en Preventivo todavía no venció (eso queda en Deuda total en cartera).
+  const enMora=all.filter(c=>tramo(c.dias_vencidos)!=='Preventivo');
+  document.getElementById('m-total').textContent=enMora.length;
+  document.getElementById('m-deuda-total').textContent=fmtN(sumD(enMora));
   const crit=byT('Mora crítica');document.getElementById('m-crit').textContent=crit.length;document.getElementById('m-crit-d').textContent=fmtN(sumD(crit));
   const med=byT('Mora media');document.getElementById('m-med').textContent=med.length;document.getElementById('m-med-d').textContent=fmtN(sumD(med));
   const temp=byT('Mora temprana');document.getElementById('m-temp').textContent=temp.length;document.getElementById('m-temp-d').textContent=fmtN(sumD(temp));
@@ -1786,7 +1789,7 @@ function render(){
   const data=getFiltered();updateMetrics();
   const fv=document.getElementById('f-vendedor').value;
   let bar='<span>Mostrando <strong>'+data.length+'</strong> clientes</span><span>Deuda: <strong>'+fmtN(data.reduce((s,c)=>s+c.deuda,0))+'</strong></span>';
-  if(activeFilter)bar+='<span>Filtro: <strong style="color:var(--yellow)">'+(activeFilter==='gestion'?'Con gestión':activeFilter)+'</strong></span>';
+  if(activeFilter)bar+='<span>Filtro: <strong style="color:var(--yellow)">'+(activeFilter==='gestion'?'Con gestión':activeFilter==='mora'?'En mora (crítica + media + temprana)':activeFilter)+'</strong></span>';
   if(fv)bar+='<span>Vendedor: <strong style="color:var(--yellow)">'+fv+'</strong></span>';
   document.getElementById('summary-bar').innerHTML=bar;
   const pageData=data.slice((page-1)*PER,page*PER);
@@ -5262,7 +5265,7 @@ function explicarObjetivos(X){
 // --- Cartera y Cumplimiento (definiciones fijas) ---
 function explicarFijos(){
   const D={
-    'm-total':'<p>Todos los clientes con saldo deudor en la cartera (incluye los que todavía no vencieron).</p>'+cRow('Número grande','cantidad de clientes')+cRow('Abajo','suma de su deuda'),
+    'm-total':'<p>Clientes con deuda vencida: mora crítica + media + temprana. No incluye Preventivo (todavía no venció). La deuda total de la cartera, con Preventivo, está arriba en el recuadro amarillo.</p>'+cRow('Número grande','cantidad de clientes en mora')+cRow('Abajo','suma de su deuda'),
     'm-crit':'<p>Clientes cuya <strong>factura impaga más vieja</strong> venció hace <strong>más de 45 días</strong>.</p><p class="calc-nota">El monto es toda la deuda de esos clientes (también sus facturas más nuevas). Días = hoy − vencimiento de la factura más vieja.</p>',
     'm-med':'<p>Clientes cuya factura impaga más vieja venció hace <strong>16 a 45 días</strong>.</p><p class="calc-nota">El monto es toda la deuda de esos clientes.</p>',
     'm-temp':'<p>Clientes cuya factura impaga más vieja venció hace <strong>1 a 15 días</strong>.</p><p class="calc-nota">El monto es toda la deuda de esos clientes.</p>',
