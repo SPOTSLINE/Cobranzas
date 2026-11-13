@@ -372,6 +372,49 @@ th.th-on{color:var(--yellow)!important}
 .calc-nota{font-size:11.5px;color:var(--text3)}
 .calc-ic{font-size:12px;color:var(--text3);cursor:help;vertical-align:-1px;display:inline-block;min-width:12px}
 [data-calc]:hover .calc-ic{color:var(--yellow)}
+/* ===== Agenda ===== */
+.ag-est{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700;border:1px solid;white-space:nowrap}
+.ag-row{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:14px;align-items:start;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--bg2)}
+.ag-row:last-child{border-bottom:0}
+.ag-row.ag-atrasada{box-shadow:inset 3px 0 0 var(--red)}.ag-row.ag-hoy{box-shadow:inset 3px 0 0 var(--yellow)}
+.ag-row.ag-resuelta,.ag-row.ag-cancelada{opacity:.75}
+.ag-fecha{font-weight:700;font-size:13px;color:var(--text)}.ag-hora{font-size:12px;color:var(--text3);font-weight:400}
+.ag-cli{color:var(--yellow);font-weight:700;text-decoration:none;font-size:13.5px}.ag-cli:hover{text-decoration:underline}
+.ag-desc{margin-top:3px;color:var(--text);font-size:13px}.ag-desc i{color:var(--text3)}
+.ag-meta{margin-top:3px;font-size:11.5px;color:var(--text3)}.ag-meta a{color:var(--blue)}
+.ag-pista{margin-top:4px;font-size:12px}.ag-res{margin-top:4px;font-size:12.5px;color:var(--text2)}
+.ag-der{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.ag-acc{display:flex;gap:5px}.ag-acc .btn{padding:5px 9px;font-size:12px}
+.ag-chip{font-size:10.5px;color:var(--text3);border:1px solid var(--border2);border-radius:99px;padding:0 6px}
+.ag-grupo{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:14px}
+.ag-grupo-tit{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border)}
+.ag-grupo-tit span{color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0}
+#ag-supervision>.ag-grupo-tit{background:none;border:0;padding:0 0 8px}
+.ag-sem-nav{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ag-sem{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.ag-dia{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:6px;min-height:120px}
+.ag-dia.hoy{border-color:var(--yellow)}
+.ag-dia-tit{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:6px}
+.ag-dia.hoy .ag-dia-tit{color:var(--yellow)}
+.ag-card{background:var(--bg3);border-left:3px solid var(--border2);border-radius:0;padding:5px 6px;margin-bottom:5px;font-size:11.5px;cursor:pointer;line-height:1.35;overflow:hidden}
+.ag-card:hover{background:var(--bg4)}.ag-card div{color:var(--text3)}
+.ag-vacio{color:var(--text3);font-size:12px;text-align:center}
+.ag-prox{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 12px;margin-top:14px}
+.ag-prox-tit{font-size:12.5px;font-weight:700;color:var(--yellow)}.ag-prox-tit span{color:var(--text3);font-weight:400}
+.ag-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(115px,1fr));gap:8px}
+.modal .ag-grid label{margin:8px 0 0}
+.modal .ag-grid select,.modal .ag-grid input{width:100%;margin-top:4px}
+.ag-rapidos{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.ag-sub-tit{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px}
+.ag-mini{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;background:var(--bg3);border-left:3px solid var(--blue);border-radius:0;padding:7px 10px;margin-bottom:6px;font-size:12px}
+.ag-mini .btn{padding:4px 7px}
+.ag-hist-tag{margin-top:5px;font-size:11.5px;color:var(--blue)}
+.hist-item.ag-resaltar{outline:2px solid var(--yellow);outline-offset:1px}
+.ag-aviso{background:var(--orange-bg);border:1px solid #3a2510;color:var(--orange);border-radius:var(--radius);padding:7px 10px;font-size:12px}
+.ag-radios{display:flex;gap:16px;flex-wrap:wrap}.modal .ag-radios label,.modal label.ag-check{display:flex;gap:6px;align-items:center;color:var(--text2);font-size:13px;margin:6px 0}
+.modal .ag-radios input,.modal .ag-check input{width:auto}
+.ag-err{color:var(--red);font-size:12.5px;margin-top:8px;min-height:1em}
+@media(max-width:760px){.ag-row{grid-template-columns:1fr}.ag-der{align-items:flex-start}.ag-sem{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -401,6 +444,7 @@ th.th-on{color:var(--yellow)!important}
     <div class="notif-wrap" id="notif-wrap" style="display:none">
       <button class="btn" id="btn-notif" title="Notificaciones"><i class="ti ti-bell"></i><span id="notif-badge" class="notif-badge" style="display:none">0</span></button>
       <button class="btn" id="btn-seguimiento" title="Seguimiento de menciones: lo que tenés que responder y lo que estás esperando"><i class="ti ti-at"></i> Seguimiento <span class="pcount" id="seg-count" hidden></span></button>
+      <button class="btn" id="btn-agenda" title="Mi agenda"><i class="ti ti-calendar-time"></i> Agenda <span class="pcount" id="ag-count" hidden></span></button>
       <div id="notif-dropdown" class="notif-dropdown"></div>
     </div>
     <div class="user-badge" id="user-badge" style="display:none">
@@ -428,6 +472,7 @@ th.th-on{color:var(--yellow)!important}
     <button class="tab active" data-view="cartera" onclick="switchMainView('cartera')"><i class="ti ti-report-money" style="vertical-align:-2px;margin-right:5px"></i>Cartera</button>
     <button class="tab" data-view="cumplimiento" onclick="switchMainView('cumplimiento')"><i class="ti ti-clock-check" style="vertical-align:-2px;margin-right:5px"></i>Cumplimiento de pagos</button>
     <button class="tab" data-view="objetivos" onclick="switchMainView('objetivos')"><i class="ti ti-target-arrow" style="vertical-align:-2px;margin-right:5px"></i>Objetivos de cobranza</button>
+    <button class="tab" data-view="agenda" onclick="switchMainView('agenda')"><i class="ti ti-calendar-time" style="vertical-align:-2px;margin-right:5px"></i>Agenda</button>
     <button class="tab" data-view="ayuda" onclick="switchMainView('ayuda')"><i class="ti ti-help-circle" style="vertical-align:-2px;margin-right:5px"></i>Ayuda</button>
   </div>
 </div>
@@ -701,11 +746,31 @@ th.th-on{color:var(--yellow)!important}
 </div>
 
 
+<div class="main" id="view-agenda" style="display:none;padding-bottom:80px">
+  <div class="cump-banner">
+    <i class="ti ti-calendar-time"></i>
+    <div><strong style="color:var(--text)">Agenda de cobranzas.</strong> Cada acción sale de una gestión: al guardar una gestión se carga la <em>Próxima acción</em> (y cada fecha de compromiso de pago crea sola una acción <em>Verificar pago</em>). Desde acá se resuelve, se reprograma o se va al cliente y a la gestión que la originó. <span class="help-link" data-ayuda="a-agenda">¿cómo funciona?</span></div>
+  </div>
+  <div id="ag-aviso"></div>
+  <div class="metrics" id="ag-kpis"></div>
+  <div class="toolbar">
+    <select id="ag-f-resp" style="width:190px" title="De quién"></select>
+    <select id="ag-f-estado" style="width:170px"><option value="abiertas">Pendientes</option><option value="resuelta">Resueltas</option><option value="cancelada">Canceladas</option><option value="todas">Todas</option></select>
+    <select id="ag-f-tipo" style="width:160px"></select>
+    <input type="text" id="ag-f-q" placeholder="Buscar cliente o detalle">
+    <button class="btn" id="ag-kpi-off" style="display:none"><i class="ti ti-x"></i> Quitar filtro de la tarjeta</button>
+    <span class="ped-fil" id="ag-vistas" style="margin:0 0 0 auto"><button type="button" class="lnk" data-agvista="lista"><i class="ti ti-list"></i> Lista</button><button type="button" class="lnk" data-agvista="semana"><i class="ti ti-calendar-week"></i> Semana</button></span>
+    <button class="btn" id="ag-refrescar" title="Volver a leer la agenda"><i class="ti ti-refresh"></i></button>
+  </div>
+  <div id="ag-lista"></div>
+  <div id="ag-supervision" style="display:none"></div>
+</div>
+
 <div class="main" id="view-ayuda" style="display:none">
 <article class="ayuda">
 <h2 id="a-top">Instructivo del Panel de Cobranzas</h2>
 <p class="muted">Qué muestra cada pestaña, de dónde salen los números y cómo se calculan. Si algo no queda claro, anotalo con <strong>Pedido de mejora</strong>.</p>
-<nav class="toc" aria-label="Contenido"><a href="#a-cartera">Cartera</a><a href="#a-tramos">Tipos de deudor</a><a href="#a-cump">Cumplimiento de pagos</a><a href="#a-plazo">Plazo de cheque: qué compara</a><a href="#a-real">Plazo real de pago</a><a href="#a-conc">Conciliación</a><a href="#a-obj">Objetivos</a><a href="#a-foto">Foto mensual</a><a href="#a-pct">% por tipo de deudor</a><a href="#a-cobrado">Cobrado y cumplimiento</a><a href="#a-mail">Mails de vendedores</a><a href="#a-usuarios">Usuarios</a><a href="#a-menciones">Menciones @</a><a href="#a-pedidos">Pedidos de mejora</a><a href="#a-faq">Preguntas frecuentes</a></nav>
+<nav class="toc" aria-label="Contenido"><a href="#a-cartera">Cartera</a><a href="#a-tramos">Tipos de deudor</a><a href="#a-cump">Cumplimiento de pagos</a><a href="#a-plazo">Plazo de cheque: qué compara</a><a href="#a-real">Plazo real de pago</a><a href="#a-conc">Conciliación</a><a href="#a-obj">Objetivos</a><a href="#a-foto">Foto mensual</a><a href="#a-pct">% por tipo de deudor</a><a href="#a-cobrado">Cobrado y cumplimiento</a><a href="#a-mail">Mails de vendedores</a><a href="#a-usuarios">Usuarios</a><a href="#a-menciones">Menciones @</a><a href="#a-agenda">Agenda</a><a href="#a-pedidos">Pedidos de mejora</a><a href="#a-faq">Preguntas frecuentes</a></nav>
 
 <h2 id="a-cartera">1. Cartera</h2>
 <p>Muestra la deuda abierta de cada cliente (SPL y Spotsline) según el último Excel de Odoo cargado con <em>Actualizar</em> (apunte contable <code>account_move_line</code>, columna “residual”). Cada vez que se sube un Excel nuevo, la cartera se reemplaza y se publica para todo el equipo; las gestiones, contactos y compromisos de pago se conservan.</p>
@@ -903,6 +968,24 @@ th.th-on{color:var(--yellow)!important}
 <li>Si mencionaste varias veces a la misma persona en el mismo cliente, se ve una sola vez con la cantidad. Todo se actualiza solo cada 2 minutos.</li>
 </ul>
 
+<h2 id="a-agenda">Agenda de cobranzas</h2>
+<p>Lista de lo que hay que hacer con cada cliente y cuándo: llamar, mandar WhatsApp o mail, visitar o verificar un pago prometido. Cada acción queda atada al cliente y a la gestión de la que salió.</p>
+<ul>
+<li><strong>Cómo se carga:</strong> en la ficha del cliente, pestaña Gestión, completá <em>Próxima acción</em> (qué hay que hacer, día, hora opcional, responsable y detalle) y tocá <em>Guardar gestión</em>. Los botones <em>Mañana / En 3 días / En una semana</em> ponen la fecha (si cae sábado o domingo pasa al lunes).</li>
+<li><strong>Compromisos de pago:</strong> la <em>Fecha compromiso de pago</em> de la gestión crea sola una acción <em>Verificar pago</em> para ese día y con ese monto. Si después cambiás la fecha, la acción se mueve (cuenta como reprogramada); si la borrás, se cancela.</li>
+<li><strong>Responsable:</strong> por defecto quien carga la gestión. Si se la asignás a otra persona, le llega una mención (campana y Seguimiento) que queda respondida cuando la resuelve.</li>
+<li><strong>Estados:</strong> <em>Pendiente</em> (fecha futura), <em>Hoy</em>, <em>Atrasada</em> (pasó la fecha y no se resolvió; muestra los días), <em>Resuelta</em> y <em>Cancelada</em>. Hoy y Atrasada se calculan solos con la fecha.</li>
+<li><strong>Resolver:</strong> se anota el resultado y, por defecto, queda también como gestión en la ficha (empieza con 📅). Ahí mismo se puede cargar la próxima acción. En los pagos se marca si cumplió o no; el panel sugiere la respuesta comparando la deuda del cliente de hoy con la que tenía cuando se agendó (si bajó, o si ya no está en Cartera, sugiere “Sí, pagó”). Al resolver un pago se borra la fecha de compromiso de la ficha.</li>
+<li><strong>Reprogramar:</strong> nueva fecha (no anterior a hoy), motivo y, si hace falta, otro responsable. Suma 1 al contador de reprogramaciones; las que se movieron 2 veces o más se marcan.</li>
+<li><strong>Cancelar:</strong> cuando ya no hace falta (pagó antes, pasó a legales…), con el motivo. <em>Reabrir</em> la vuelve a dejar pendiente. Al <em>Cerrar gestión</em> de un cliente, el panel pregunta si se cancelan sus acciones pendientes.</li>
+<li><strong>Ir al cliente:</strong> el nombre abre la ficha; <em>ver gestión del…</em> abre la pestaña Gestión y resalta la gestión que originó la acción. En el historial de la ficha cada gestión muestra las acciones que salieron de ella y su estado.</li>
+<li><strong>Tarjetas:</strong> Atrasadas, Para hoy, Próximos 7 días, Resueltas (últimos 7 días), Pagos incumplidos (últimos 30 días) y Reprogramadas 2+ veces. Cuentan según el filtro de responsable; clic en una para ver solo esas.</li>
+<li><strong>Vistas:</strong> <em>Lista</em> (agrupada en Atrasadas, Hoy, Mañana, Próximos 7 días, Más adelante y Resueltas/Canceladas) y <em>Semana</em> (lunes a domingo, con flechas para moverse; clic en una acción para ver el detalle y los botones).</li>
+<li><strong>Botón Agenda</strong> en la barra: el número es lo tuyo atrasado + lo de hoy (rojo si hay atrasadas). Abre la agenda con “Solo lo mío”.</li>
+<li><strong>Quién ve qué:</strong> cada persona ve lo que tiene asignado o agendó. Con el permiso <em>Agenda de todo el equipo</em> (por defecto todos menos el rol vendedor) se elige “Todo el equipo” o una persona, y abajo aparece el <strong>Seguimiento del equipo</strong>: por responsable, abiertas, atrasadas, para hoy, reprogramadas 2+, resueltas en 30 días, % resuelto en fecha (resuelta el día de la acción o antes ÷ resueltas) y pagos cumplidos / incumplidos. Siempre respeta la cartera visible de cada usuario.</li>
+<li><strong>Datos:</strong> tabla <code>agenda</code> de Supabase (se instala una vez con <code>5_sql_agenda.sql</code>, que copia la seguridad de la tabla de gestiones). Se actualiza sola cada 2 minutos. Se leen las pendientes y lo resuelto o cancelado en los últimos 120 días.</li>
+</ul>
+
 <h2 id="a-pedidos">5. Pedidos de mejora</h2>
 <p>El botón <em>Pedido de mejora</em> (abajo a la izquierda y en la barra superior) sirve para anotar errores, mejoras o ideas mientras usás el panel. Cada pedido guarda la pantalla donde estabas (pestaña, mes, filtros o ventana abierta) y quién lo cargó. Es compartido por todo el equipo.</p>
 <ol>
@@ -988,6 +1071,18 @@ th.th-on{color:var(--yellow)!important}
       <input type="date" id="m-fecha">
       <label>Monto comprometido a pagar</label>
       <input type="number" id="m-monto-comp" placeholder="Ej: 50000" min="0">
+      <div class="ag-prox" id="m-ag-box">
+        <div class="ag-prox-tit"><i class="ti ti-calendar-plus"></i> Próxima acción <span>(queda en la Agenda; la fecha de compromiso de pago se agenda sola)</span></div>
+        <div class="ag-grid">
+          <label>Qué hay que hacer<select id="m-ag-tipo"></select></label>
+          <label>Día<input type="date" id="m-ag-fecha"></label>
+          <label>Hora (opcional)<input type="time" id="m-ag-hora"></label>
+          <label>Responsable<select id="m-ag-resp"></select></label>
+        </div>
+        <div class="ag-rapidos"><button type="button" class="lnk" data-agmas="1">Mañana</button><button type="button" class="lnk" data-agmas="3">En 3 días</button><button type="button" class="lnk" data-agmas="7">En una semana</button></div>
+        <label>Detalle</label><input type="text" id="m-ag-desc" placeholder="Ej: llamar a Juan de pagos para confirmar la transferencia">
+      </div>
+      <div id="m-ag-abiertas"></div>
       <div id="m-historial" style="margin-top:14px"></div>
     </div>
     <div class="modal-footer">
@@ -1196,6 +1291,14 @@ th.th-on{color:var(--yellow)!important}
 
 
 <!-- MODAL CARGA DE RECIBOS (vista previa) -->
+<div class="modal-bg" id="modal-ag" style="z-index:260">
+  <div class="modal" style="width:580px">
+    <h2 id="agm-tit"></h2>
+    <div class="modal-sub" id="agm-sub"></div>
+    <div id="agm-body"></div>
+    <div class="modal-footer"><button class="btn" id="agm-cancel">Volver</button><button class="btn btn-yellow" id="agm-ok">Guardar</button></div>
+  </div>
+</div>
 <div class="modal-bg" id="modal-seguimiento">
   <div class="modal" style="width:760px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><h2><i class="ti ti-at" style="vertical-align:-2px;margin-right:8px;color:var(--yellow)"></i>Seguimiento de menciones</h2><button class="btn" id="seg-cerrar">Cerrar</button></div>
@@ -1644,7 +1747,7 @@ function emailLink(c,i){
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 
 function switchTab(name){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.textContent.toLowerCase().startsWith(name.slice(0,4))));
+  document.querySelectorAll('#modal-bg .tab').forEach(t=>t.classList.toggle('active',t.textContent.toLowerCase().startsWith(name.slice(0,4))));
   document.querySelectorAll('.tab-content').forEach(tc=>tc.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
 }
@@ -1885,7 +1988,8 @@ function openModal(idx){
   }).join('');
   document.getElementById('m-fact-total').textContent='Total: '+fmtF(c.deuda);
   const hist=(g.historial||[]).slice().reverse();
-  document.getElementById('m-historial').innerHTML=hist.length?'<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Historial</div>'+hist.map(h=>'<div class="hist-item"><div class="hist-date">'+h.fecha+(h.por?' &nbsp;·&nbsp; <strong style="color:var(--yellow)">'+h.por+'</strong>':'')+'</div>'+h.nota+'</div>').join(''):'<div style="color:var(--text3);font-size:12px">Sin gestiones aún.</div>';
+  document.getElementById('m-historial').innerHTML=hist.length?'<div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Historial</div>'+hist.map(h=>'<div class="hist-item"'+(h.ts?' data-hts="'+escH(h.ts)+'"':'')+'><div class="hist-date">'+h.fecha+(h.por?' &nbsp;·&nbsp; <strong style="color:var(--yellow)">'+h.por+'</strong>':'')+'</div>'+h.nota+'</div>').join(''):'<div style="color:var(--text3);font-size:12px">Sin gestiones aún.</div>';
+  agResetFicha();
   {const cer=gestionCerrada(g);const u=cer?g.historial[g.historial.length-1]:null;
    if(cer)document.getElementById('m-historial').insertAdjacentHTML('afterbegin','<div class="cump-banner" style="background:var(--green-bg);border-color:#1d3a24;margin:0 0 10px"><i class="ti ti-circle-check" style="color:var(--green)"></i><div><strong style="color:var(--text)">Gestión cerrada</strong> el '+escH(u.fecha||'')+(u.por?' por '+escH(u.por):'')+'. Si cargás una gestión nueva, se vuelve a abrir.</div></div>');
    const b=document.getElementById('mcerrar-gestion');b.innerHTML=cer?'<i class="ti ti-rotate"></i> Reabrir gestión':'<i class="ti ti-circle-check"></i> Cerrar gestión';b.dataset.modo=cer?'reabrir':'cerrar';}
@@ -1909,7 +2013,8 @@ document.getElementById('mcancel').addEventListener('click',()=>document.getElem
 document.getElementById('modal-bg').addEventListener('click',e=>{if(e.target===document.getElementById('modal-bg'))document.getElementById('modal-bg').classList.remove('open');});
 document.getElementById('msave').addEventListener('click',()=>{
   if(currentIdx===null)return;
-  const prev=gestiones[currentIdx]||{};
+  if(!agValidarFicha())return;
+  const prev=gestiones[currentIdx]||{};const prevComp={fecha_comp:prev.fecha_comp||'',monto_comp:prev.monto_comp||null};
   const nota=document.getElementById('m-nota').value.trim();
   const hist=prev.historial||[];
   if(nota){const d=new Date();hist.push({fecha:d.toLocaleDateString('es-AR')+' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),ts:d.toISOString(),nota,por:currentUser?currentUser.nombre:''});if(!prev.nota)gestionesCount++;}
@@ -1922,6 +2027,7 @@ document.getElementById('msave').addEventListener('click',()=>{
     const nombreCliente=clientes[currentIdx].nombre;
     secureWrite('reset_reclamo',{cliente:nombreCliente}).then(ok=>{if(ok&&reclamos[nombreCliente])reclamos[nombreCliente]={...reclamos[nombreCliente],veces:0};});
   }
+  agDesdeFicha(clientes[currentIdx],nota?hist[hist.length-1].ts:null,prevComp,gestiones[currentIdx],nota);
   document.getElementById('modal-bg').classList.remove('open');
   fillVendedorFilter();render();showToast('Gestión guardada ✓');
   saveToSheets();
@@ -1938,6 +2044,8 @@ document.getElementById('mcerrar-gestion').addEventListener('click',()=>{
   gestiones[currentIdx]={email:document.getElementById('m-email').value.trim(),telefono:document.getElementById('m-tel').value.replace(/\D/g,''),vendedor:document.getElementById('m-vend').value.trim(),nota,
     fecha_comp:reabrir?document.getElementById('m-fecha').value:'',monto_comp:reabrir&&document.getElementById('m-monto-comp').value?parseFloat(document.getElementById('m-monto-comp').value):null,historial:hist,ts:d.toISOString()};
   if(motivo){enviarMenciones(clientes[currentIdx].nombre,motivo);resolverMencionesPendientes(clientes[currentIdx].nombre,motivo);setTimeout(loadSeguimiento,2500);}
+  if(!reabrir){const nAb=agenda.filter(a=>a.cliente===clientes[currentIdx].nombre&&a.estado==='pendiente').length;
+    if(nAb&&confirm('Este cliente tiene '+nAb+' acción'+(nAb>1?'es':'')+' pendiente'+(nAb>1?'s':'')+' en la Agenda. ¿Cancelarlas también?'))agCancelarDeCliente(clientes[currentIdx].nombre,'Gestión cerrada'+(motivo?': '+motivo:''));}
   document.getElementById('modal-bg').classList.remove('open');
   fillVendedorFilter();render();showToast(reabrir?'Gestión reabierta ✓':'Gestión cerrada ✓');
   saveToSheets();
@@ -3521,6 +3629,8 @@ function switchMainView(view){
   document.getElementById('view-cumplimiento').style.display=view==='cumplimiento'?'':'none';
   document.getElementById('view-objetivos').style.display=view==='objetivos'?'':'none';
   document.getElementById('view-ayuda').style.display=view==='ayuda'?'':'none';
+  document.getElementById('view-agenda').style.display=view==='agenda'?'':'none';
+  agVistaActiva=view==='agenda';if(agVistaActiva){renderAgenda();loadAgenda();}
   if(view==='ayuda')window.scrollTo(0,0);
   if(view==='cumplimiento'){cuPage=1;renderCumplimiento();}
   if(view==='objetivos'){renderObjetivos();}
@@ -3945,6 +4055,7 @@ const PERMISOS_DEF=[
   {k:'tab_cartera',grupo:'solapa',view:'cartera',lbl:'Cartera',desc:'Deuda por cliente, gestiones, calendario',def:()=>true},
   {k:'tab_cumplimiento',grupo:'solapa',view:'cumplimiento',lbl:'Cumplimiento de pagos',desc:'Recibos, medios de pago, plazos de cheque',def:()=>true},
   {k:'tab_objetivos',grupo:'solapa',view:'objetivos',lbl:'Objetivos de cobranza',desc:'Objetivo del mes y cumplimiento por vendedor',def:()=>true},
+  {k:'tab_agenda',grupo:'solapa',view:'agenda',lbl:'Agenda',desc:'Próximas acciones de las gestiones (llamar, verificar pago…)',def:()=>true},
   {k:'tab_ayuda',grupo:'solapa',view:'ayuda',lbl:'Ayuda',desc:'Instructivo',def:()=>true},
   {k:'actualizar',grupo:'accion',lbl:'Actualizar datos',desc:'Subir Excel de Odoo (cartera, contactos y recibos)',def:r=>r!=='vendedor'},
   {k:'exportar',grupo:'accion',lbl:'Exportar a Excel',desc:'Descargar la cartera completa',def:r=>r!=='vendedor'},
@@ -3952,6 +4063,7 @@ const PERMISOS_DEF=[
   {k:'editar_objetivos',grupo:'accion',lbl:'Editar objetivos',desc:'% por tipo de deudor, foto del mes, gastos a cubrir',def:r=>r!=='vendedor'},
   {k:'mails_vendedores',grupo:'accion',lbl:'Mails de vendedores',desc:'Cargar/editar los mails del informe',def:r=>r!=='vendedor'},
   {k:'plantillas',grupo:'accion',lbl:'Editar plantilla de mail',desc:'Textos, datos bancarios y contacto del mail al cliente',def:r=>r!=='vendedor'},
+  {k:'agenda_equipo',grupo:'accion',lbl:'Agenda de todo el equipo',desc:'Ver y gestionar las acciones de los demás y el resumen por responsable',def:r=>r!=='vendedor'},
   {k:'usuarios',grupo:'accion',lbl:'Usuarios y permisos',desc:'Alta/baja de usuarios, claves y permisos',def:r=>r!=='vendedor'}
 ];
 function permisosPorDefecto(rol){const o={};PERMISOS_DEF.forEach(p=>o[p.k]=!!p.def(rol));return o;}
@@ -3976,11 +4088,12 @@ function aplicarPermisos(){
   set('btn-usuarios',false); // usuarios: en el Panel de Paneles
   set('btn-mi-clave',false);
   set('btn-obj-excel',puede('editar_objetivos'));
+  set('btn-agenda',puede('tab_agenda'));
   // Ayuda: los links "Ver instructivo" solo si tiene la solapa
   document.querySelectorAll('[data-ayuda]').forEach(a=>a.style.display=puede('tab_ayuda')?'':'none');
   const actual=vistaActual();
   if(!vis.length){
-    ['main-content','view-cumplimiento','view-objetivos','view-ayuda'].forEach(id=>document.getElementById(id).style.display='none');
+    ['main-content','view-cumplimiento','view-objetivos','view-ayuda','view-agenda'].forEach(id=>document.getElementById(id).style.display='none');
     document.getElementById('sin-permisos').style.display='';
   } else {
     document.getElementById('sin-permisos').style.display='none';
@@ -5913,6 +6026,420 @@ document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest
 document.getElementById('view-ayuda').addEventListener('click',e=>{const a=e.target.closest('a[href^="#a-"]');if(a){e.preventDefault();const el=document.getElementById(a.getAttribute('href').slice(1));if(el)el.scrollIntoView({behavior:'smooth',block:'start'});}});
 
 
+
+// ===================== AGENDA (nov-2026) =====================
+// Tabla Supabase "agenda": una fila por acción a hacer (llamar, mail, verificar pago…), atada al
+// cliente y a la gestión (historial) que la originó por gestion_ts. Estados guardados: pendiente /
+// resuelta / cancelada. "Hoy" y "Atrasada" se calculan con la fecha. Reprogramar no cambia el
+// estado: mueve la fecha y suma 1 a reprogramaciones (queda todo en log).
+const AG_TIPOS={llamar:{l:'Llamar',i:'ti-phone'},whatsapp:{l:'WhatsApp',i:'ti-brand-whatsapp'},mail:{l:'Mail',i:'ti-mail'},visita:{l:'Visita',i:'ti-map-pin'},pago:{l:'Verificar pago',i:'ti-cash'},otro:{l:'Otro',i:'ti-checklist'}};
+const AG_EST={atrasada:{l:'Atrasada',c:'var(--red)',bg:'var(--red-bg)',bd:'#4a1810'},hoy:{l:'Hoy',c:'var(--yellow)',bg:'var(--yellow-dim)',bd:'#4a3d00'},pendiente:{l:'Pendiente',c:'var(--text2)',bg:'var(--bg3)',bd:'var(--border2)'},resuelta:{l:'Resuelta',c:'var(--green)',bg:'var(--green-bg)',bd:'#1a4a2e'},cancelada:{l:'Cancelada',c:'var(--text3)',bg:'var(--bg3)',bd:'var(--border)'}};
+let agenda=[],agError='',agVistaActiva=false;
+let agF={resp:null,estado:'abiertas',tipo:'',q:'',kpi:'',vista:'lista',semana:0};
+let agModal=null; // {modo,id}
+let agCardSel=null; // vista semana: acción tocada
+
+function agISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function agHoy(){return agISO(new Date());}
+function agSum(iso,n){const[y,m,d]=iso.split('-').map(Number);return agISO(new Date(y,m-1,d+n));}
+function agDif(a,b){const[y1,m1,d1]=a.split('-').map(Number),[y2,m2,d2]=b.split('-').map(Number);return Math.round((Date.UTC(y2,m2-1,d2)-Date.UTC(y1,m1-1,d1))/864e5);}
+function agHabil(iso){const[y,m,d]=iso.split('-').map(Number);const w=new Date(y,m-1,d).getDay();return w===6?agSum(iso,2):w===0?agSum(iso,1):iso;}
+function agFmt(iso){if(!iso)return'—';const[y,m,d]=String(iso).slice(0,10).split('-');return d+'/'+m+(y!==String(new Date().getFullYear())?'/'+y.slice(2):'');}
+function agDiaSem(iso){const[y,m,d]=iso.split('-').map(Number);return['dom','lun','mar','mié','jue','vie','sáb'][new Date(y,m-1,d).getDay()];}
+function agEstado(a){if(a.estado==='resuelta'||a.estado==='cancelada')return a.estado;const h=agHoy();return a.fecha<h?'atrasada':a.fecha===h?'hoy':'pendiente';}
+function agYo(){return String(currentUser&&currentUser.usuario||'').toLowerCase();}
+function agNom(u){u=String(u||'').toLowerCase();if(!u)return'—';const x=usuariosList.find(z=>String(z.usuario).toLowerCase()===u);return x?x.nombre:u;}
+function agEquipo(){return puede('agenda_equipo');}
+function agIdxCli(n){return clientes.findIndex(c=>c.nombre===n);}
+function agVeCli(n){const i=agIdxCli(n);if(i>=0)return veCliente(clientes[i],i);const g=gestionesPorNombre[n];return veVendedor((g&&g.vendedor)||'Sin asignar');}
+function agVisible(a){const me=agYo();if(String(a.responsable||'').toLowerCase()===me||String(a.creado_por||'').toLowerCase()===me)return true;return agEquipo()&&agVeCli(a.cliente);}
+function agDeudaHoy(n){const i=agIdxCli(n);return i>=0?(clientes[i].deuda||0):0;}
+function agGestionDe(n){const i=agIdxCli(n);return i>=0?(gestiones[i]||{}):(gestionesPorNombre[n]||{});}
+function agEtiq(a){const t=AG_TIPOS[a.tipo]||AG_TIPOS.otro;return t.l+' · '+agFmt(a.fecha)+(a.hora?' '+a.hora:'');}
+function agBadge(e,extra){const s=AG_EST[e];return'<span class="ag-est" style="color:'+s.c+';background:'+s.bg+';border-color:'+s.bd+'">'+s.l+(extra||'')+'</span>';}
+function agPista(a){
+  // Compromisos de pago: compara la deuda de hoy con la que tenía cuando se agendó
+  if(a.origen!=='compromiso'&&a.tipo!=='pago')return null;
+  if(a.deuda_al_crear==null)return null;
+  const hoy=agDeudaHoy(a.cliente);const baj=(+a.deuda_al_crear)-hoy;
+  if(agIdxCli(a.cliente)<0)return{ok:true,txt:'ya no tiene deuda en cartera'};
+  if(baj>1)return{ok:a.monto?baj>=a.monto*0.98:true,txt:'la deuda bajó '+fmtN(baj)+' desde que se agendó'};
+  return{ok:false,txt:'la deuda no bajó desde que se agendó'};
+}
+
+async function loadAgenda(){
+  if(!currentUser)return;
+  const desde=agISO(new Date(Date.now()-120*864e5));
+  try{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/agenda?select=*&or=(estado.eq.pendiente,updated_ts.gte.'+desde+')&order=fecha.asc&limit=5000',{headers:SUPABASE_HEADERS});
+    if(!r.ok){const t=await r.text();agError=/agenda|42P01|PGRST205/.test(t)?'falta-tabla':t;agenda=[];}
+    else{agenda=await r.json()||[];agError='';}
+  }catch(e){agError=e.message;}
+  agPintarContador();
+  if(agVistaActiva)renderAgenda();
+  if(document.getElementById('modal-bg').classList.contains('open')&&currentIdx!==null)agPintarFicha();
+}
+async function agInsert(rows){return await _rest('agenda',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(rows)});}
+async function agPatch(id,c){c.updated_ts=new Date().toISOString();const r=await _rest('agenda?id=eq.'+_q(id),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(c)});
+  const n=r&&r[0];if(n){const i=agenda.findIndex(x=>x.id===id);if(i>=0)agenda[i]=n;}return n;}
+function agLog(a,acc,det){return(Array.isArray(a&&a.log)?a.log:[]).concat([{ts:new Date().toISOString(),por:currentUser?currentUser.nombre:'',acc,det:det||''}]);}
+function agNueva(o){
+  const yo=currentUser||{};
+  return Object.assign({tipo:'llamar',descripcion:'',hora:null,responsable:agYo(),responsable_nombre:yo.nombre||'',creado_por:agYo(),creado_por_nombre:yo.nombre||'',
+    origen:'manual',monto:null,gestion_ts:null,estado:'pendiente',reprogramaciones:0,deuda_al_crear:agDeudaHoy(o.cliente),log:[{ts:new Date().toISOString(),por:yo.nombre||'',acc:'creada',det:''}]},o);
+}
+function agAvisar(a){
+  // si la acción es para otra persona, le llega como mención (campana + Seguimiento); se responde al resolverla
+  const r=String(a.responsable||'').toLowerCase();if(!r||r===agYo())return;
+  secureWrite('save_mencion',{cliente:a.cliente,mencionado:r,autor:currentUser.nombre,autor_usuario:currentUser.usuario,nota:('📅 Te dejé en la agenda: '+agEtiq(a)+(a.descripcion?' — '+a.descripcion:'')).slice(0,300)});
+}
+// Gestión en la ficha del cliente (mismo formato que "Guardar gestión")
+async function agGuardarGestion(nombre,nota,cambios){
+  const i=agIdxCli(nombre);const prev=agGestionDe(nombre);const hist=(prev.historial||[]).slice();const d=new Date();
+  const h={fecha:d.toLocaleDateString('es-AR')+' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),ts:d.toISOString(),nota,por:currentUser?currentUser.nombre:''};hist.push(h);
+  const vend=i>=0?(getVend(i)||prev.vendedor||''):(prev.vendedor||'');
+  const g=Object.assign({},prev,{nota,vendedor:vend,historial:hist,ts:d.toISOString()},cambios||{});
+  const ok=await secureWrite('save_gestion',{cliente:nombre,nota,email:g.email||'',telefono:g.telefono||'',vendedor:vend,fecha_comp:g.fecha_comp||null,monto_comp:g.monto_comp||null,historial:JSON.stringify(hist),gestionado_por:currentUser?currentUser.nombre:''});
+  if(ok){if(i>=0){if(!prev.nota)gestionesCount++;gestiones[i]=g;}else gestionesPorNombre[nombre]=g;resolverMencionesPendientes(nombre,nota);setTimeout(loadSeguimiento,2500);}
+  return ok?h.ts:null;
+}
+
+// ---------- Ficha del cliente: bloque "Próxima acción" ----------
+function agOpcionesResp(sel,actual){
+  const lista=usuariosList.slice().sort((a,b)=>String(a.nombre).localeCompare(String(b.nombre),'es'));
+  const me=agYo();if(!lista.some(u=>String(u.usuario).toLowerCase()===me)&&currentUser)lista.unshift({usuario:me,nombre:currentUser.nombre});
+  sel.innerHTML=lista.map(u=>'<option value="'+escH(String(u.usuario).toLowerCase())+'">'+escH(u.nombre)+(String(u.usuario).toLowerCase()===me?' (yo)':'')+'</option>').join('');
+  sel.value=String(actual||me).toLowerCase();
+}
+function agOpcionesTipo(sel,actual){sel.innerHTML=Object.entries(AG_TIPOS).map(([k,t])=>'<option value="'+k+'">'+t.l+'</option>').join('');sel.value=actual||'llamar';}
+function agResetFicha(){
+  ['m-ag-fecha','m-ag-hora','m-ag-desc'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  agOpcionesTipo(document.getElementById('m-ag-tipo'));agOpcionesResp(document.getElementById('m-ag-resp'));
+  agPintarFicha();
+}
+function agPintarFicha(){
+  const el=document.getElementById('m-ag-abiertas');if(!el||currentIdx===null)return;
+  const n=clientes[currentIdx].nombre;
+  const ab=agenda.filter(a=>a.cliente===n&&a.estado==='pendiente').sort((x,y)=>x.fecha.localeCompare(y.fecha));
+  el.innerHTML=agError==='falta-tabla'?'<div class="ag-aviso">La agenda todavía no está instalada en Supabase (falta correr 5_sql_agenda.sql).</div>'
+    :!ab.length?'':'<div class="ag-sub-tit">Acciones abiertas en la agenda ('+ab.length+')</div>'+ab.map(a=>agFilaMini(a)).join('');
+  // marcar en el historial qué gestión generó cada acción
+  document.querySelectorAll('#m-historial .hist-item[data-hts]').forEach(it=>{
+    it.querySelectorAll('.ag-hist-tag').forEach(x=>x.remove());
+    const ts=it.dataset.hts;const ac=agenda.filter(a=>a.cliente===n&&a.gestion_ts===ts);
+    if(ac.length)it.insertAdjacentHTML('beforeend',ac.map(a=>'<div class="ag-hist-tag"><i class="ti ti-calendar-event"></i> '+escH(agEtiq(a))+' · '+agNom(a.responsable)+' '+agBadge(agEstado(a))+(a.resultado?' <span style="color:var(--text3)">— '+escH(a.resultado)+'</span>':'')+'</div>').join(''));
+  });
+}
+function agFilaMini(a){
+  const t=AG_TIPOS[a.tipo]||AG_TIPOS.otro;const e=agEstado(a);
+  return'<div class="ag-mini"><div><i class="ti '+t.i+'"></i> <strong>'+escH(agEtiq(a))+'</strong> · '+escH(agNom(a.responsable))+' '+agBadge(e,e==='atrasada'?' '+agDif(a.fecha,agHoy())+' d':'')
+    +(a.descripcion?'<div style="color:var(--text2);margin-top:2px">'+escH(a.descripcion)+'</div>':'')+'</div>'
+    +'<div class="ag-acc"><button class="btn" data-agres="'+a.id+'" title="Resolver"><i class="ti ti-check"></i></button><button class="btn" data-agrep="'+a.id+'" title="Reprogramar"><i class="ti ti-calendar-repeat"></i></button><button class="btn" data-agcan="'+a.id+'" title="Cancelar"><i class="ti ti-x"></i></button></div></div>';
+}
+function agValidarFicha(){
+  const f=document.getElementById('m-ag-fecha').value,d=document.getElementById('m-ag-desc').value.trim(),h=document.getElementById('m-ag-hora').value;
+  if(!f&&(d||h)){showToast('Poné el día de la próxima acción (o borrá el detalle)');switchTab('gestion');document.getElementById('m-ag-fecha').focus();return false;}
+  if(f&&agError==='falta-tabla'){showToast('La agenda no está instalada todavía en Supabase: la acción no se va a guardar');}
+  return true;
+}
+// Se llama al "Guardar gestión": crea la próxima acción y sincroniza el compromiso de pago
+async function agDesdeFicha(c,histTs,prev,nuevaG,nota){
+  if(agError==='falta-tabla')return;
+  const nuevas=[];const f=document.getElementById('m-ag-fecha').value;
+  try{
+    if(f){
+      const tipo=document.getElementById('m-ag-tipo').value;const resp=document.getElementById('m-ag-resp').value;
+      nuevas.push(agNueva({cliente:c.nombre,tipo,fecha:f,hora:document.getElementById('m-ag-hora').value||null,descripcion:document.getElementById('m-ag-desc').value.trim()||(nota||'').slice(0,160),
+        responsable:resp,responsable_nombre:agNom(resp),gestion_ts:histTs}));
+    }
+    const fc=nuevaG.fecha_comp||'',mc=nuevaG.monto_comp||null,pfc=prev.fecha_comp||'',pmc=prev.monto_comp||null;
+    const abierta=agenda.find(a=>a.cliente===c.nombre&&a.estado==='pendiente'&&a.origen==='compromiso');
+    if(fc&&(fc!==pfc||mc!==pmc||!abierta)){
+      const desc='Verificar pago comprometido'+(mc?' de '+fmtN(mc):'');
+      if(abierta){
+        const cam={monto:mc,descripcion:desc};
+        if(abierta.fecha!==fc){cam.fecha=fc;cam.reprogramaciones=(abierta.reprogramaciones||0)+1;cam.log=agLog(abierta,'reprogramada','Compromiso cambiado de '+agFmt(abierta.fecha)+' a '+agFmt(fc));}
+        await agPatch(abierta.id,cam);
+      }else nuevas.push(agNueva({cliente:c.nombre,tipo:'pago',origen:'compromiso',fecha:fc,monto:mc,descripcion:desc,gestion_ts:histTs}));
+    }else if(!fc&&pfc&&abierta){
+      await agPatch(abierta.id,{estado:'cancelada',resultado:'Se borró la fecha de compromiso',resuelta_ts:new Date().toISOString(),resuelta_por:currentUser.nombre,log:agLog(abierta,'cancelada','Se borró la fecha de compromiso')});
+    }
+    if(nuevas.length){const r=await agInsert(nuevas);(r||[]).forEach(a=>{agenda.push(a);agAvisar(a);});}
+    agPintarContador();if(agVistaActiva)renderAgenda();
+    if(f)showToast('Gestión guardada ✓ · acción agendada para el '+agFmt(f));
+  }catch(e){console.error('Agenda:',e);showToast('La gestión se guardó, pero la acción de agenda no: '+String(e.message||e).slice(0,120));}
+}
+async function agCancelarDeCliente(nombre,motivo){
+  const ab=agenda.filter(a=>a.cliente===nombre&&a.estado==='pendiente');if(!ab.length)return;
+  try{for(const a of ab)await agPatch(a.id,{estado:'cancelada',resultado:motivo,resuelta_ts:new Date().toISOString(),resuelta_por:currentUser.nombre,log:agLog(a,'cancelada',motivo)});}
+  catch(e){showToast('No se pudieron cancelar las acciones de agenda: '+e.message);}
+  agPintarContador();if(agVistaActiva)renderAgenda();
+}
+
+// ---------- Contador en la barra ----------
+function agMias(){const me=agYo();return agenda.filter(a=>a.estado==='pendiente'&&String(a.responsable||'').toLowerCase()===me);}
+function agPintarContador(){
+  const b=document.getElementById('btn-agenda');if(!b)return;
+  b.style.display=puede('tab_agenda')?'':'none';
+  const m=agMias();const at=m.filter(a=>agEstado(a)==='atrasada').length,hoy=m.filter(a=>agEstado(a)==='hoy').length;
+  const c=document.getElementById('ag-count');c.hidden=!(at+hoy);c.textContent=at+hoy>99?'99+':at+hoy;
+  c.style.background=at?'var(--red)':'var(--yellow)';c.style.color=at?'#fff':'#000';
+  b.title='Mi agenda: '+at+' atrasada'+(at!==1?'s':'')+' · '+hoy+' para hoy';
+}
+
+// ---------- Solapa Agenda ----------
+function agBase(){return agenda.filter(agVisible);}
+function agFiltrar(){
+  const me=agYo();const q=agF.q.trim().toLowerCase();const h=agHoy();
+  return agBase().filter(a=>{
+    if(agF.resp==='mias'&&String(a.responsable||'').toLowerCase()!==me)return false;
+    if(agF.resp&&agF.resp!=='mias'&&agF.resp!=='todas'&&String(a.responsable||'').toLowerCase()!==agF.resp)return false;
+    if(agF.tipo&&a.tipo!==agF.tipo)return false;
+    if(q&&!(a.cliente.toLowerCase().includes(q)||String(a.descripcion||'').toLowerCase().includes(q)))return false;
+    const e=agEstado(a);
+    if(agF.kpi){
+      if(agF.kpi==='atrasada'&&e!=='atrasada')return false;
+      if(agF.kpi==='hoy'&&e!=='hoy')return false;
+      if(agF.kpi==='semana'&&!(a.estado==='pendiente'&&a.fecha>h&&a.fecha<=agSum(h,7)))return false;
+      if(agF.kpi==='resueltas'&&!(a.estado==='resuelta'&&String(a.resuelta_ts||'').slice(0,10)>=agSum(h,-7)))return false;
+      if(agF.kpi==='incumplidos'&&!(a.estado==='resuelta'&&a.cumplido===false&&String(a.resuelta_ts||'').slice(0,10)>=agSum(h,-30)))return false;
+      if(agF.kpi==='reprog'&&!(a.estado==='pendiente'&&(a.reprogramaciones||0)>=2))return false;
+      return true;
+    }
+    if(agF.estado==='abiertas')return a.estado==='pendiente';
+    if(agF.estado==='todas')return true;
+    return a.estado===agF.estado;
+  });
+}
+function renderAgenda(){
+  const root=document.getElementById('view-agenda');if(!root)return;
+  if(agF.resp===null)agF.resp='mias';
+  const box=document.getElementById('ag-aviso');
+  box.innerHTML=agError==='falta-tabla'?'<div class="cump-banner" style="background:var(--red-bg);border-color:#4a1810"><i class="ti ti-alert-triangle" style="color:var(--red)"></i><div><strong style="color:var(--text)">Falta instalar la agenda en Supabase.</strong> Correr una vez el archivo <code>5_sql_agenda.sql</code> en Supabase → SQL Editor (ver Ayuda → Agenda). Hasta entonces no se guardan acciones.</div></div>'
+    :agError?'<div class="cump-banner" style="background:var(--red-bg);border-color:#4a1810"><i class="ti ti-alert-triangle" style="color:var(--red)"></i><div>No se pudo leer la agenda: '+escH(agError.slice(0,200))+'</div></div>':'';
+  // filtro de responsable
+  const sr=document.getElementById('ag-f-resp');
+  const resps=[...new Set(agBase().map(a=>String(a.responsable||'').toLowerCase()).filter(Boolean))];
+  sr.innerHTML='<option value="mias">Solo lo mío</option>'+(agEquipo()?'<option value="todas">Todo el equipo</option>'+resps.filter(r=>r!==agYo()).sort().map(r=>'<option value="'+escH(r)+'">'+escH(agNom(r))+'</option>').join(''):'');
+  if(![...sr.options].some(o=>o.value===agF.resp))agF.resp='mias';sr.value=agF.resp;
+  const st=document.getElementById('ag-f-tipo');if(!st.options.length){st.innerHTML='<option value="">Todos los tipos</option>'+Object.entries(AG_TIPOS).map(([k,t])=>'<option value="'+k+'">'+t.l+'</option>').join('');}st.value=agF.tipo;
+  document.getElementById('ag-f-estado').value=agF.estado;
+  document.querySelectorAll('#ag-vistas .lnk').forEach(b=>b.classList.toggle('on',b.dataset.agvista===agF.vista));
+  // KPIs sobre el responsable elegido (sin el filtro de estado/kpi)
+  const kf=agF.kpi;const ef=agF.estado;agF.kpi='';agF.estado='todas';const base=agFiltrar();agF.kpi=kf;agF.estado=ef;
+  const h=agHoy();const ab=base.filter(a=>a.estado==='pendiente');
+  const n={atrasada:ab.filter(a=>agEstado(a)==='atrasada').length,hoy:ab.filter(a=>agEstado(a)==='hoy').length,semana:ab.filter(a=>a.fecha>h&&a.fecha<=agSum(h,7)).length,
+    resueltas:base.filter(a=>a.estado==='resuelta'&&String(a.resuelta_ts||'').slice(0,10)>=agSum(h,-7)).length,
+    incumplidos:base.filter(a=>a.estado==='resuelta'&&a.cumplido===false&&String(a.resuelta_ts||'').slice(0,10)>=agSum(h,-30)).length,reprog:ab.filter(a=>(a.reprogramaciones||0)>=2).length};
+  const K=[['atrasada','Atrasadas','var(--red)','var(--red-bg)','sin resolver y con la fecha pasada'],['hoy','Para hoy','var(--yellow)','var(--yellow-dim)','pendientes con fecha de hoy'],['semana','Próximos 7 días','var(--blue)','var(--blue-bg)','pendientes de mañana a 7 días'],
+    ['resueltas','Resueltas (7 días)','var(--green)','var(--green-bg)','resueltas en los últimos 7 días'],['incumplidos','Pagos incumplidos (30 d)','var(--orange)','var(--orange-bg)','compromisos de pago resueltos como incumplidos en los últimos 30 días'],['reprog','Reprogramadas 2+ veces','var(--spots)','var(--spots-bg)','pendientes que ya se movieron de fecha 2 veces o más']];
+  document.getElementById('ag-kpis').innerHTML=K.map(([k,l,c,bg,ex])=>'<div class="metric'+(agF.kpi===k?' active':'')+'" data-agkpi="'+k+'" style="--m-color:'+c+';--m-bg:'+bg+'" data-calc="'+escH('<strong>'+l+'</strong>: '+ex+'. Cuenta lo del filtro de responsable elegido. Clic para ver solo esas.')+'"><div class="metric-label">'+l+'</div><div class="metric-value">'+n[k]+'</div></div>').join('');
+  document.getElementById('ag-kpi-off').style.display=agF.kpi?'':'none';
+  const L=agFiltrar();
+  const cont=document.getElementById('ag-lista');
+  cont.innerHTML=agF.vista==='semana'?agHtmlSemana(L):agHtmlLista(L);
+  const sup=document.getElementById('ag-supervision');
+  sup.style.display=agEquipo()?'':'none';if(agEquipo())sup.innerHTML=agHtmlSupervision();
+}
+function agHtmlFila(a){
+  const t=AG_TIPOS[a.tipo]||AG_TIPOS.otro;const e=agEstado(a);const hay=agIdxCli(a.cliente)>=0;const abierta=a.estado==='pendiente';
+  const pista=abierta?agPista(a):null;
+  const g=a.gestion_ts?((agGestionDe(a.cliente).historial||[]).find(x=>x.ts===a.gestion_ts)):null;
+  const extra=e==='atrasada'?' '+agDif(a.fecha,agHoy())+' d':'';
+  return'<div class="ag-row ag-'+e+'">'
+    +'<div class="ag-fecha"><div>'+agDiaSem(a.fecha)+' '+agFmt(a.fecha)+'</div>'+(a.hora?'<div class="ag-hora">'+escH(a.hora)+'</div>':'')+'</div>'
+    +'<div class="ag-cuerpo"><div><a href="#" class="ag-cli" data-agcli="'+escH(a.cliente)+'">'+escH(a.cliente)+'</a>'+(hay?'':' <span class="ag-chip">sin deuda en cartera</span>')+'</div>'
+      +'<div class="ag-desc"><i class="ti '+t.i+'"></i> <strong>'+t.l+'</strong>'+(a.descripcion?' — '+escH(a.descripcion):'')+(a.monto&&a.tipo==='pago'&&!/\$/.test(a.descripcion||'')?' · '+fmtN(a.monto):'')+'</div>'
+      +'<div class="ag-meta">'+escH(agNom(a.responsable))+(a.creado_por&&a.creado_por!==a.responsable?' · la agendó '+escH(a.creado_por_nombre||agNom(a.creado_por)):'')
+        +(g?' · <a href="#" data-aggest="'+a.id+'">ver gestión del '+escH(String(g.fecha||'').split(' ')[0])+'</a>':'')
+        +(a.reprogramaciones?' · <span style="color:'+(a.reprogramaciones>=2?'var(--orange)':'var(--text3)')+'">reprogramada '+a.reprogramaciones+' '+(a.reprogramaciones===1?'vez':'veces')+'</span>':'')+'</div>'
+      +(pista?'<div class="ag-pista" style="color:'+(pista.ok?'var(--green)':'var(--text3)')+'"><i class="ti ti-'+(pista.ok?'coin':'info-circle')+'"></i> '+escH(pista.txt)+'</div>':'')
+      +(!abierta&&a.resultado?'<div class="ag-res">↳ '+(a.cumplido===true?'<strong style="color:var(--green)">Cumplió</strong> · ':a.cumplido===false?'<strong style="color:var(--orange)">No cumplió</strong> · ':'')+escH(a.resultado)+'<span style="color:var(--text3)"> — '+escH(a.resuelta_por||'')+(a.resuelta_ts?' '+new Date(a.resuelta_ts).toLocaleDateString('es-AR'):'')+'</span></div>':'')
+    +'</div>'
+    +'<div class="ag-der">'+agBadge(e,extra)+'<div class="ag-acc">'+(abierta
+      ?'<button class="btn btn-yellow" data-agres="'+a.id+'" title="Marcar como hecha y anotar el resultado"><i class="ti ti-check"></i> Resolver</button><button class="btn" data-agrep="'+a.id+'" title="Cambiar la fecha"><i class="ti ti-calendar-repeat"></i></button><button class="btn" data-agcan="'+a.id+'" title="Cancelar (ya no hace falta)"><i class="ti ti-x"></i></button>'
+      :'<button class="btn" data-agreab="'+a.id+'" title="Volver a dejarla pendiente"><i class="ti ti-rotate"></i> Reabrir</button>')+'</div></div>'
+  +'</div>';
+}
+function agHtmlLista(L){
+  if(!L.length)return'<div class="notif-empty" style="padding:2rem">'+(agF.estado==='abiertas'&&!agF.kpi?'No hay acciones pendientes con estos filtros 🎉':'No hay acciones con estos filtros.')+'</div>';
+  const h=agHoy();const grupos=[['atrasada','Atrasadas'],['hoy','Hoy'],['man','Mañana'],['sem','Próximos 7 días'],['mas','Más adelante'],['cer','Resueltas y canceladas']];
+  const gk=a=>{const e=agEstado(a);if(e==='resuelta'||e==='cancelada')return'cer';if(e==='atrasada'||e==='hoy')return e;if(a.fecha===agSum(h,1))return'man';if(a.fecha<=agSum(h,7))return'sem';return'mas';};
+  const by={};L.forEach(a=>{(by[gk(a)]=by[gk(a)]||[]).push(a);});
+  return grupos.filter(([k])=>by[k]).map(([k,l])=>{
+    const xs=by[k].sort((x,y)=>k==='cer'?String(y.resuelta_ts||'').localeCompare(String(x.resuelta_ts||'')):(x.fecha+(x.hora||'99')).localeCompare(y.fecha+(y.hora||'99')));
+    return'<div class="ag-grupo"><div class="ag-grupo-tit">'+l+' <span>('+xs.length+')</span></div>'+xs.slice(0,k==='cer'?150:500).map(agHtmlFila).join('')+'</div>';
+  }).join('');
+}
+function agHtmlSemana(L){
+  const h=agHoy();const[y,m,d]=h.split('-').map(Number);const w=new Date(y,m-1,d).getDay();const lunes=agSum(h,-(w===0?6:w-1)+agF.semana*7);
+  const dias=[0,1,2,3,4,5,6].map(i=>agSum(lunes,i));
+  const atr=agF.semana===0?L.filter(a=>agEstado(a)==='atrasada'&&a.fecha<lunes):[];
+  let x='<div class="ag-sem-nav"><button class="btn" data-agsem="-1"><i class="ti ti-chevron-left"></i></button><strong>Semana del '+agFmt(dias[0])+' al '+agFmt(dias[6])+'</strong><button class="btn" data-agsem="1"><i class="ti ti-chevron-right"></i></button>'+(agF.semana?'<button class="lnk" data-agsem="0">Volver a esta semana</button>':'')+'</div>';
+  if(atr.length)x+='<div class="ag-aviso" style="margin-bottom:8px"><i class="ti ti-alert-triangle"></i> Hay '+atr.length+' atrasada'+(atr.length!==1?'s':'')+' de semanas anteriores (se ven en la vista Lista).</div>';
+  x+='<div class="ag-sem">'+dias.map(di=>{const xs=L.filter(a=>a.fecha===di).sort((p,q)=>(p.hora||'99').localeCompare(q.hora||'99'));
+    return'<div class="ag-dia'+(di===h?' hoy':'')+'"><div class="ag-dia-tit">'+agDiaSem(di)+' '+agFmt(di)+'</div>'+(xs.length?xs.map(a=>{const t=AG_TIPOS[a.tipo]||AG_TIPOS.otro;const e=agEstado(a);
+      return'<div class="ag-card" style="border-left-color:'+AG_EST[e].c+'" data-agcard="'+a.id+'" title="'+escH((a.descripcion||'')+' · '+agNom(a.responsable))+'"><i class="ti '+t.i+'"></i> '+(a.hora?escH(a.hora)+' ':'')+'<strong>'+escH(a.cliente)+'</strong><div>'+escH(t.l)+' · '+escH(agNom(a.responsable).split(' ')[0])+'</div></div>';}).join(''):'<div class="ag-vacio">—</div>')+'</div>';}).join('')+'</div>';
+  const sel=agCardSel?agenda.find(a=>a.id===agCardSel):null;
+  if(sel&&L.includes(sel))x+='<div style="margin-top:10px">'+agHtmlFila(sel)+'</div>';
+  return x;
+}
+function agHtmlSupervision(){
+  const h=agHoy();const d30=agSum(h,-30);const base=agenda.filter(a=>agVeCli(a.cliente));
+  const R={};base.forEach(a=>{const r=String(a.responsable||'').toLowerCase()||'—';const o=R[r]=R[r]||{ab:0,at:0,hoy:0,res:0,enf:0,rep:0,cc:0,ci:0};
+    if(a.estado==='pendiente'){o.ab++;const e=agEstado(a);if(e==='atrasada')o.at++;if(e==='hoy')o.hoy++;if((a.reprogramaciones||0)>=2)o.rep++;}
+    if(a.estado==='resuelta'&&String(a.resuelta_ts||'').slice(0,10)>=d30){o.res++;if(String(a.resuelta_ts).slice(0,10)<=a.fecha)o.enf++;if(a.cumplido===true)o.cc++;if(a.cumplido===false)o.ci++;}});
+  const filas=Object.entries(R).sort((a,b)=>b[1].at-a[1].at||b[1].ab-a[1].ab);
+  if(!filas.length)return'';
+  const pc=(a,b)=>b?Math.round(a/b*100)+'%':'—';
+  return'<div class="ag-grupo-tit" style="margin-top:22px"><i class="ti ti-eye"></i> Seguimiento del equipo <span>(abiertas hoy · resueltas en los últimos 30 días)</span></div>'
+    +'<div class="table-wrap"><div class="table-scroll"><table style="min-width:720px"><thead><tr><th>Responsable</th><th style="text-align:right">Abiertas</th><th style="text-align:right">Atrasadas</th><th style="text-align:right">Para hoy</th><th style="text-align:right">Reprog. 2+</th><th style="text-align:right">Resueltas 30 d</th><th style="text-align:right">% en fecha</th><th style="text-align:right">Pagos cumplidos / incumplidos</th></tr></thead><tbody>'
+    +filas.map(([r,o])=>'<tr><td><a href="#" data-agver="'+escH(r)+'" style="color:var(--yellow);font-weight:600">'+escH(agNom(r))+'</a></td><td style="text-align:right">'+o.ab+'</td><td style="text-align:right;font-weight:700;color:'+(o.at?'var(--red)':'var(--text3)')+'">'+o.at+'</td><td style="text-align:right">'+o.hoy+'</td><td style="text-align:right;color:'+(o.rep?'var(--orange)':'var(--text3)')+'">'+o.rep+'</td><td style="text-align:right">'+o.res+'</td>'
+      +'<td style="text-align:right" data-calc="'+escH('<strong>% en fecha</strong> = resueltas el mismo día de la acción o antes ÷ resueltas en 30 días = '+o.enf+' ÷ '+o.res)+'">'+pc(o.enf,o.res)+'</td><td style="text-align:right"><span style="color:var(--green)">'+o.cc+'</span> / <span style="color:var(--orange)">'+o.ci+'</span></td></tr>').join('')
+    +'</tbody></table></div></div>';
+}
+
+// ---------- Resolver / reprogramar / cancelar ----------
+function agCamposProxima(pre){
+  return'<div class="ag-prox" style="margin-top:12px"><div class="ag-prox-tit"><i class="ti ti-calendar-plus"></i> Próxima acción <span>(opcional)</span></div><div class="ag-grid">'
+    +'<label>Qué hay que hacer<select id="agm-ptipo"></select></label><label>Día<input type="date" id="agm-pfecha"></label><label>Hora<input type="time" id="agm-phora"></label><label>Responsable<select id="agm-presp"></select></label></div>'
+    +'<div class="ag-rapidos" data-agfor="agm-pfecha"><button type="button" class="lnk" data-agmas="1">Mañana</button><button type="button" class="lnk" data-agmas="3">En 3 días</button><button type="button" class="lnk" data-agmas="7">En una semana</button></div>'
+    +'<label>Detalle</label><input type="text" id="agm-pdesc" placeholder="Ej: volver a llamar para confirmar la transferencia"></div>';
+}
+function agAbrir(modo,id){
+  const a=agenda.find(x=>x.id===id);if(!a)return;agModal={modo,id};
+  const t=AG_TIPOS[a.tipo]||AG_TIPOS.otro;
+  document.getElementById('agm-tit').innerHTML={res:'<i class="ti ti-check"></i> Resolver acción',rep:'<i class="ti ti-calendar-repeat"></i> Reprogramar',can:'<i class="ti ti-x"></i> Cancelar acción',reab:'<i class="ti ti-rotate"></i> Reabrir acción'}[modo];
+  document.getElementById('agm-sub').innerHTML='<strong style="color:var(--yellow)">'+escH(a.cliente)+'</strong> · '+t.l+' · '+agFmt(a.fecha)+(a.hora?' '+escH(a.hora):'')+' · '+escH(agNom(a.responsable))+(a.descripcion?'<br>'+escH(a.descripcion):'');
+  let b='';const esPago=a.tipo==='pago'||a.origen==='compromiso';
+  if(modo==='res'){
+    if(esPago){const p=agPista(a);
+      b+='<label>¿Pagó lo comprometido?</label><div class="ag-radios"><label><input type="radio" name="agm-cump" value="si"'+(p&&p.ok?' checked':'')+'> Sí, pagó</label><label><input type="radio" name="agm-cump" value="no"'+(p&&!p.ok?' checked':'')+'> No pagó / pagó una parte</label></div>'
+        +(p?'<div class="ag-pista" style="color:'+(p.ok?'var(--green)':'var(--text3)')+'"><i class="ti ti-info-circle"></i> Según la cartera: '+escH(p.txt)+'.</div>':'');}
+    b+='<label>Resultado (qué pasó)</label><textarea id="agm-txt" placeholder="'+(esPago?'Ej: llegó la transferencia del 50%, el resto el viernes':'Ej: atendió Juan, confirma transferencia el jueves')+'"></textarea>'
+      +'<label class="ag-check"><input type="checkbox" id="agm-gest" checked> Guardarlo también como gestión en la ficha del cliente</label>'+agCamposProxima();
+  }else if(modo==='rep'){
+    b+='<div class="ag-grid"><label>Nueva fecha<input type="date" id="agm-fecha" value="'+escH(a.fecha<agHoy()?agHoy():a.fecha)+'"></label><label>Hora<input type="time" id="agm-hora" value="'+escH(a.hora||'')+'"></label><label>Responsable<select id="agm-resp"></select></label></div>'
+      +'<div class="ag-rapidos" data-agfor="agm-fecha"><button type="button" class="lnk" data-agmas="1">Mañana</button><button type="button" class="lnk" data-agmas="3">En 3 días</button><button type="button" class="lnk" data-agmas="7">En una semana</button></div>'
+      +'<label>Motivo</label><textarea id="agm-txt" placeholder="Ej: no atendió, pidió que lo llamen el lunes"></textarea>'
+      +'<label class="ag-check"><input type="checkbox" id="agm-gest" checked> Anotarlo también como gestión en la ficha del cliente</label>'
+      +(a.reprogramaciones?'<div class="ag-pista" style="color:var(--orange)"><i class="ti ti-alert-triangle"></i> Ya se reprogramó '+a.reprogramaciones+' '+(a.reprogramaciones===1?'vez':'veces')+'.</div>':'');
+  }else if(modo==='can'){
+    b+='<label>Por qué se cancela</label><textarea id="agm-txt" placeholder="Ej: pagó antes / la cuenta pasó a legales"></textarea>';
+  }else{
+    b+='<label>Nueva fecha</label><input type="date" id="agm-fecha" value="'+escH(a.fecha<agHoy()?agHoy():a.fecha)+'"><label>Motivo (opcional)</label><textarea id="agm-txt" style="min-height:50px"></textarea>';
+  }
+  document.getElementById('agm-body').innerHTML=b+'<div id="agm-err" class="ag-err"></div>';
+  if(modo==='res'){agOpcionesTipo(document.getElementById('agm-ptipo'),esPago?'llamar':a.tipo);agOpcionesResp(document.getElementById('agm-presp'),a.responsable);}
+  if(modo==='rep')agOpcionesResp(document.getElementById('agm-resp'),a.responsable);
+  document.getElementById('agm-ok').textContent={res:'Marcar resuelta',rep:'Reprogramar',can:'Cancelar acción',reab:'Reabrir'}[modo];
+  document.getElementById('modal-ag').classList.add('open');
+  setTimeout(()=>{const ta=document.getElementById('agm-txt');if(ta)ta.focus();},50);
+}
+async function agConfirmar(){
+  if(!agModal)return;const a=agenda.find(x=>x.id===agModal.id);if(!a)return;
+  const err=m=>{document.getElementById('agm-err').textContent=m;};
+  const txt=(document.getElementById('agm-txt')||{}).value||'';const tx=txt.trim();const ahora=new Date().toISOString();const yo=currentUser.nombre;
+  const btn=document.getElementById('agm-ok');
+  const esPago=a.tipo==='pago'||a.origen==='compromiso';
+  try{
+    if(agModal.modo==='res'){
+      const r=document.querySelector('input[name="agm-cump"]:checked');
+      if(esPago&&!r)return err('Marcá si pagó o no.');
+      if(!tx)return err('Escribí el resultado.');
+      const pf=document.getElementById('agm-pfecha').value,pd=document.getElementById('agm-pdesc').value.trim(),ph=document.getElementById('agm-phora').value;
+      if(!pf&&(pd||ph))return err('Poné el día de la próxima acción (o borrá el detalle).');
+      btn.disabled=true;
+      const cumplido=esPago?r.value==='si':null;
+      const ptipo=document.getElementById('agm-ptipo').value;
+      let hts=a.gestion_ts;
+      if(document.getElementById('agm-gest').checked){
+        const g=agGestionDe(a.cliente);const cam={};
+        if(esPago&&g.fecha_comp===a.fecha){cam.fecha_comp=null;cam.monto_comp=null;}
+        if(pf&&ptipo==='pago'){cam.fecha_comp=pf;cam.monto_comp=a.monto||g.monto_comp||null;}
+        const nota='📅 '+(AG_TIPOS[a.tipo]||AG_TIPOS.otro).l+' ('+agFmt(a.fecha)+')'+(esPago?(cumplido?' — Cumplió':' — No cumplió'):'')+': '+tx+(pf?' · Próxima: '+(AG_TIPOS[ptipo]||AG_TIPOS.otro).l+' '+agFmt(pf):'');
+        const ts=await agGuardarGestion(a.cliente,nota,cam);if(!ts)throw new Error('no se pudo guardar la gestión');hts=ts;enviarMenciones(a.cliente,tx);
+      }
+      await agPatch(a.id,{estado:'resuelta',resultado:tx.slice(0,500),cumplido,resuelta_ts:ahora,resuelta_por:yo,log:agLog(a,'resuelta',tx.slice(0,200))});
+      if(pf){const resp=document.getElementById('agm-presp').value;
+        const n=await agInsert([agNueva({cliente:a.cliente,tipo:ptipo,origen:ptipo==='pago'?'compromiso':'manual',monto:ptipo==='pago'?(a.monto||null):null,fecha:pf,hora:ph||null,descripcion:pd||(ptipo==='pago'?'Verificar pago comprometido':''),responsable:resp,responsable_nombre:agNom(resp),gestion_ts:hts})]);
+        (n||[]).forEach(x=>{agenda.push(x);agAvisar(x);});}
+      showToast('Acción resuelta ✓'+(pf?' · próxima el '+agFmt(pf):''));
+    }else if(agModal.modo==='rep'){
+      const f=document.getElementById('agm-fecha').value;if(!f)return err('Elegí la nueva fecha.');
+      if(f<agHoy())return err('La nueva fecha no puede ser anterior a hoy.');
+      if(!tx)return err('Escribí el motivo.');
+      btn.disabled=true;const resp=document.getElementById('agm-resp').value;const hora=document.getElementById('agm-hora').value||null;
+      const det='De '+agFmt(a.fecha)+' a '+agFmt(f)+(resp!==String(a.responsable||'').toLowerCase()?' · ahora la tiene '+agNom(resp):'')+': '+tx;
+      if(document.getElementById('agm-gest').checked){
+        const g=agGestionDe(a.cliente);const cam={};if(esPago&&g.fecha_comp===a.fecha)cam.fecha_comp=f;
+        if(!await agGuardarGestion(a.cliente,'📅 Reprogramada: '+(AG_TIPOS[a.tipo]||AG_TIPOS.otro).l+' '+det,cam))throw new Error('no se pudo guardar la gestión');
+      }
+      const n=await agPatch(a.id,{fecha:f,hora,responsable:resp,responsable_nombre:agNom(resp),reprogramaciones:(a.reprogramaciones||0)+1,log:agLog(a,'reprogramada',det)});
+      if(n&&resp!==String(a.responsable||'').toLowerCase())agAvisar(n);
+      showToast('Reprogramada para el '+agFmt(f)+' ✓');
+    }else if(agModal.modo==='can'){
+      if(!tx)return err('Escribí por qué se cancela.');btn.disabled=true;
+      await agPatch(a.id,{estado:'cancelada',resultado:tx.slice(0,500),cumplido:null,resuelta_ts:ahora,resuelta_por:yo,log:agLog(a,'cancelada',tx.slice(0,200))});
+      showToast('Acción cancelada');
+    }else{
+      const f=document.getElementById('agm-fecha').value;if(!f)return err('Elegí la fecha.');btn.disabled=true;
+      await agPatch(a.id,{estado:'pendiente',fecha:f,resultado:null,cumplido:null,resuelta_ts:null,resuelta_por:null,log:agLog(a,'reabierta',tx)});
+      showToast('Acción reabierta ✓');
+    }
+    document.getElementById('modal-ag').classList.remove('open');agModal=null;
+    agPintarContador();if(agVistaActiva)renderAgenda();
+    if(document.getElementById('modal-bg').classList.contains('open')&&currentIdx!==null){openModal(currentIdx);switchTab('gestion');}
+    render();
+  }catch(e){err('No se pudo guardar: '+String(e.message||e).slice(0,200));}
+  finally{btn.disabled=false;}
+}
+function agIrCliente(nombre,hts){
+  const i=agIdxCli(nombre);
+  if(i<0){showToast('Ese cliente ya no tiene deuda en Cartera: resolvé la acción desde la agenda');return;}
+  openModal(i);switchTab('gestion');
+  if(hts)setTimeout(()=>{const it=[...document.querySelectorAll('#m-historial .hist-item[data-hts]')].find(x=>x.dataset.hts===hts);
+    if(it){it.classList.add('ag-resaltar');it.scrollIntoView({behavior:'smooth',block:'center'});}},80);
+}
+
+// ---------- Eventos ----------
+(function(){
+  document.getElementById('btn-agenda').addEventListener('click',()=>{agF.resp='mias';agF.kpi='';agF.estado='abiertas';switchMainView('agenda');});
+  const v=document.getElementById('view-agenda');
+  const on=(id,ev,fn)=>document.getElementById(id).addEventListener(ev,fn);
+  on('ag-f-resp','change',e=>{agF.resp=e.target.value;renderAgenda();});
+  on('ag-f-tipo','change',e=>{agF.tipo=e.target.value;renderAgenda();});
+  on('ag-f-estado','change',e=>{agF.estado=e.target.value;agF.kpi='';renderAgenda();});
+  on('ag-f-q','input',e=>{agF.q=e.target.value;renderAgenda();});
+  on('ag-kpi-off','click',()=>{agF.kpi='';renderAgenda();});
+  on('ag-refrescar','click',()=>loadAgenda().then(()=>showToast('Agenda actualizada')));
+  const acciones=e=>{
+    const b=e.target.closest('[data-agres],[data-agrep],[data-agcan],[data-agreab]');
+    if(b){e.preventDefault();const d=b.dataset;agAbrir(d.agres?'res':d.agrep?'rep':d.agcan?'can':'reab',d.agres||d.agrep||d.agcan||d.agreab);return true;}
+    return false;
+  };
+  v.addEventListener('click',e=>{
+    if(acciones(e))return;
+    const k=e.target.closest('[data-agkpi]');if(k){agF.kpi=agF.kpi===k.dataset.agkpi?'':k.dataset.agkpi;renderAgenda();return;}
+    const vi=e.target.closest('[data-agvista]');if(vi){agF.vista=vi.dataset.agvista;renderAgenda();return;}
+    const s=e.target.closest('[data-agsem]');if(s){agF.semana=s.dataset.agsem==='0'?0:agF.semana+(+s.dataset.agsem);renderAgenda();return;}
+    const c=e.target.closest('[data-agcli]');if(c){e.preventDefault();agIrCliente(c.dataset.agcli);return;}
+    const g=e.target.closest('[data-aggest]');if(g){e.preventDefault();const a=agenda.find(x=>x.id===g.dataset.aggest);if(a)agIrCliente(a.cliente,a.gestion_ts);return;}
+    const cd=e.target.closest('[data-agcard]');if(cd){agCardSel=agCardSel===cd.dataset.agcard?null:cd.dataset.agcard;renderAgenda();return;}
+    const r=e.target.closest('[data-agver]');if(r){e.preventDefault();agF.resp=r.dataset.agver===agYo()?'mias':r.dataset.agver;agF.kpi='';agF.estado='abiertas';renderAgenda();window.scrollTo({top:0,behavior:'smooth'});return;}
+  });
+  document.getElementById('m-ag-abiertas').addEventListener('click',e=>{acciones(e);});
+  const md=document.getElementById('modal-ag');
+  md.addEventListener('click',e=>{
+    if(e.target===md){md.classList.remove('open');return;}
+    const q=e.target.closest('[data-agmas]');if(q){const inp=document.getElementById(q.parentElement.dataset.agfor);if(inp)inp.value=agHabil(agSum(agHoy(),+q.dataset.agmas));}
+  });
+  document.getElementById('m-ag-box').addEventListener('click',e=>{const q=e.target.closest('[data-agmas]');if(q)document.getElementById('m-ag-fecha').value=agHabil(agSum(agHoy(),+q.dataset.agmas));});
+  on('agm-cancel','click',()=>{md.classList.remove('open');agModal=null;});
+  on('agm-ok','click',agConfirmar);
+})();
+
+
 // Helper para llamar a la función segura de escritura
 // Escrituras de Cobranzas. Antes pasaban por la función secure-write del Supabase viejo;
 // ahora van directo a las tablas, que solo aceptan usuarios logueados con el panel Cobranzas.
@@ -6005,6 +6532,7 @@ function showApp(){
   loadPagosDesdeSupabase().then(ok=>{if(ok)return prOdooAuto();}).catch(e=>console.warn(e));
   loadMenciones();
   loadClientesFromSheets();
+  loadAgenda();
 }
 
 function logout(){
@@ -6018,6 +6546,7 @@ function logout(){
   document.getElementById('view-cumplimiento').style.display='none';
   document.getElementById('view-objetivos').style.display='none';
   document.getElementById('view-ayuda').style.display='none';
+  document.getElementById('view-agenda').style.display='none';agVistaActiva=false;
   document.getElementById('ped-fab').style.display='none';
   document.getElementById('btn-usuarios').style.display='none';
   document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open'));
@@ -6083,7 +6612,7 @@ window.PORTAL_ACCESO.then(a=>{
   showApp();
 });
 // Auto-sync every 2 minutes
-setInterval(()=>{loadClientesFromSheets();setTimeout(loadFromSheets,1500);if(currentUser)loadMenciones();loadSaldosFromSheets();}, 120000);
+setInterval(()=>{loadClientesFromSheets();setTimeout(loadFromSheets,1500);if(currentUser){loadMenciones();loadAgenda();}loadSaldosFromSheets();}, 120000);
 
 </script>
 </body>
