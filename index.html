@@ -373,6 +373,8 @@ th.th-on{color:var(--yellow)!important}
 .calc-ic{font-size:12px;color:var(--text3);cursor:help;vertical-align:-1px;display:inline-block;min-width:12px}
 [data-calc]:hover .calc-ic{color:var(--yellow)}
 /* ===== Agenda ===== */
+.ag-dir{margin-top:3px;font-size:12px;color:var(--text2)}.ag-dir a{color:var(--blue)}.ag-dir i{color:var(--orange)}
+.ag-dirbox{margin-top:4px}.ag-dir-origen{color:var(--text3);font-size:11px}
 .ag-est{display:inline-block;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:700;border:1px solid;white-space:nowrap}
 .ag-row{display:grid;grid-template-columns:92px minmax(0,1fr) auto;gap:14px;align-items:start;padding:11px 14px;border-bottom:1px solid var(--border);background:var(--bg2)}
 .ag-row:last-child{border-bottom:0}
@@ -760,6 +762,8 @@ th.th-on{color:var(--yellow)!important}
     <input type="text" id="ag-f-q" placeholder="Buscar cliente o detalle">
     <button class="btn" id="ag-kpi-off" style="display:none"><i class="ti ti-x"></i> Quitar filtro de la tarjeta</button>
     <span class="ped-fil" id="ag-vistas" style="margin:0 0 0 auto"><button type="button" class="lnk" data-agvista="lista"><i class="ti ti-list"></i> Lista</button><button type="button" class="lnk" data-agvista="semana"><i class="ti ti-calendar-week"></i> Semana</button></span>
+    <button class="btn" id="ag-reco" title="Retiros con moto del día, para mandar por WhatsApp o imprimir"><i class="ti ti-motorbike"></i> Recorrido moto</button>
+    <button class="btn btn-yellow" id="ag-nueva"><i class="ti ti-plus"></i> Nueva acción</button>
     <button class="btn" id="ag-refrescar" title="Volver a leer la agenda"><i class="ti ti-refresh"></i></button>
   </div>
   <div id="ag-lista"></div>
@@ -972,6 +976,10 @@ th.th-on{color:var(--yellow)!important}
 <p>Lista de lo que hay que hacer con cada cliente y cuándo: llamar, mandar WhatsApp o mail, visitar o verificar un pago prometido. Cada acción queda atada al cliente y a la gestión de la que salió.</p>
 <ul>
 <li><strong>Cómo se carga:</strong> en la ficha del cliente, pestaña Gestión, completá <em>Próxima acción</em> (qué hay que hacer, día, hora opcional, responsable y detalle) y tocá <em>Guardar gestión</em>. Los botones <em>Mañana / En 3 días / En una semana</em> ponen la fecha (si cae sábado o domingo pasa al lunes).</li>
+<li><strong>Retiro con moto:</strong> elegí <em>Retiro con moto</em> en “Qué hay que hacer”. La dirección se completa sola (la última usada para ese cliente en la agenda o, si no hay, la del contacto) y se puede cambiar antes de guardar. También se puede cargar el monto a retirar. Para <em>Visita</em> también se pide la dirección. Al resolver se marca si se retiró o no.</li>
+<li><strong>Recorrido moto:</strong> botón en la Agenda: lista los retiros con moto pendientes del día elegido, ordenados por hora, con dirección (link a Google Maps), monto, teléfono y detalle. <em>Copiar para WhatsApp</em> deja el texto listo para pegar; también se puede imprimir.</li>
+<li><strong>Nueva acción desde la Agenda:</strong> botón <em>Nueva acción</em>. Si elegís un cliente de la lista queda vinculado a su ficha (y, si querés, se anota como gestión); si escribís otro nombre queda como acción suelta.</li>
+<li><strong>Dirección del contacto:</strong> sale del Excel de contactos de Odoo (en <em>Actualizar</em>): columna “Dirección” o se arma con Calle, Calle2, Ciudad y Provincia. Se ve en la ficha, pestaña Contacto.</li>
 <li><strong>Compromisos de pago:</strong> la <em>Fecha compromiso de pago</em> de la gestión crea sola una acción <em>Verificar pago</em> para ese día y con ese monto. Si después cambiás la fecha, la acción se mueve (cuenta como reprogramada); si la borrás, se cancela.</li>
 <li><strong>Responsable:</strong> por defecto quien carga la gestión. Si se la asignás a otra persona, le llega una mención (campana y Seguimiento) que queda respondida cuando la resuelve.</li>
 <li><strong>Estados:</strong> <em>Pendiente</em> (fecha futura), <em>Hoy</em>, <em>Atrasada</em> (pasó la fecha y no se resolvió; muestra los días), <em>Resuelta</em> y <em>Cancelada</em>. Hoy y Atrasada se calculan solos con la fecha.</li>
@@ -1080,6 +1088,7 @@ th.th-on{color:var(--yellow)!important}
           <label>Responsable<select id="m-ag-resp"></select></label>
         </div>
         <div class="ag-rapidos"><button type="button" class="lnk" data-agmas="1">Mañana</button><button type="button" class="lnk" data-agmas="3">En 3 días</button><button type="button" class="lnk" data-agmas="7">En una semana</button></div>
+        <div id="m-ag-dirbox" class="ag-dirbox" hidden><div class="ag-grid" style="grid-template-columns:minmax(0,3fr) minmax(0,1fr)"><label>Dirección <span class="ag-dir-origen" id="m-ag-dir-origen"></span><input type="text" id="m-ag-dir" placeholder="Calle, número, localidad"></label><label id="m-ag-monto-lbl">Monto a retirar<input type="number" id="m-ag-monto" min="0" placeholder="Opcional"></label></div></div>
         <label>Detalle</label><input type="text" id="m-ag-desc" placeholder="Ej: llamar a Juan de pagos para confirmar la transferencia">
       </div>
       <div id="m-ag-abiertas"></div>
@@ -1296,7 +1305,7 @@ th.th-on{color:var(--yellow)!important}
     <h2 id="agm-tit"></h2>
     <div class="modal-sub" id="agm-sub"></div>
     <div id="agm-body"></div>
-    <div class="modal-footer"><button class="btn" id="agm-cancel">Volver</button><button class="btn btn-yellow" id="agm-ok">Guardar</button></div>
+    <div class="modal-footer"><span id="agm-extra" style="margin-right:auto"></span><button class="btn" id="agm-cancel">Volver</button><button class="btn btn-yellow" id="agm-ok">Guardar</button></div>
   </div>
 </div>
 <div class="modal-bg" id="modal-seguimiento">
@@ -1617,9 +1626,11 @@ function saveToSheets(){
 }
 
 
+let cliDirCol=null; // ¿la tabla clientes ya tiene la columna direccion? (se agrega con 5_sql_agenda.sql)
 function saveClientesToSheets(clientesData){
   showSyncStatus('⟳ Publicando datos...','var(--yellow)');
-  const rows=clientesData.map(c=>({
+  if(cliDirCol===false&&clientesData.some(c=>c.direccion))setTimeout(()=>showToast('Las direcciones no se guardaron: falta correr 5_sql_agenda.sql en Supabase'),3000);
+  const rows=clientesData.map(c=>({...(cliDirCol===false?{}:{direccion:c.direccion||''}),
     nombre:c.nombre,
     deuda:c.deuda,
     empresa:c.empresa,
@@ -1699,8 +1710,10 @@ function loadClientesFromSheets(){
         ciudad:row.ciudad||'',
         zona:row.zona||'',
         categoria:row.categoria||'',
+        direccion:row.direccion||'',
         facturas:row.facturas?JSON.parse(row.facturas):[]
       }));
+      cliDirCol='direccion' in rows[0];
       if(loaded.length>0){
         clientes=loaded;
         // Don't reset gestiones here - loadFromSheets will handle it
@@ -1979,7 +1992,7 @@ function openModal(idx){
   document.getElementById('m-nota').value='';
   document.getElementById('m-fecha').value=g.fecha_comp||'';
   document.getElementById('m-monto-comp').value=g.monto_comp||'';
-  document.getElementById('m-info-grid').innerHTML=[['Ciudad',c.ciudad||'—'],['Zona',c.zona||'—'],['Categoría',c.categoria||'—'],['Empresa',c.empresa]].map(([l,v])=>'<div class="info-item"><span class="info-label">'+l+'</span><span class="info-value">'+v+'</span></div>').join('');
+  document.getElementById('m-info-grid').innerHTML=[['Dirección',c.direccion||'—'],['Ciudad',c.ciudad||'—'],['Zona',c.zona||'—'],['Categoría',c.categoria||'—'],['Empresa',c.empresa]].map(([l,v])=>'<div class="info-item"><span class="info-label">'+l+'</span><span class="info-value">'+v+'</span></div>').join('');
   document.getElementById('m-facturas').innerHTML=c.facturas.map(f=>{
     const et=f.emp?'<span class="inv-emp '+(f.emp==='SPL'?'ie-spl':'ie-spots')+'">'+f.emp+'</span>':'';
     const emision=f.fecha_emision&&f.fecha_emision!=='-'?'<span style="color:var(--text3);font-size:11px">Emisión: '+f.fecha_emision+'</span>':'';
@@ -2644,14 +2657,22 @@ function parseCobranzas(wb){
 function parseContactos(wb){
   const ws=wb.Sheets[wb.SheetNames[0]];const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
   const h=rows[0];const ci={};
-  h.forEach((v,i)=>{const s=String(v).toLowerCase();if(s.includes('nombre'))ci.n=i;if(s.includes('correo')||s.includes('email'))ci.e=i;if(s.includes('teléfono')||s.includes('telefono'))ci.t=i;if(s.includes('vendedor'))ci.v=i;if(s.includes('ciudad'))ci.c=i;if(s.includes('zona'))ci.z=i;if(s.includes('categoría')||s.includes('categoria'))ci.cat=i;});
+  h.forEach((v,i)=>{const s=String(v).toLowerCase().trim();if(s==='dirección'||s==='direccion'||s.includes('dirección completa')||s.includes('direccion completa')||s==='domicilio')ci.dir=i;else if(s==='calle'||s==='street'||s==='calle 1')ci.calle=i;else if(s==='calle2'||s==='calle 2'||s==='street2')ci.calle2=i;else if(s==='provincia'||s==='estado'||s.startsWith('provincia'))ci.prov=i;
+  if(s.includes('nombre')&&!s.includes('calle'))ci.n=i;if(s.includes('correo')||s.includes('email'))ci.e=i;if(s.includes('teléfono')||s.includes('telefono'))ci.t=i;if(s.includes('vendedor'))ci.v=i;if(s.includes('ciudad'))ci.c=i;if(s.includes('zona'))ci.z=i;if(s.includes('categoría')||s.includes('categoria'))ci.cat=i;});
   const map={};
-  for(let r=1;r<rows.length;r++){const row=rows[r];const n=String(row[ci.n]||'').trim().toUpperCase();if(n&&!map[n])map[n]={email:cleanEmail(row[ci.e]),telefono:cleanTel(row[ci.t]),vendedor:String(row[ci.v]||'').trim(),ciudad:String(row[ci.c]||'').trim(),zona:String(row[ci.z]||'').trim(),categoria:String(row[ci.cat]||'').trim()};}
+  for(let r=1;r<rows.length;r++){const row=rows[r];const n=String(row[ci.n]||'').trim().toUpperCase();if(n&&!map[n])map[n]={email:cleanEmail(row[ci.e]),telefono:cleanTel(row[ci.t]),vendedor:String(row[ci.v]||'').trim(),ciudad:String(row[ci.c]||'').trim(),zona:String(row[ci.z]||'').trim(),categoria:String(row[ci.cat]||'').trim(),direccion:dirContacto(row,ci)};}
   return map;
 }
 
+// Dirección del contacto: columna "Dirección" completa o se arma con Calle, Calle2, Ciudad y Provincia (export de Odoo)
+function dirContacto(row,ci){
+  const t=i=>i===undefined?'':String(row[i]||'').replace(/\s+/g,' ').trim();
+  if(ci.dir!==undefined&&t(ci.dir))return String(row[ci.dir]).trim().replace(/\s*\n+\s*/g,', ').replace(/\s+/g,' ');
+  const p=[t(ci.calle),t(ci.calle2),t(ci.c),t(ci.prov)].filter(x=>x&&x.toLowerCase()!=='false');
+  return [...new Set(p)].join(', ');
+}
 function mergeContacts(clients,map){
-  clients.forEach(c=>{const k=c.nombre.trim().toUpperCase();if(map[k]){const ct=map[k];if(ct.email)c.email=ct.email;if(ct.telefono)c.telefono=ct.telefono;if(ct.vendedor&&!c.vendedor)c.vendedor=ct.vendedor;if(ct.ciudad)c.ciudad=ct.ciudad;if(ct.zona)c.zona=ct.zona;if(ct.categoria)c.categoria=ct.categoria;}});
+  clients.forEach(c=>{const k=c.nombre.trim().toUpperCase();if(map[k]){const ct=map[k];if(ct.email)c.email=ct.email;if(ct.telefono)c.telefono=ct.telefono;if(ct.vendedor&&!c.vendedor)c.vendedor=ct.vendedor;if(ct.ciudad)c.ciudad=ct.ciudad;if(ct.zona)c.zona=ct.zona;if(ct.categoria)c.categoria=ct.categoria;if(ct.direccion)c.direccion=ct.direccion;}});
 }
 
 function processFile(type,file){
@@ -2719,7 +2740,7 @@ document.getElementById('btn-apply').addEventListener('click',()=>{
     // Preserve contact info from current data
     contactMap[c.nombre]={
       email:getEmail(i),telefono:getTel(i),
-      ciudad:c.ciudad||'',zona:c.zona||'',categoria:c.categoria||''
+      ciudad:c.ciudad||'',zona:c.zona||'',categoria:c.categoria||'',direccion:c.direccion||''
     };
   });
   clientes=nc;
@@ -2732,6 +2753,7 @@ document.getElementById('btn-apply').addEventListener('click',()=>{
       if(!c.ciudad&&ct.ciudad)c.ciudad=ct.ciudad;
       if(!c.zona&&ct.zona)c.zona=ct.zona;
       if(!c.categoria&&ct.categoria)c.categoria=ct.categoria;
+      if(!c.direccion&&ct.direccion)c.direccion=ct.direccion;
     }
   });
   if(pendingCont)mergeContacts(clientes,parseContactos(pendingCont));
@@ -6032,7 +6054,7 @@ document.getElementById('view-ayuda').addEventListener('click',e=>{const a=e.tar
 // cliente y a la gestión (historial) que la originó por gestion_ts. Estados guardados: pendiente /
 // resuelta / cancelada. "Hoy" y "Atrasada" se calculan con la fecha. Reprogramar no cambia el
 // estado: mueve la fecha y suma 1 a reprogramaciones (queda todo en log).
-const AG_TIPOS={llamar:{l:'Llamar',i:'ti-phone'},whatsapp:{l:'WhatsApp',i:'ti-brand-whatsapp'},mail:{l:'Mail',i:'ti-mail'},visita:{l:'Visita',i:'ti-map-pin'},pago:{l:'Verificar pago',i:'ti-cash'},otro:{l:'Otro',i:'ti-checklist'}};
+const AG_TIPOS={llamar:{l:'Llamar',i:'ti-phone'},whatsapp:{l:'WhatsApp',i:'ti-brand-whatsapp'},mail:{l:'Mail',i:'ti-mail'},visita:{l:'Visita',i:'ti-map-pin'},moto:{l:'Retiro con moto',i:'ti-motorbike'},pago:{l:'Verificar pago',i:'ti-cash'},otro:{l:'Otro',i:'ti-checklist'}};
 const AG_EST={atrasada:{l:'Atrasada',c:'var(--red)',bg:'var(--red-bg)',bd:'#4a1810'},hoy:{l:'Hoy',c:'var(--yellow)',bg:'var(--yellow-dim)',bd:'#4a3d00'},pendiente:{l:'Pendiente',c:'var(--text2)',bg:'var(--bg3)',bd:'var(--border2)'},resuelta:{l:'Resuelta',c:'var(--green)',bg:'var(--green-bg)',bd:'#1a4a2e'},cancelada:{l:'Cancelada',c:'var(--text3)',bg:'var(--bg3)',bd:'var(--border)'}};
 let agenda=[],agError='',agVistaActiva=false;
 let agF={resp:null,estado:'abiertas',tipo:'',q:'',kpi:'',vista:'lista',semana:0};
@@ -6055,12 +6077,21 @@ function agVeCli(n){const i=agIdxCli(n);if(i>=0)return veCliente(clientes[i],i);
 function agVisible(a){const me=agYo();if(String(a.responsable||'').toLowerCase()===me||String(a.creado_por||'').toLowerCase()===me)return true;return agEquipo()&&agVeCli(a.cliente);}
 function agDeudaHoy(n){const i=agIdxCli(n);return i>=0?(clientes[i].deuda||0):0;}
 function agGestionDe(n){const i=agIdxCli(n);return i>=0?(gestiones[i]||{}):(gestionesPorNombre[n]||{});}
+function agConDir(t){return t==='moto'||t==='visita';}
+function agEsCobro(a){return a.tipo==='pago'||a.tipo==='moto'||a.origen==='compromiso';}
+// Dirección sugerida: la última usada en la agenda para ese cliente; si no, la del contacto (Excel de contactos de Odoo)
+function agDirDe(n){
+  const usadas=agenda.filter(a=>a.cliente===n&&a.direccion).sort((x,y)=>String(y.creado_ts||'').localeCompare(String(x.creado_ts||'')));
+  if(usadas.length)return usadas[0].direccion;const i=agIdxCli(n);return i>=0?(clientes[i].direccion||''):'';
+}
+function agMapa(d){return'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(d);}
 function agEtiq(a){const t=AG_TIPOS[a.tipo]||AG_TIPOS.otro;return t.l+' · '+agFmt(a.fecha)+(a.hora?' '+a.hora:'');}
 function agBadge(e,extra){const s=AG_EST[e];return'<span class="ag-est" style="color:'+s.c+';background:'+s.bg+';border-color:'+s.bd+'">'+s.l+(extra||'')+'</span>';}
 function agPista(a){
   // Compromisos de pago: compara la deuda de hoy con la que tenía cuando se agendó
-  if(a.origen!=='compromiso'&&a.tipo!=='pago')return null;
+  if(!agEsCobro(a))return null;
   if(a.deuda_al_crear==null)return null;
+  if(agIdxCli(a.cliente)<0&&!(+a.deuda_al_crear>0))return null; // acción suelta (no es cliente con deuda)
   const hoy=agDeudaHoy(a.cliente);const baj=(+a.deuda_al_crear)-hoy;
   if(agIdxCli(a.cliente)<0)return{ok:true,txt:'ya no tiene deuda en cartera'};
   if(baj>1)return{ok:a.monto?baj>=a.monto*0.98:true,txt:'la deuda bajó '+fmtN(baj)+' desde que se agendó'};
@@ -6112,9 +6143,17 @@ function agOpcionesResp(sel,actual){
   sel.value=String(actual||me).toLowerCase();
 }
 function agOpcionesTipo(sel,actual){sel.innerHTML=Object.entries(AG_TIPOS).map(([k,t])=>'<option value="'+k+'">'+t.l+'</option>').join('');sel.value=actual||'llamar';}
+// Muestra dirección (+ monto si es moto) según el tipo; si la dirección está vacía, la completa sola
+function agToggleDir(tipoSel,box,dirInp,montoLbl,cliente,origenEl){
+  const t=tipoSel.value;box.hidden=!agConDir(t);if(montoLbl)montoLbl.style.display=t==='moto'?'':'none';
+  if(agConDir(t)&&!dirInp.value.trim()&&cliente){const d=agDirDe(cliente);dirInp.value=d;
+    if(origenEl)origenEl.textContent=d?'(se completó sola: podés cambiarla)':'(el contacto no tiene dirección cargada)';}
+}
 function agResetFicha(){
-  ['m-ag-fecha','m-ag-hora','m-ag-desc'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['m-ag-fecha','m-ag-hora','m-ag-desc','m-ag-dir','m-ag-monto'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  document.getElementById('m-ag-dir-origen').textContent='';
   agOpcionesTipo(document.getElementById('m-ag-tipo'));agOpcionesResp(document.getElementById('m-ag-resp'));
+  agToggleFicha();
   agPintarFicha();
 }
 function agPintarFicha(){
@@ -6136,8 +6175,10 @@ function agFilaMini(a){
     +(a.descripcion?'<div style="color:var(--text2);margin-top:2px">'+escH(a.descripcion)+'</div>':'')+'</div>'
     +'<div class="ag-acc"><button class="btn" data-agres="'+a.id+'" title="Resolver"><i class="ti ti-check"></i></button><button class="btn" data-agrep="'+a.id+'" title="Reprogramar"><i class="ti ti-calendar-repeat"></i></button><button class="btn" data-agcan="'+a.id+'" title="Cancelar"><i class="ti ti-x"></i></button></div></div>';
 }
+function agToggleFicha(){if(currentIdx===null)return;agToggleDir(document.getElementById('m-ag-tipo'),document.getElementById('m-ag-dirbox'),document.getElementById('m-ag-dir'),document.getElementById('m-ag-monto-lbl'),clientes[currentIdx].nombre,document.getElementById('m-ag-dir-origen'));}
 function agValidarFicha(){
   const f=document.getElementById('m-ag-fecha').value,d=document.getElementById('m-ag-desc').value.trim(),h=document.getElementById('m-ag-hora').value;
+  if(f&&document.getElementById('m-ag-tipo').value==='moto'&&!document.getElementById('m-ag-dir').value.trim()){showToast('Para el retiro con moto poné la dirección');switchTab('gestion');document.getElementById('m-ag-dir').focus();return false;}
   if(!f&&(d||h)){showToast('Poné el día de la próxima acción (o borrá el detalle)');switchTab('gestion');document.getElementById('m-ag-fecha').focus();return false;}
   if(f&&agError==='falta-tabla'){showToast('La agenda no está instalada todavía en Supabase: la acción no se va a guardar');}
   return true;
@@ -6149,8 +6190,9 @@ async function agDesdeFicha(c,histTs,prev,nuevaG,nota){
   try{
     if(f){
       const tipo=document.getElementById('m-ag-tipo').value;const resp=document.getElementById('m-ag-resp').value;
+      const dir=agConDir(tipo)?document.getElementById('m-ag-dir').value.trim():'';const mm=tipo==='moto'?parseFloat(document.getElementById('m-ag-monto').value)||null:null;
       nuevas.push(agNueva({cliente:c.nombre,tipo,fecha:f,hora:document.getElementById('m-ag-hora').value||null,descripcion:document.getElementById('m-ag-desc').value.trim()||(nota||'').slice(0,160),
-        responsable:resp,responsable_nombre:agNom(resp),gestion_ts:histTs}));
+        responsable:resp,responsable_nombre:agNom(resp),gestion_ts:histTs,...(dir?{direccion:dir}:{}),...(mm?{monto:mm}:{})}));
     }
     const fc=nuevaG.fecha_comp||'',mc=nuevaG.monto_comp||null,pfc=prev.fecha_comp||'',pmc=prev.monto_comp||null;
     const abierta=agenda.find(a=>a.cliente===c.nombre&&a.estado==='pendiente'&&a.origen==='compromiso');
@@ -6248,8 +6290,9 @@ function agHtmlFila(a){
   const extra=e==='atrasada'?' '+agDif(a.fecha,agHoy())+' d':'';
   return'<div class="ag-row ag-'+e+'">'
     +'<div class="ag-fecha"><div>'+agDiaSem(a.fecha)+' '+agFmt(a.fecha)+'</div>'+(a.hora?'<div class="ag-hora">'+escH(a.hora)+'</div>':'')+'</div>'
-    +'<div class="ag-cuerpo"><div><a href="#" class="ag-cli" data-agcli="'+escH(a.cliente)+'">'+escH(a.cliente)+'</a>'+(hay?'':' <span class="ag-chip">sin deuda en cartera</span>')+'</div>'
-      +'<div class="ag-desc"><i class="ti '+t.i+'"></i> <strong>'+t.l+'</strong>'+(a.descripcion?' — '+escH(a.descripcion):'')+(a.monto&&a.tipo==='pago'&&!/\$/.test(a.descripcion||'')?' · '+fmtN(a.monto):'')+'</div>'
+    +'<div class="ag-cuerpo"><div><a href="#" class="ag-cli" data-agcli="'+escH(a.cliente)+'">'+escH(a.cliente)+'</a>'+(hay?'':' <span class="ag-chip">'+(gestionesPorNombre[a.cliente]?'sin deuda en cartera':'fuera de cartera')+'</span>')+'</div>'
+      +'<div class="ag-desc"><i class="ti '+t.i+'"></i> <strong>'+t.l+'</strong>'+(a.descripcion?' — '+escH(a.descripcion):'')+(a.monto&&(a.tipo==='pago'||a.tipo==='moto')&&!/\$/.test(a.descripcion||'')?' · <strong>'+fmtN(a.monto)+'</strong>':'')+'</div>'
+      +(a.direccion?'<div class="ag-dir"><i class="ti ti-map-pin"></i> <a href="'+agMapa(a.direccion)+'" target="_blank" rel="noopener">'+escH(a.direccion)+'</a></div>':'')
       +'<div class="ag-meta">'+escH(agNom(a.responsable))+(a.creado_por&&a.creado_por!==a.responsable?' · la agendó '+escH(a.creado_por_nombre||agNom(a.creado_por)):'')
         +(g?' · <a href="#" data-aggest="'+a.id+'">ver gestión del '+escH(String(g.fecha||'').split(' ')[0])+'</a>':'')
         +(a.reprogramaciones?' · <span style="color:'+(a.reprogramaciones>=2?'var(--orange)':'var(--text3)')+'">reprogramada '+a.reprogramaciones+' '+(a.reprogramaciones===1?'vez':'veces')+'</span>':'')+'</div>'
@@ -6279,7 +6322,7 @@ function agHtmlSemana(L){
   if(atr.length)x+='<div class="ag-aviso" style="margin-bottom:8px"><i class="ti ti-alert-triangle"></i> Hay '+atr.length+' atrasada'+(atr.length!==1?'s':'')+' de semanas anteriores (se ven en la vista Lista).</div>';
   x+='<div class="ag-sem">'+dias.map(di=>{const xs=L.filter(a=>a.fecha===di).sort((p,q)=>(p.hora||'99').localeCompare(q.hora||'99'));
     return'<div class="ag-dia'+(di===h?' hoy':'')+'"><div class="ag-dia-tit">'+agDiaSem(di)+' '+agFmt(di)+'</div>'+(xs.length?xs.map(a=>{const t=AG_TIPOS[a.tipo]||AG_TIPOS.otro;const e=agEstado(a);
-      return'<div class="ag-card" style="border-left-color:'+AG_EST[e].c+'" data-agcard="'+a.id+'" title="'+escH((a.descripcion||'')+' · '+agNom(a.responsable))+'"><i class="ti '+t.i+'"></i> '+(a.hora?escH(a.hora)+' ':'')+'<strong>'+escH(a.cliente)+'</strong><div>'+escH(t.l)+' · '+escH(agNom(a.responsable).split(' ')[0])+'</div></div>';}).join(''):'<div class="ag-vacio">—</div>')+'</div>';}).join('')+'</div>';
+      return'<div class="ag-card" style="border-left-color:'+AG_EST[e].c+'" data-agcard="'+a.id+'" title="'+escH((a.descripcion||'')+' · '+agNom(a.responsable))+'"><i class="ti '+t.i+'"></i> '+(a.hora?escH(a.hora)+' ':'')+'<strong>'+escH(a.cliente)+'</strong><div>'+escH(t.l)+' · '+escH(agNom(a.responsable).split(' ')[0])+'</div>'+(a.direccion?'<div>'+escH(a.direccion.split(',').slice(0,2).join(','))+'</div>':'')+'</div>';}).join(''):'<div class="ag-vacio">—</div>')+'</div>';}).join('')+'</div>';
   const sel=agCardSel?agenda.find(a=>a.id===agCardSel):null;
   if(sel&&L.includes(sel))x+='<div style="margin-top:10px">'+agHtmlFila(sel)+'</div>';
   return x;
@@ -6304,23 +6347,27 @@ function agCamposProxima(pre){
   return'<div class="ag-prox" style="margin-top:12px"><div class="ag-prox-tit"><i class="ti ti-calendar-plus"></i> Próxima acción <span>(opcional)</span></div><div class="ag-grid">'
     +'<label>Qué hay que hacer<select id="agm-ptipo"></select></label><label>Día<input type="date" id="agm-pfecha"></label><label>Hora<input type="time" id="agm-phora"></label><label>Responsable<select id="agm-presp"></select></label></div>'
     +'<div class="ag-rapidos" data-agfor="agm-pfecha"><button type="button" class="lnk" data-agmas="1">Mañana</button><button type="button" class="lnk" data-agmas="3">En 3 días</button><button type="button" class="lnk" data-agmas="7">En una semana</button></div>'
+    +'<div id="agm-pdirbox" class="ag-dirbox" hidden><div class="ag-grid" style="grid-template-columns:minmax(0,3fr) minmax(0,1fr)"><label>Dirección <span class="ag-dir-origen" id="agm-pdir-origen"></span><input type="text" id="agm-pdir" placeholder="Calle, número, localidad"></label><label id="agm-pmonto-lbl">Monto a retirar<input type="number" id="agm-pmonto" min="0"></label></div></div>'
     +'<label>Detalle</label><input type="text" id="agm-pdesc" placeholder="Ej: volver a llamar para confirmar la transferencia"></div>';
 }
-function agAbrir(modo,id){
+function agAbrir(modo,id,pre){
+  if(modo==='nueva')return agAbrirNueva(pre||{});
+  if(modo==='reco')return agAbrirRecorrido(pre);
   const a=agenda.find(x=>x.id===id);if(!a)return;agModal={modo,id};
   const t=AG_TIPOS[a.tipo]||AG_TIPOS.otro;
   document.getElementById('agm-tit').innerHTML={res:'<i class="ti ti-check"></i> Resolver acción',rep:'<i class="ti ti-calendar-repeat"></i> Reprogramar',can:'<i class="ti ti-x"></i> Cancelar acción',reab:'<i class="ti ti-rotate"></i> Reabrir acción'}[modo];
   document.getElementById('agm-sub').innerHTML='<strong style="color:var(--yellow)">'+escH(a.cliente)+'</strong> · '+t.l+' · '+agFmt(a.fecha)+(a.hora?' '+escH(a.hora):'')+' · '+escH(agNom(a.responsable))+(a.descripcion?'<br>'+escH(a.descripcion):'');
-  let b='';const esPago=a.tipo==='pago'||a.origen==='compromiso';
+  let b='';const esPago=agEsCobro(a);const esMoto=a.tipo==='moto';
   if(modo==='res'){
     if(esPago){const p=agPista(a);
-      b+='<label>¿Pagó lo comprometido?</label><div class="ag-radios"><label><input type="radio" name="agm-cump" value="si"'+(p&&p.ok?' checked':'')+'> Sí, pagó</label><label><input type="radio" name="agm-cump" value="no"'+(p&&!p.ok?' checked':'')+'> No pagó / pagó una parte</label></div>'
+      b+='<label>'+(esMoto?'¿Se retiró el pago?':'¿Pagó lo comprometido?')+'</label><div class="ag-radios"><label><input type="radio" name="agm-cump" value="si"'+(p&&p.ok?' checked':'')+'> '+(esMoto?'Sí, se retiró':'Sí, pagó')+'</label><label><input type="radio" name="agm-cump" value="no"'+(p&&!p.ok?' checked':'')+'> '+(esMoto?'No se retiró / retiró una parte':'No pagó / pagó una parte')+'</label></div>'
         +(p?'<div class="ag-pista" style="color:'+(p.ok?'var(--green)':'var(--text3)')+'"><i class="ti ti-info-circle"></i> Según la cartera: '+escH(p.txt)+'.</div>':'');}
-    b+='<label>Resultado (qué pasó)</label><textarea id="agm-txt" placeholder="'+(esPago?'Ej: llegó la transferencia del 50%, el resto el viernes':'Ej: atendió Juan, confirma transferencia el jueves')+'"></textarea>'
+    b+='<label>Resultado (qué pasó)</label><textarea id="agm-txt" placeholder="'+(esMoto?'Ej: retiró cheque por $250.000, el resto la semana que viene':esPago?'Ej: llegó la transferencia del 50%, el resto el viernes':'Ej: atendió Juan, confirma transferencia el jueves')+'"></textarea>'
       +'<label class="ag-check"><input type="checkbox" id="agm-gest" checked> Guardarlo también como gestión en la ficha del cliente</label>'+agCamposProxima();
   }else if(modo==='rep'){
     b+='<div class="ag-grid"><label>Nueva fecha<input type="date" id="agm-fecha" value="'+escH(a.fecha<agHoy()?agHoy():a.fecha)+'"></label><label>Hora<input type="time" id="agm-hora" value="'+escH(a.hora||'')+'"></label><label>Responsable<select id="agm-resp"></select></label></div>'
       +'<div class="ag-rapidos" data-agfor="agm-fecha"><button type="button" class="lnk" data-agmas="1">Mañana</button><button type="button" class="lnk" data-agmas="3">En 3 días</button><button type="button" class="lnk" data-agmas="7">En una semana</button></div>'
+      +(agConDir(a.tipo)?'<label>Dirección</label><input type="text" id="agm-dir" value="'+escH(a.direccion||agDirDe(a.cliente))+'">':'')
       +'<label>Motivo</label><textarea id="agm-txt" placeholder="Ej: no atendió, pidió que lo llamen el lunes"></textarea>'
       +'<label class="ag-check"><input type="checkbox" id="agm-gest" checked> Anotarlo también como gestión en la ficha del cliente</label>'
       +(a.reprogramaciones?'<div class="ag-pista" style="color:var(--orange)"><i class="ti ti-alert-triangle"></i> Ya se reprogramó '+a.reprogramaciones+' '+(a.reprogramaciones===1?'vez':'veces')+'.</div>':'');
@@ -6330,18 +6377,24 @@ function agAbrir(modo,id){
     b+='<label>Nueva fecha</label><input type="date" id="agm-fecha" value="'+escH(a.fecha<agHoy()?agHoy():a.fecha)+'"><label>Motivo (opcional)</label><textarea id="agm-txt" style="min-height:50px"></textarea>';
   }
   document.getElementById('agm-body').innerHTML=b+'<div id="agm-err" class="ag-err"></div>';
-  if(modo==='res'){agOpcionesTipo(document.getElementById('agm-ptipo'),esPago?'llamar':a.tipo);agOpcionesResp(document.getElementById('agm-presp'),a.responsable);}
+  if(modo==='res'){agOpcionesTipo(document.getElementById('agm-ptipo'),esPago?'llamar':a.tipo);agOpcionesResp(document.getElementById('agm-presp'),a.responsable);
+    const tg=()=>agToggleDir(document.getElementById('agm-ptipo'),document.getElementById('agm-pdirbox'),document.getElementById('agm-pdir'),document.getElementById('agm-pmonto-lbl'),a.cliente,document.getElementById('agm-pdir-origen'));
+    document.getElementById('agm-ptipo').addEventListener('change',tg);tg();}
   if(modo==='rep')agOpcionesResp(document.getElementById('agm-resp'),a.responsable);
   document.getElementById('agm-ok').textContent={res:'Marcar resuelta',rep:'Reprogramar',can:'Cancelar acción',reab:'Reabrir'}[modo];
+  document.getElementById('agm-ok').style.display='';document.getElementById('agm-extra').innerHTML='';
   document.getElementById('modal-ag').classList.add('open');
   setTimeout(()=>{const ta=document.getElementById('agm-txt');if(ta)ta.focus();},50);
 }
 async function agConfirmar(){
-  if(!agModal)return;const a=agenda.find(x=>x.id===agModal.id);if(!a)return;
+  if(!agModal)return;
+  if(agModal.modo==='nueva')return agGuardarNueva();
+  if(agModal.modo==='reco')return agCopiarRecorrido();
+  const a=agenda.find(x=>x.id===agModal.id);if(!a)return;
   const err=m=>{document.getElementById('agm-err').textContent=m;};
   const txt=(document.getElementById('agm-txt')||{}).value||'';const tx=txt.trim();const ahora=new Date().toISOString();const yo=currentUser.nombre;
   const btn=document.getElementById('agm-ok');
-  const esPago=a.tipo==='pago'||a.origen==='compromiso';
+  const esPago=agEsCobro(a);
   try{
     if(agModal.modo==='res'){
       const r=document.querySelector('input[name="agm-cump"]:checked');
@@ -6349,20 +6402,23 @@ async function agConfirmar(){
       if(!tx)return err('Escribí el resultado.');
       const pf=document.getElementById('agm-pfecha').value,pd=document.getElementById('agm-pdesc').value.trim(),ph=document.getElementById('agm-phora').value;
       if(!pf&&(pd||ph))return err('Poné el día de la próxima acción (o borrá el detalle).');
+      const pdir=(document.getElementById('agm-pdir').value||'').trim();
+      if(pf&&document.getElementById('agm-ptipo').value==='moto'&&!pdir)return err('Para el retiro con moto poné la dirección.');
       btn.disabled=true;
       const cumplido=esPago?r.value==='si':null;
       const ptipo=document.getElementById('agm-ptipo').value;
       let hts=a.gestion_ts;
       if(document.getElementById('agm-gest').checked){
         const g=agGestionDe(a.cliente);const cam={};
-        if(esPago&&g.fecha_comp===a.fecha){cam.fecha_comp=null;cam.monto_comp=null;}
+        if(a.tipo!=='moto'&&esPago&&g.fecha_comp===a.fecha){cam.fecha_comp=null;cam.monto_comp=null;}
         if(pf&&ptipo==='pago'){cam.fecha_comp=pf;cam.monto_comp=a.monto||g.monto_comp||null;}
-        const nota='📅 '+(AG_TIPOS[a.tipo]||AG_TIPOS.otro).l+' ('+agFmt(a.fecha)+')'+(esPago?(cumplido?' — Cumplió':' — No cumplió'):'')+': '+tx+(pf?' · Próxima: '+(AG_TIPOS[ptipo]||AG_TIPOS.otro).l+' '+agFmt(pf):'');
+        const nota='📅 '+(AG_TIPOS[a.tipo]||AG_TIPOS.otro).l+' ('+agFmt(a.fecha)+')'+(esPago?(a.tipo==='moto'?(cumplido?' — Se retiró':' — No se retiró'):(cumplido?' — Cumplió':' — No cumplió')):'')+': '+tx+(pf?' · Próxima: '+(AG_TIPOS[ptipo]||AG_TIPOS.otro).l+' '+agFmt(pf):'');
         const ts=await agGuardarGestion(a.cliente,nota,cam);if(!ts)throw new Error('no se pudo guardar la gestión');hts=ts;enviarMenciones(a.cliente,tx);
       }
       await agPatch(a.id,{estado:'resuelta',resultado:tx.slice(0,500),cumplido,resuelta_ts:ahora,resuelta_por:yo,log:agLog(a,'resuelta',tx.slice(0,200))});
       if(pf){const resp=document.getElementById('agm-presp').value;
-        const n=await agInsert([agNueva({cliente:a.cliente,tipo:ptipo,origen:ptipo==='pago'?'compromiso':'manual',monto:ptipo==='pago'?(a.monto||null):null,fecha:pf,hora:ph||null,descripcion:pd||(ptipo==='pago'?'Verificar pago comprometido':''),responsable:resp,responsable_nombre:agNom(resp),gestion_ts:hts})]);
+        const n=await agInsert([agNueva({cliente:a.cliente,tipo:ptipo,origen:ptipo==='pago'?'compromiso':'manual',monto:ptipo==='pago'?(a.monto||null):null,fecha:pf,hora:ph||null,descripcion:pd||(ptipo==='pago'?'Verificar pago comprometido':''),responsable:resp,responsable_nombre:agNom(resp),gestion_ts:hts,
+          ...(agConDir(ptipo)&&pdir?{direccion:pdir}:{}),...(ptipo==='moto'&&parseFloat(document.getElementById('agm-pmonto').value)?{monto:parseFloat(document.getElementById('agm-pmonto').value)}:{})})]);
         (n||[]).forEach(x=>{agenda.push(x);agAvisar(x);});}
       showToast('Acción resuelta ✓'+(pf?' · próxima el '+agFmt(pf):''));
     }else if(agModal.modo==='rep'){
@@ -6372,10 +6428,11 @@ async function agConfirmar(){
       btn.disabled=true;const resp=document.getElementById('agm-resp').value;const hora=document.getElementById('agm-hora').value||null;
       const det='De '+agFmt(a.fecha)+' a '+agFmt(f)+(resp!==String(a.responsable||'').toLowerCase()?' · ahora la tiene '+agNom(resp):'')+': '+tx;
       if(document.getElementById('agm-gest').checked){
-        const g=agGestionDe(a.cliente);const cam={};if(esPago&&g.fecha_comp===a.fecha)cam.fecha_comp=f;
+        const g=agGestionDe(a.cliente);const cam={};if(a.tipo!=='moto'&&esPago&&g.fecha_comp===a.fecha)cam.fecha_comp=f;
         if(!await agGuardarGestion(a.cliente,'📅 Reprogramada: '+(AG_TIPOS[a.tipo]||AG_TIPOS.otro).l+' '+det,cam))throw new Error('no se pudo guardar la gestión');
       }
-      const n=await agPatch(a.id,{fecha:f,hora,responsable:resp,responsable_nombre:agNom(resp),reprogramaciones:(a.reprogramaciones||0)+1,log:agLog(a,'reprogramada',det)});
+      const dEl=document.getElementById('agm-dir');const cDir=dEl?{direccion:dEl.value.trim()||null}:{};
+      const n=await agPatch(a.id,{fecha:f,hora,...cDir,responsable:resp,responsable_nombre:agNom(resp),reprogramaciones:(a.reprogramaciones||0)+1,log:agLog(a,'reprogramada',det)});
       if(n&&resp!==String(a.responsable||'').toLowerCase())agAvisar(n);
       showToast('Reprogramada para el '+agFmt(f)+' ✓');
     }else if(agModal.modo==='can'){
@@ -6393,6 +6450,81 @@ async function agConfirmar(){
     render();
   }catch(e){err('No se pudo guardar: '+String(e.message||e).slice(0,200));}
   finally{btn.disabled=false;}
+}
+// ---------- Nueva acción desde la Agenda (con o sin cliente de cartera) ----------
+function agAbrirNueva(pre){
+  agModal={modo:'nueva'};
+  document.getElementById('agm-tit').innerHTML='<i class="ti ti-calendar-plus"></i> Nueva acción';
+  document.getElementById('agm-sub').innerHTML='Elegí un cliente de la lista (queda vinculado a su ficha) o escribí cualquier nombre (por ejemplo, un retiro que no es de un cliente de cartera).';
+  const nombres=[...new Set(clientes.filter((c,i)=>veCliente(c,i)).map(c=>c.nombre).concat(Object.keys(gestionesPorNombre).filter(agVeCli)))].sort((a,b)=>a.localeCompare(b,'es'));
+  document.getElementById('agm-body').innerHTML='<label>Cliente o lugar</label><input type="text" id="agn-cli" list="agn-clis" autocomplete="off" placeholder="Empezá a escribir el nombre" value="'+escH(pre.cliente||'')+'"><datalist id="agn-clis">'+nombres.map(n=>'<option value="'+escH(n)+'">').join('')+'</datalist><div id="agn-cli-info" class="ag-pista"></div>'
+    +'<div class="ag-grid"><label>Qué hay que hacer<select id="agn-tipo"></select></label><label>Día<input type="date" id="agn-fecha"></label><label>Hora<input type="time" id="agn-hora"></label><label>Responsable<select id="agn-resp"></select></label></div>'
+    +'<div class="ag-rapidos" data-agfor="agn-fecha"><button type="button" class="lnk" data-agmas="0">Hoy</button><button type="button" class="lnk" data-agmas="1">Mañana</button><button type="button" class="lnk" data-agmas="3">En 3 días</button><button type="button" class="lnk" data-agmas="7">En una semana</button></div>'
+    +'<div id="agn-dirbox" class="ag-dirbox" hidden><div class="ag-grid" style="grid-template-columns:minmax(0,3fr) minmax(0,1fr)"><label>Dirección <span class="ag-dir-origen" id="agn-dir-origen"></span><input type="text" id="agn-dir" placeholder="Calle, número, localidad"></label><label id="agn-monto-lbl">Monto a retirar<input type="number" id="agn-monto" min="0" placeholder="Opcional"></label></div></div>'
+    +'<label>Detalle</label><input type="text" id="agn-desc" placeholder="Ej: retirar cheques en administración, preguntar por Marta">'
+    +'<label class="ag-check" id="agn-gest-lbl"><input type="checkbox" id="agn-gest" checked> Anotarlo también como gestión en la ficha del cliente</label><div id="agm-err" class="ag-err"></div>';
+  agOpcionesTipo(document.getElementById('agn-tipo'),pre.tipo||'llamar');agOpcionesResp(document.getElementById('agn-resp'));
+  const cli=()=>document.getElementById('agn-cli').value.trim();
+  const tg=()=>agToggleDir(document.getElementById('agn-tipo'),document.getElementById('agn-dirbox'),document.getElementById('agn-dir'),document.getElementById('agn-monto-lbl'),cli(),document.getElementById('agn-dir-origen'));
+  const info=()=>{const n=cli();const i=agIdxCli(n);const enG=!!gestionesPorNombre[n];
+    document.getElementById('agn-cli-info').innerHTML=!n?'':i>=0?'<span style="color:var(--green)"><i class="ti ti-link"></i> Cliente de cartera · deuda '+fmtN(clientes[i].deuda)+'</span>':enG?'<span style="color:var(--text3)"><i class="ti ti-link"></i> Cliente sin deuda en cartera (tiene ficha)</span>':'<span style="color:var(--text3)"><i class="ti ti-unlink"></i> No está en cartera: queda como acción suelta</span>';
+    document.getElementById('agn-gest-lbl').style.display=(i>=0||enG)?'':'none';};
+  document.getElementById('agn-tipo').addEventListener('change',tg);
+  document.getElementById('agn-cli').addEventListener('change',()=>{document.getElementById('agn-dir').value='';tg();info();});
+  document.getElementById('agn-cli').addEventListener('input',info);
+  tg();info();
+  document.getElementById('agm-ok').textContent='Agendar';document.getElementById('agm-ok').style.display='';document.getElementById('agm-extra').innerHTML='';
+  document.getElementById('modal-ag').classList.add('open');
+  setTimeout(()=>document.getElementById(pre.cliente?'agn-fecha':'agn-cli').focus(),50);
+}
+async function agGuardarNueva(){
+  const err=m=>{document.getElementById('agm-err').textContent=m;};const v=id=>(document.getElementById(id).value||'').trim();
+  const n0=v('agn-cli');if(!n0)return err('Escribí o elegí el cliente.');
+  const n=clientes.find(c=>normCli(c.nombre)===normCli(n0))?.nombre||Object.keys(gestionesPorNombre).find(k=>normCli(k)===normCli(n0))||n0;
+  const f=v('agn-fecha');if(!f)return err('Elegí el día.');
+  const tipo=v('agn-tipo');const dir=agConDir(tipo)?v('agn-dir'):'';
+  if(tipo==='moto'&&!dir)return err('Para el retiro con moto poné la dirección.');
+  const btn=document.getElementById('agm-ok');btn.disabled=true;
+  try{
+    const resp=v('agn-resp');const desc=v('agn-desc');const mm=tipo==='moto'?parseFloat(v('agn-monto'))||null:null;
+    const tieneFicha=agIdxCli(n)>=0||!!gestionesPorNombre[n];let hts=null;
+    const a0=agNueva({cliente:n,tipo,fecha:f,hora:v('agn-hora')||null,descripcion:desc,responsable:resp,responsable_nombre:agNom(resp),...(dir?{direccion:dir}:{}),...(mm?{monto:mm}:{})});
+    if(tieneFicha&&document.getElementById('agn-gest').checked){
+      hts=await agGuardarGestion(n,'📅 Agendado: '+agEtiq(a0)+' · '+agNom(resp)+(dir?' · '+dir:'')+(mm?' · '+fmtN(mm):'')+(desc?' — '+desc:''));
+      if(!hts)throw new Error('no se pudo guardar la gestión');}
+    a0.gestion_ts=hts;
+    const r=await agInsert([a0]);(r||[]).forEach(x=>{agenda.push(x);agAvisar(x);});
+    document.getElementById('modal-ag').classList.remove('open');agModal=null;
+    showToast('Acción agendada para el '+agFmt(f)+' ✓');agPintarContador();if(agVistaActiva)renderAgenda();render();
+  }catch(e){err('No se pudo guardar: '+String(e.message||e).slice(0,200));}
+  finally{btn.disabled=false;}
+}
+// ---------- Recorrido de moto (para mandarle al que retira) ----------
+function agRecoItems(f){return agenda.filter(a=>a.tipo==='moto'&&a.estado==='pendiente'&&a.fecha===f&&agVisible(a)).sort((x,y)=>(x.hora||'99').localeCompare(y.hora||'99')||String(x.direccion||'').localeCompare(String(y.direccion||'')));}
+function agRecoTexto(f){
+  const L=agRecoItems(f);
+  return '🛵 Retiros '+agDiaSem(f)+' '+agFmt(f)+' ('+L.length+')\n\n'+L.map((a,i)=>{const i2=agIdxCli(a.cliente);const tel=i2>=0?getTel(i2):'';
+    return (i+1)+'. '+a.cliente+(a.hora?' · '+a.hora+' hs':'')+'\n   📍 '+(a.direccion||'(sin dirección)')+'\n   '+agMapa(a.direccion||a.cliente)+(a.monto?'\n   💰 '+fmtN(a.monto):'')+(tel?'\n   📞 '+tel:'')+(a.descripcion?'\n   📝 '+a.descripcion:'');}).join('\n\n');
+}
+function agAbrirRecorrido(f){
+  agModal={modo:'reco'};f=f||agHoy();
+  document.getElementById('agm-tit').innerHTML='<i class="ti ti-motorbike"></i> Recorrido de moto';
+  document.getElementById('agm-sub').textContent='Retiros con moto pendientes del día, ordenados por hora. Copialo y pegalo en WhatsApp para el que sale a retirar.';
+  const pinta=()=>{const d=document.getElementById('agr-fecha').value;const L=agRecoItems(d);
+    document.getElementById('agr-lista').innerHTML=L.length?L.map((a,i)=>'<div class="ag-mini" style="border-left-color:var(--orange)"><div><strong>'+(i+1)+'. '+escH(a.cliente)+'</strong>'+(a.hora?' · '+escH(a.hora):'')+(a.monto?' · '+fmtN(a.monto):'')+'<div class="ag-dir"><i class="ti ti-map-pin"></i> '+(a.direccion?'<a href="'+agMapa(a.direccion)+'" target="_blank" rel="noopener">'+escH(a.direccion)+'</a>':'<span style="color:var(--red)">sin dirección</span>')+'</div>'+(a.descripcion?'<div style="color:var(--text2)">'+escH(a.descripcion)+'</div>':'')+'</div></div>').join(''):'<div class="notif-empty">No hay retiros con moto pendientes ese día.</div>';
+    document.getElementById('agm-ok').style.display=L.length?'':'none';};
+  document.getElementById('agm-body').innerHTML='<label>Día</label><input type="date" id="agr-fecha" value="'+f+'" style="width:180px"><div id="agr-lista" style="margin-top:10px"></div><div id="agm-err" class="ag-err"></div>';
+  document.getElementById('agr-fecha').addEventListener('change',pinta);
+  document.getElementById('agm-ok').textContent='Copiar para WhatsApp';
+  document.getElementById('agm-extra').innerHTML='<button class="btn" id="agr-imp"><i class="ti ti-printer"></i> Imprimir</button>';
+  document.getElementById('agr-imp').addEventListener('click',()=>{const d=document.getElementById('agr-fecha').value;const w=window.open('','_blank');
+    if(w){w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recorrido moto '+agFmt(d)+'</title><style>body{font-family:Arial,sans-serif;font-size:14px;padding:20px}pre{white-space:pre-wrap;font-family:inherit}</style></head><body><pre>'+escH(agRecoTexto(d))+'</pre></body></html>');w.document.close();setTimeout(()=>w.print(),400);}});
+  pinta();document.getElementById('modal-ag').classList.add('open');
+}
+async function agCopiarRecorrido(){
+  const t=agRecoTexto(document.getElementById('agr-fecha').value);
+  try{await navigator.clipboard.writeText(t);showToast('Recorrido copiado: pegalo en WhatsApp ✓');}
+  catch(_){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('Recorrido copiado ✓');}
 }
 function agIrCliente(nombre,hts){
   const i=agIdxCli(nombre);
@@ -6413,6 +6545,9 @@ function agIrCliente(nombre,hts){
   on('ag-f-q','input',e=>{agF.q=e.target.value;renderAgenda();});
   on('ag-kpi-off','click',()=>{agF.kpi='';renderAgenda();});
   on('ag-refrescar','click',()=>loadAgenda().then(()=>showToast('Agenda actualizada')));
+  on('ag-nueva','click',()=>{if(agError==='falta-tabla'){showToast('Falta instalar la agenda en Supabase');return;}agAbrir('nueva');});
+  on('ag-reco','click',()=>agAbrir('reco',null,agF.vista==='semana'?null:agHoy()));
+  on('m-ag-tipo','change',agToggleFicha);
   const acciones=e=>{
     const b=e.target.closest('[data-agres],[data-agrep],[data-agcan],[data-agreab]');
     if(b){e.preventDefault();const d=b.dataset;agAbrir(d.agres?'res':d.agrep?'rep':d.agcan?'can':'reab',d.agres||d.agrep||d.agcan||d.agreab);return true;}
