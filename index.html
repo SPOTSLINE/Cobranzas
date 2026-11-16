@@ -762,7 +762,7 @@ th.th-on{color:var(--yellow)!important}
     <input type="text" id="ag-f-q" placeholder="Buscar cliente o detalle">
     <button class="btn" id="ag-kpi-off" style="display:none"><i class="ti ti-x"></i> Quitar filtro de la tarjeta</button>
     <span class="ped-fil" id="ag-vistas" style="margin:0 0 0 auto"><button type="button" class="lnk" data-agvista="lista"><i class="ti ti-list"></i> Lista</button><button type="button" class="lnk" data-agvista="semana"><i class="ti ti-calendar-week"></i> Semana</button></span>
-    <button class="btn" id="ag-reco" title="Retiros con moto del día, para mandar por WhatsApp o imprimir"><i class="ti ti-motorbike"></i> Recorrido moto</button>
+    <button class="btn" id="ag-reco" title="Retiros del día (con moto o de cada vendedor), para mandar por WhatsApp o imprimir"><i class="ti ti-route"></i> Recorrido retiros</button>
     <button class="btn btn-yellow" id="ag-nueva"><i class="ti ti-plus"></i> Nueva acción</button>
     <button class="btn" id="ag-refrescar" title="Volver a leer la agenda"><i class="ti ti-refresh"></i></button>
   </div>
@@ -977,7 +977,8 @@ th.th-on{color:var(--yellow)!important}
 <ul>
 <li><strong>Cómo se carga:</strong> en la ficha del cliente, pestaña Gestión, completá <em>Próxima acción</em> (qué hay que hacer, día, hora opcional, responsable y detalle) y tocá <em>Guardar gestión</em>. Los botones <em>Mañana / En 3 días / En una semana</em> ponen la fecha (si cae sábado o domingo pasa al lunes).</li>
 <li><strong>Retiro con moto:</strong> elegí <em>Retiro con moto</em> en “Qué hay que hacer”. La dirección se completa sola (la última usada para ese cliente en la agenda o, si no hay, la del contacto) y se puede cambiar antes de guardar. También se puede cargar el monto a retirar. Para <em>Visita</em> también se pide la dirección. Al resolver se marca si se retiró o no.</li>
-<li><strong>Recorrido moto:</strong> botón en la Agenda: lista los retiros con moto pendientes del día elegido, ordenados por hora, con dirección (link a Google Maps), monto, teléfono y detalle. <em>Copiar para WhatsApp</em> deja el texto listo para pegar; también se puede imprimir.</li>
+<li><strong>Retiro vendedor:</strong> elegí <em>Retiro vendedor</em> en “Qué hay que hacer” (en la ficha del cliente desde Cartera, al resolver una acción o en <em>Nueva acción</em>). Se elige el vendedor que pasa a retirar (por defecto el del cliente en la cartera); si ese vendedor tiene usuario en el panel, la acción queda a su nombre como responsable y le llega el aviso. Dirección (se completa sola, editable) y monto a retirar son opcionales. Al resolver se marca si se retiró o no, y la deuda de hoy contra la del día que se agendó ayuda a verificarlo.</li>
+<li><strong>Recorrido retiros:</strong> botón en la Agenda (antes “Recorrido moto”). En <em>Quién retira</em> elegís la moto o un vendedor y lista sus retiros pendientes del día elegido, ordenados por hora, con dirección (link a Google Maps), monto, teléfono y detalle. <em>Copiar para WhatsApp</em> deja el texto listo para pegar; también se puede imprimir.</li>
 <li><strong>Nueva acción desde la Agenda:</strong> botón <em>Nueva acción</em>. Si elegís un cliente de la lista queda vinculado a su ficha (y, si querés, se anota como gestión); si escribís otro nombre queda como acción suelta.</li>
 <li><strong>Dirección del contacto:</strong> sale del Excel de contactos de Odoo (en <em>Actualizar</em>): columna “Dirección” o se arma con Calle, Calle2, Ciudad y Provincia. Se ve en la ficha, pestaña Contacto.</li>
 <li><strong>Compromisos de pago:</strong> la <em>Fecha compromiso de pago</em> de la gestión crea sola una acción <em>Verificar pago</em> para ese día y con ese monto. Si después cambiás la fecha, la acción se mueve (cuenta como reprogramada); si la borrás, se cancela.</li>
@@ -1088,7 +1089,7 @@ th.th-on{color:var(--yellow)!important}
           <label>Responsable<select id="m-ag-resp"></select></label>
         </div>
         <div class="ag-rapidos"><button type="button" class="lnk" data-agmas="1">Mañana</button><button type="button" class="lnk" data-agmas="3">En 3 días</button><button type="button" class="lnk" data-agmas="7">En una semana</button></div>
-        <div id="m-ag-dirbox" class="ag-dirbox" hidden><div class="ag-grid" style="grid-template-columns:minmax(0,3fr) minmax(0,1fr)"><label>Dirección <span class="ag-dir-origen" id="m-ag-dir-origen"></span><input type="text" id="m-ag-dir" placeholder="Calle, número, localidad"></label><label id="m-ag-monto-lbl">Monto a retirar<input type="number" id="m-ag-monto" min="0" placeholder="Opcional"></label></div></div>
+        <div id="m-ag-dirbox" class="ag-dirbox" hidden><div class="ag-grid" style="grid-template-columns:minmax(0,3fr) minmax(0,1fr)"><label>Dirección <span class="ag-dir-origen" id="m-ag-dir-origen"></span><input type="text" id="m-ag-dir" placeholder="Calle, número, localidad"></label><label id="m-ag-monto-lbl">Monto a retirar<input type="number" id="m-ag-monto" min="0" placeholder="Opcional"></label></div><div class="ag-grid ag-vend-row" style="display:none;grid-template-columns:minmax(0,1fr)"><label>Vendedor que retira <span class="ag-dir-origen">(sale de la cartera; queda en su recorrido)</span><select class="ag-vend" id="m-ag-vend" data-resp="m-ag-resp"></select></label></div></div>
         <label>Detalle</label><input type="text" id="m-ag-desc" placeholder="Ej: llamar a Juan de pagos para confirmar la transferencia">
       </div>
       <div id="m-ag-abiertas"></div>
@@ -1500,7 +1501,7 @@ let mailVencidosActuales=[];
 // Login único (Panel de Paneles): los usuarios salen del portal
 function aliasPortal(u){return ((u&&u.config&&u.config.usuario)||String((u&&u.email)||'').split('@')[0]||(u&&u.nombre)||'').trim().toLowerCase();}
 function loadUsuarios(){
-  window.PORTAL.usuarios().then(l=>{usuariosList=(l||[]).map(u=>({nombre:u.nombre,usuario:aliasPortal(u)}));}).catch(e=>console.error('Error usuarios:',e));
+  window.PORTAL.usuarios().then(l=>{usuariosList=(l||[]).map(u=>({nombre:u.nombre,usuario:aliasPortal(u),vendedor_nombre:(u.config&&u.config.vendedor_nombre)||''}));}).catch(e=>console.error('Error usuarios:',e));
 }
 
 function loadReclamos(){
@@ -6054,7 +6055,7 @@ document.getElementById('view-ayuda').addEventListener('click',e=>{const a=e.tar
 // cliente y a la gestión (historial) que la originó por gestion_ts. Estados guardados: pendiente /
 // resuelta / cancelada. "Hoy" y "Atrasada" se calculan con la fecha. Reprogramar no cambia el
 // estado: mueve la fecha y suma 1 a reprogramaciones (queda todo en log).
-const AG_TIPOS={llamar:{l:'Llamar',i:'ti-phone'},whatsapp:{l:'WhatsApp',i:'ti-brand-whatsapp'},mail:{l:'Mail',i:'ti-mail'},visita:{l:'Visita',i:'ti-map-pin'},moto:{l:'Retiro con moto',i:'ti-motorbike'},pago:{l:'Verificar pago',i:'ti-cash'},otro:{l:'Otro',i:'ti-checklist'}};
+const AG_TIPOS={llamar:{l:'Llamar',i:'ti-phone'},whatsapp:{l:'WhatsApp',i:'ti-brand-whatsapp'},mail:{l:'Mail',i:'ti-mail'},visita:{l:'Visita',i:'ti-map-pin'},moto:{l:'Retiro con moto',i:'ti-motorbike'},vendedor:{l:'Retiro vendedor',i:'ti-briefcase'},pago:{l:'Verificar pago',i:'ti-cash'},otro:{l:'Otro',i:'ti-checklist'}};
 const AG_EST={atrasada:{l:'Atrasada',c:'var(--red)',bg:'var(--red-bg)',bd:'#4a1810'},hoy:{l:'Hoy',c:'var(--yellow)',bg:'var(--yellow-dim)',bd:'#4a3d00'},pendiente:{l:'Pendiente',c:'var(--text2)',bg:'var(--bg3)',bd:'var(--border2)'},resuelta:{l:'Resuelta',c:'var(--green)',bg:'var(--green-bg)',bd:'#1a4a2e'},cancelada:{l:'Cancelada',c:'var(--text3)',bg:'var(--bg3)',bd:'var(--border)'}};
 let agenda=[],agError='',agVistaActiva=false;
 let agF={resp:null,estado:'abiertas',tipo:'',q:'',kpi:'',vista:'lista',semana:0};
@@ -6077,8 +6078,25 @@ function agVeCli(n){const i=agIdxCli(n);if(i>=0)return veCliente(clientes[i],i);
 function agVisible(a){const me=agYo();if(String(a.responsable||'').toLowerCase()===me||String(a.creado_por||'').toLowerCase()===me)return true;return agEquipo()&&agVeCli(a.cliente);}
 function agDeudaHoy(n){const i=agIdxCli(n);return i>=0?(clientes[i].deuda||0):0;}
 function agGestionDe(n){const i=agIdxCli(n);return i>=0?(gestiones[i]||{}):(gestionesPorNombre[n]||{});}
-function agConDir(t){return t==='moto'||t==='visita';}
-function agEsCobro(a){return a.tipo==='pago'||a.tipo==='moto'||a.origen==='compromiso';}
+function agConDir(t){return t==='moto'||t==='visita'||t==='vendedor';}
+function agEsRetiro(t){return t==='moto'||t==='vendedor';}
+function agEsCobro(a){return a.tipo==='pago'||agEsRetiro(a.tipo)||a.origen==='compromiso';}
+// ---- Retiro vendedor (pedido #25, 16-nov-2026): el vendedor del cliente pasa a retirar el pago ----
+// Se guarda en la columna agenda.vendedor (6_sql_agenda_vendedor.sql). Si la columna todavía no existe,
+// se guarda igual y el vendedor queda anotado en el log ("Vendedor: X").
+let agVendCol=null;
+function agVendCli(n){const i=agIdxCli(n);return i>=0?getVend(i):((gestionesPorNombre[n]||{}).vendedor||'');}
+function agVendDe(a){if(a.vendedor)return a.vendedor;const l=(Array.isArray(a.log)?a.log:[]).find(x=>/^Vendedor: /.test(x.det||''));return l?l.det.slice(10):(agVendCli(a.cliente)||'Sin asignar');}
+function agVendedores(){return[...new Set(clientes.map((c,i)=>getVend(i)).filter(v=>v&&veVendedor(v)).concat(agenda.filter(a=>a.tipo==='vendedor'&&a.estado==='pendiente').map(agVendDe)))].sort((a,b)=>a.localeCompare(b,'es'));}
+function agUsuarioVend(v){const k=normCli(v||'');if(!k)return null;return usuariosList.find(u=>u.vendedor_nombre&&normCli(u.vendedor_nombre)===k)||null;}
+function agVendSet(o,tipo,vsel){if(tipo!=='vendedor'||!vsel)return o;const v=vsel.value||'';o.vendedor=v;o.log=(o.log||[]).concat([{ts:new Date().toISOString(),por:currentUser?currentUser.nombre:'',acc:'vendedor',det:'Vendedor: '+v}]);return o;}
+async function agInsertar(rows){
+  // si la columna vendedor no existe todavía, reintenta sin ella (queda en el log)
+  const sin=()=>rows.map(r=>{const x=Object.assign({},r);delete x.vendedor;return x;});
+  if(agVendCol===false)return await agInsert(sin());
+  try{const r=await agInsert(rows);if(rows.some(x=>x.vendedor))agVendCol=true;return r;}
+  catch(e){if(rows.some(x=>'vendedor' in x)&&/vendedor/i.test(String(e.message||e))){agVendCol=false;return await agInsert(sin());}throw e;}
+}
 // Dirección sugerida: la última usada en la agenda para ese cliente; si no, la del contacto (Excel de contactos de Odoo)
 function agDirDe(n){
   const usadas=agenda.filter(a=>a.cliente===n&&a.direccion).sort((x,y)=>String(y.creado_ts||'').localeCompare(String(x.creado_ts||'')));
@@ -6145,13 +6163,20 @@ function agOpcionesResp(sel,actual){
 function agOpcionesTipo(sel,actual){sel.innerHTML=Object.entries(AG_TIPOS).map(([k,t])=>'<option value="'+k+'">'+t.l+'</option>').join('');sel.value=actual||'llamar';}
 // Muestra dirección (+ monto si es moto) según el tipo; si la dirección está vacía, la completa sola
 function agToggleDir(tipoSel,box,dirInp,montoLbl,cliente,origenEl){
-  const t=tipoSel.value;box.hidden=!agConDir(t);if(montoLbl)montoLbl.style.display=t==='moto'?'':'none';
+  const t=tipoSel.value;box.hidden=!agConDir(t);if(montoLbl)montoLbl.style.display=agEsRetiro(t)?'':'none';
+  const vr=box.querySelector('.ag-vend-row'),vs=box.querySelector('select.ag-vend');
+  if(vr&&vs){vr.style.display=t==='vendedor'?'':'none';
+    if(t==='vendedor'){const vc=agVendCli(cliente);const L=agVendedores();if(vc&&!L.includes(vc))L.unshift(vc);
+      if(!vs.options.length||vs.dataset.cli!==cliente){vs.innerHTML='<option value="">— elegir —</option>'+L.map(v=>'<option value="'+escH(v)+'">'+escH(v)+'</option>').join('');vs.value=vc||'';vs.dataset.cli=cliente||'';agVendResp(vs);}
+      if(!vs.dataset.on){vs.dataset.on='1';vs.addEventListener('change',()=>agVendResp(vs));}}}
   if(agConDir(t)&&!dirInp.value.trim()&&cliente){const d=agDirDe(cliente);dirInp.value=d;
     if(origenEl)origenEl.textContent=d?'(se completó sola: podés cambiarla)':'(el contacto no tiene dirección cargada)';}
 }
+// Si el vendedor tiene usuario en el panel, la acción le queda a él en su agenda
+function agVendResp(vs){const u=agUsuarioVend(vs.value);const r=document.getElementById(vs.dataset.resp);if(u&&r&&[...r.options].some(o=>o.value===String(u.usuario).toLowerCase()))r.value=String(u.usuario).toLowerCase();}
 function agResetFicha(){
   ['m-ag-fecha','m-ag-hora','m-ag-desc','m-ag-dir','m-ag-monto'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
-  document.getElementById('m-ag-dir-origen').textContent='';
+  document.getElementById('m-ag-dir-origen').textContent='';{const vs=document.getElementById('m-ag-vend');if(vs){vs.innerHTML='';vs.dataset.cli='';}}
   agOpcionesTipo(document.getElementById('m-ag-tipo'));agOpcionesResp(document.getElementById('m-ag-resp'));
   agToggleFicha();
   agPintarFicha();
@@ -6171,7 +6196,7 @@ function agPintarFicha(){
 }
 function agFilaMini(a){
   const t=AG_TIPOS[a.tipo]||AG_TIPOS.otro;const e=agEstado(a);
-  return'<div class="ag-mini"><div><i class="ti '+t.i+'"></i> <strong>'+escH(agEtiq(a))+'</strong> · '+escH(agNom(a.responsable))+' '+agBadge(e,e==='atrasada'?' '+agDif(a.fecha,agHoy())+' d':'')
+  return'<div class="ag-mini"><div><i class="ti '+t.i+'"></i> <strong>'+escH(agEtiq(a))+'</strong>'+(a.tipo==='vendedor'?' ('+escH(agVendDe(a))+')':'')+' · '+escH(agNom(a.responsable))+' '+agBadge(e,e==='atrasada'?' '+agDif(a.fecha,agHoy())+' d':'')
     +(a.descripcion?'<div style="color:var(--text2);margin-top:2px">'+escH(a.descripcion)+'</div>':'')+'</div>'
     +'<div class="ag-acc"><button class="btn" data-agres="'+a.id+'" title="Resolver"><i class="ti ti-check"></i></button><button class="btn" data-agrep="'+a.id+'" title="Reprogramar"><i class="ti ti-calendar-repeat"></i></button><button class="btn" data-agcan="'+a.id+'" title="Cancelar"><i class="ti ti-x"></i></button></div></div>';
 }
@@ -6179,6 +6204,7 @@ function agToggleFicha(){if(currentIdx===null)return;agToggleDir(document.getEle
 function agValidarFicha(){
   const f=document.getElementById('m-ag-fecha').value,d=document.getElementById('m-ag-desc').value.trim(),h=document.getElementById('m-ag-hora').value;
   if(f&&document.getElementById('m-ag-tipo').value==='moto'&&!document.getElementById('m-ag-dir').value.trim()){showToast('Para el retiro con moto poné la dirección');switchTab('gestion');document.getElementById('m-ag-dir').focus();return false;}
+  if(f&&document.getElementById('m-ag-tipo').value==='vendedor'&&!document.getElementById('m-ag-vend').value){showToast('Elegí el vendedor que retira');switchTab('gestion');document.getElementById('m-ag-vend').focus();return false;}
   if(!f&&(d||h)){showToast('Poné el día de la próxima acción (o borrá el detalle)');switchTab('gestion');document.getElementById('m-ag-fecha').focus();return false;}
   if(f&&agError==='falta-tabla'){showToast('La agenda no está instalada todavía en Supabase: la acción no se va a guardar');}
   return true;
@@ -6190,9 +6216,9 @@ async function agDesdeFicha(c,histTs,prev,nuevaG,nota){
   try{
     if(f){
       const tipo=document.getElementById('m-ag-tipo').value;const resp=document.getElementById('m-ag-resp').value;
-      const dir=agConDir(tipo)?document.getElementById('m-ag-dir').value.trim():'';const mm=tipo==='moto'?parseFloat(document.getElementById('m-ag-monto').value)||null:null;
-      nuevas.push(agNueva({cliente:c.nombre,tipo,fecha:f,hora:document.getElementById('m-ag-hora').value||null,descripcion:document.getElementById('m-ag-desc').value.trim()||(nota||'').slice(0,160),
-        responsable:resp,responsable_nombre:agNom(resp),gestion_ts:histTs,...(dir?{direccion:dir}:{}),...(mm?{monto:mm}:{})}));
+      const dir=agConDir(tipo)?document.getElementById('m-ag-dir').value.trim():'';const mm=agEsRetiro(tipo)?parseFloat(document.getElementById('m-ag-monto').value)||null:null;
+      nuevas.push(agVendSet(agNueva({cliente:c.nombre,tipo,fecha:f,hora:document.getElementById('m-ag-hora').value||null,descripcion:document.getElementById('m-ag-desc').value.trim()||(nota||'').slice(0,160),
+        responsable:resp,responsable_nombre:agNom(resp),gestion_ts:histTs,...(dir?{direccion:dir}:{}),...(mm?{monto:mm}:{})}),tipo,document.getElementById('m-ag-vend')));
     }
     const fc=nuevaG.fecha_comp||'',mc=nuevaG.monto_comp||null,pfc=prev.fecha_comp||'',pmc=prev.monto_comp||null;
     const abierta=agenda.find(a=>a.cliente===c.nombre&&a.estado==='pendiente'&&a.origen==='compromiso');
@@ -6206,7 +6232,7 @@ async function agDesdeFicha(c,histTs,prev,nuevaG,nota){
     }else if(!fc&&pfc&&abierta){
       await agPatch(abierta.id,{estado:'cancelada',resultado:'Se borró la fecha de compromiso',resuelta_ts:new Date().toISOString(),resuelta_por:currentUser.nombre,log:agLog(abierta,'cancelada','Se borró la fecha de compromiso')});
     }
-    if(nuevas.length){const r=await agInsert(nuevas);(r||[]).forEach(a=>{agenda.push(a);agAvisar(a);});}
+    if(nuevas.length){const r=await agInsertar(nuevas);(r||[]).forEach(a=>{agenda.push(a);agAvisar(a);});}
     agPintarContador();if(agVistaActiva)renderAgenda();
     if(f)showToast('Gestión guardada ✓ · acción agendada para el '+agFmt(f));
   }catch(e){console.error('Agenda:',e);showToast('La gestión se guardó, pero la acción de agenda no: '+String(e.message||e).slice(0,120));}
@@ -6291,7 +6317,7 @@ function agHtmlFila(a){
   return'<div class="ag-row ag-'+e+'">'
     +'<div class="ag-fecha"><div>'+agDiaSem(a.fecha)+' '+agFmt(a.fecha)+'</div>'+(a.hora?'<div class="ag-hora">'+escH(a.hora)+'</div>':'')+'</div>'
     +'<div class="ag-cuerpo"><div><a href="#" class="ag-cli" data-agcli="'+escH(a.cliente)+'">'+escH(a.cliente)+'</a>'+(hay?'':' <span class="ag-chip">'+(gestionesPorNombre[a.cliente]?'sin deuda en cartera':'fuera de cartera')+'</span>')+'</div>'
-      +'<div class="ag-desc"><i class="ti '+t.i+'"></i> <strong>'+t.l+'</strong>'+(a.descripcion?' — '+escH(a.descripcion):'')+(a.monto&&(a.tipo==='pago'||a.tipo==='moto')&&!/\$/.test(a.descripcion||'')?' · <strong>'+fmtN(a.monto)+'</strong>':'')+'</div>'
+      +'<div class="ag-desc"><i class="ti '+t.i+'"></i> <strong>'+t.l+'</strong>'+(a.descripcion?' — '+escH(a.descripcion):'')+(a.monto&&(a.tipo==='pago'||agEsRetiro(a.tipo))&&!/\$/.test(a.descripcion||'')?' · <strong>'+fmtN(a.monto)+'</strong>':'')+(a.tipo==='vendedor'?' · <i class="ti ti-user"></i> '+escH(agVendDe(a)):'')+'</div>'
       +(a.direccion?'<div class="ag-dir"><i class="ti ti-map-pin"></i> <a href="'+agMapa(a.direccion)+'" target="_blank" rel="noopener">'+escH(a.direccion)+'</a></div>':'')
       +'<div class="ag-meta">'+escH(agNom(a.responsable))+(a.creado_por&&a.creado_por!==a.responsable?' · la agendó '+escH(a.creado_por_nombre||agNom(a.creado_por)):'')
         +(g?' · <a href="#" data-aggest="'+a.id+'">ver gestión del '+escH(String(g.fecha||'').split(' ')[0])+'</a>':'')
@@ -6322,7 +6348,7 @@ function agHtmlSemana(L){
   if(atr.length)x+='<div class="ag-aviso" style="margin-bottom:8px"><i class="ti ti-alert-triangle"></i> Hay '+atr.length+' atrasada'+(atr.length!==1?'s':'')+' de semanas anteriores (se ven en la vista Lista).</div>';
   x+='<div class="ag-sem">'+dias.map(di=>{const xs=L.filter(a=>a.fecha===di).sort((p,q)=>(p.hora||'99').localeCompare(q.hora||'99'));
     return'<div class="ag-dia'+(di===h?' hoy':'')+'"><div class="ag-dia-tit">'+agDiaSem(di)+' '+agFmt(di)+'</div>'+(xs.length?xs.map(a=>{const t=AG_TIPOS[a.tipo]||AG_TIPOS.otro;const e=agEstado(a);
-      return'<div class="ag-card" style="border-left-color:'+AG_EST[e].c+'" data-agcard="'+a.id+'" title="'+escH((a.descripcion||'')+' · '+agNom(a.responsable))+'"><i class="ti '+t.i+'"></i> '+(a.hora?escH(a.hora)+' ':'')+'<strong>'+escH(a.cliente)+'</strong><div>'+escH(t.l)+' · '+escH(agNom(a.responsable).split(' ')[0])+'</div>'+(a.direccion?'<div>'+escH(a.direccion.split(',').slice(0,2).join(','))+'</div>':'')+'</div>';}).join(''):'<div class="ag-vacio">—</div>')+'</div>';}).join('')+'</div>';
+      return'<div class="ag-card" style="border-left-color:'+AG_EST[e].c+'" data-agcard="'+a.id+'" title="'+escH((a.descripcion||'')+' · '+agNom(a.responsable))+'"><i class="ti '+t.i+'"></i> '+(a.hora?escH(a.hora)+' ':'')+'<strong>'+escH(a.cliente)+'</strong><div>'+escH(t.l)+(a.tipo==='vendedor'?' ('+escH(agVendDe(a))+')':'')+' · '+escH(agNom(a.responsable).split(' ')[0])+'</div>'+(a.direccion?'<div>'+escH(a.direccion.split(',').slice(0,2).join(','))+'</div>':'')+'</div>';}).join(''):'<div class="ag-vacio">—</div>')+'</div>';}).join('')+'</div>';
   const sel=agCardSel?agenda.find(a=>a.id===agCardSel):null;
   if(sel&&L.includes(sel))x+='<div style="margin-top:10px">'+agHtmlFila(sel)+'</div>';
   return x;
@@ -6347,7 +6373,7 @@ function agCamposProxima(pre){
   return'<div class="ag-prox" style="margin-top:12px"><div class="ag-prox-tit"><i class="ti ti-calendar-plus"></i> Próxima acción <span>(opcional)</span></div><div class="ag-grid">'
     +'<label>Qué hay que hacer<select id="agm-ptipo"></select></label><label>Día<input type="date" id="agm-pfecha"></label><label>Hora<input type="time" id="agm-phora"></label><label>Responsable<select id="agm-presp"></select></label></div>'
     +'<div class="ag-rapidos" data-agfor="agm-pfecha"><button type="button" class="lnk" data-agmas="1">Mañana</button><button type="button" class="lnk" data-agmas="3">En 3 días</button><button type="button" class="lnk" data-agmas="7">En una semana</button></div>'
-    +'<div id="agm-pdirbox" class="ag-dirbox" hidden><div class="ag-grid" style="grid-template-columns:minmax(0,3fr) minmax(0,1fr)"><label>Dirección <span class="ag-dir-origen" id="agm-pdir-origen"></span><input type="text" id="agm-pdir" placeholder="Calle, número, localidad"></label><label id="agm-pmonto-lbl">Monto a retirar<input type="number" id="agm-pmonto" min="0"></label></div></div>'
+    +'<div id="agm-pdirbox" class="ag-dirbox" hidden><div class="ag-grid" style="grid-template-columns:minmax(0,3fr) minmax(0,1fr)"><label>Dirección <span class="ag-dir-origen" id="agm-pdir-origen"></span><input type="text" id="agm-pdir" placeholder="Calle, número, localidad"></label><label id="agm-pmonto-lbl">Monto a retirar<input type="number" id="agm-pmonto" min="0"></label></div><div class="ag-grid ag-vend-row" style="display:none;grid-template-columns:minmax(0,1fr)"><label>Vendedor que retira <span class="ag-dir-origen">(sale de la cartera; queda en su recorrido)</span><select class="ag-vend" id="agm-p-vend" data-resp="agm-presp"></select></label></div></div>'
     +'<label>Detalle</label><input type="text" id="agm-pdesc" placeholder="Ej: volver a llamar para confirmar la transferencia"></div>';
 }
 function agAbrir(modo,id,pre){
@@ -6357,7 +6383,7 @@ function agAbrir(modo,id,pre){
   const t=AG_TIPOS[a.tipo]||AG_TIPOS.otro;
   document.getElementById('agm-tit').innerHTML={res:'<i class="ti ti-check"></i> Resolver acción',rep:'<i class="ti ti-calendar-repeat"></i> Reprogramar',can:'<i class="ti ti-x"></i> Cancelar acción',reab:'<i class="ti ti-rotate"></i> Reabrir acción'}[modo];
   document.getElementById('agm-sub').innerHTML='<strong style="color:var(--yellow)">'+escH(a.cliente)+'</strong> · '+t.l+' · '+agFmt(a.fecha)+(a.hora?' '+escH(a.hora):'')+' · '+escH(agNom(a.responsable))+(a.descripcion?'<br>'+escH(a.descripcion):'');
-  let b='';const esPago=agEsCobro(a);const esMoto=a.tipo==='moto';
+  let b='';const esPago=agEsCobro(a);const esMoto=agEsRetiro(a.tipo);
   if(modo==='res'){
     if(esPago){const p=agPista(a);
       b+='<label>'+(esMoto?'¿Se retiró el pago?':'¿Pagó lo comprometido?')+'</label><div class="ag-radios"><label><input type="radio" name="agm-cump" value="si"'+(p&&p.ok?' checked':'')+'> '+(esMoto?'Sí, se retiró':'Sí, pagó')+'</label><label><input type="radio" name="agm-cump" value="no"'+(p&&!p.ok?' checked':'')+'> '+(esMoto?'No se retiró / retiró una parte':'No pagó / pagó una parte')+'</label></div>'
@@ -6404,21 +6430,22 @@ async function agConfirmar(){
       if(!pf&&(pd||ph))return err('Poné el día de la próxima acción (o borrá el detalle).');
       const pdir=(document.getElementById('agm-pdir').value||'').trim();
       if(pf&&document.getElementById('agm-ptipo').value==='moto'&&!pdir)return err('Para el retiro con moto poné la dirección.');
+      if(pf&&document.getElementById('agm-ptipo').value==='vendedor'&&!document.getElementById('agm-p-vend').value)return err('Elegí el vendedor que retira.');
       btn.disabled=true;
       const cumplido=esPago?r.value==='si':null;
       const ptipo=document.getElementById('agm-ptipo').value;
       let hts=a.gestion_ts;
       if(document.getElementById('agm-gest').checked){
         const g=agGestionDe(a.cliente);const cam={};
-        if(a.tipo!=='moto'&&esPago&&g.fecha_comp===a.fecha){cam.fecha_comp=null;cam.monto_comp=null;}
+        if(!agEsRetiro(a.tipo)&&esPago&&g.fecha_comp===a.fecha){cam.fecha_comp=null;cam.monto_comp=null;}
         if(pf&&ptipo==='pago'){cam.fecha_comp=pf;cam.monto_comp=a.monto||g.monto_comp||null;}
-        const nota='📅 '+(AG_TIPOS[a.tipo]||AG_TIPOS.otro).l+' ('+agFmt(a.fecha)+')'+(esPago?(a.tipo==='moto'?(cumplido?' — Se retiró':' — No se retiró'):(cumplido?' — Cumplió':' — No cumplió')):'')+': '+tx+(pf?' · Próxima: '+(AG_TIPOS[ptipo]||AG_TIPOS.otro).l+' '+agFmt(pf):'');
+        const nota='📅 '+(AG_TIPOS[a.tipo]||AG_TIPOS.otro).l+' ('+agFmt(a.fecha)+')'+(esPago?(agEsRetiro(a.tipo)?(cumplido?' — Se retiró':' — No se retiró'):(cumplido?' — Cumplió':' — No cumplió')):'')+': '+tx+(pf?' · Próxima: '+(AG_TIPOS[ptipo]||AG_TIPOS.otro).l+' '+agFmt(pf):'');
         const ts=await agGuardarGestion(a.cliente,nota,cam);if(!ts)throw new Error('no se pudo guardar la gestión');hts=ts;enviarMenciones(a.cliente,tx);
       }
       await agPatch(a.id,{estado:'resuelta',resultado:tx.slice(0,500),cumplido,resuelta_ts:ahora,resuelta_por:yo,log:agLog(a,'resuelta',tx.slice(0,200))});
       if(pf){const resp=document.getElementById('agm-presp').value;
-        const n=await agInsert([agNueva({cliente:a.cliente,tipo:ptipo,origen:ptipo==='pago'?'compromiso':'manual',monto:ptipo==='pago'?(a.monto||null):null,fecha:pf,hora:ph||null,descripcion:pd||(ptipo==='pago'?'Verificar pago comprometido':''),responsable:resp,responsable_nombre:agNom(resp),gestion_ts:hts,
-          ...(agConDir(ptipo)&&pdir?{direccion:pdir}:{}),...(ptipo==='moto'&&parseFloat(document.getElementById('agm-pmonto').value)?{monto:parseFloat(document.getElementById('agm-pmonto').value)}:{})})]);
+        const n=await agInsertar([agVendSet(agNueva({cliente:a.cliente,tipo:ptipo,origen:ptipo==='pago'?'compromiso':'manual',monto:ptipo==='pago'?(a.monto||null):null,fecha:pf,hora:ph||null,descripcion:pd||(ptipo==='pago'?'Verificar pago comprometido':''),responsable:resp,responsable_nombre:agNom(resp),gestion_ts:hts,
+          ...(agConDir(ptipo)&&pdir?{direccion:pdir}:{}),...(agEsRetiro(ptipo)&&parseFloat(document.getElementById('agm-pmonto').value)?{monto:parseFloat(document.getElementById('agm-pmonto').value)}:{})}),ptipo,document.getElementById('agm-p-vend'))]);
         (n||[]).forEach(x=>{agenda.push(x);agAvisar(x);});}
       showToast('Acción resuelta ✓'+(pf?' · próxima el '+agFmt(pf):''));
     }else if(agModal.modo==='rep'){
@@ -6428,7 +6455,7 @@ async function agConfirmar(){
       btn.disabled=true;const resp=document.getElementById('agm-resp').value;const hora=document.getElementById('agm-hora').value||null;
       const det='De '+agFmt(a.fecha)+' a '+agFmt(f)+(resp!==String(a.responsable||'').toLowerCase()?' · ahora la tiene '+agNom(resp):'')+': '+tx;
       if(document.getElementById('agm-gest').checked){
-        const g=agGestionDe(a.cliente);const cam={};if(a.tipo!=='moto'&&esPago&&g.fecha_comp===a.fecha)cam.fecha_comp=f;
+        const g=agGestionDe(a.cliente);const cam={};if(!agEsRetiro(a.tipo)&&esPago&&g.fecha_comp===a.fecha)cam.fecha_comp=f;
         if(!await agGuardarGestion(a.cliente,'📅 Reprogramada: '+(AG_TIPOS[a.tipo]||AG_TIPOS.otro).l+' '+det,cam))throw new Error('no se pudo guardar la gestión');
       }
       const dEl=document.getElementById('agm-dir');const cDir=dEl?{direccion:dEl.value.trim()||null}:{};
@@ -6460,7 +6487,7 @@ function agAbrirNueva(pre){
   document.getElementById('agm-body').innerHTML='<label>Cliente o lugar</label><input type="text" id="agn-cli" list="agn-clis" autocomplete="off" placeholder="Empezá a escribir el nombre" value="'+escH(pre.cliente||'')+'"><datalist id="agn-clis">'+nombres.map(n=>'<option value="'+escH(n)+'">').join('')+'</datalist><div id="agn-cli-info" class="ag-pista"></div>'
     +'<div class="ag-grid"><label>Qué hay que hacer<select id="agn-tipo"></select></label><label>Día<input type="date" id="agn-fecha"></label><label>Hora<input type="time" id="agn-hora"></label><label>Responsable<select id="agn-resp"></select></label></div>'
     +'<div class="ag-rapidos" data-agfor="agn-fecha"><button type="button" class="lnk" data-agmas="0">Hoy</button><button type="button" class="lnk" data-agmas="1">Mañana</button><button type="button" class="lnk" data-agmas="3">En 3 días</button><button type="button" class="lnk" data-agmas="7">En una semana</button></div>'
-    +'<div id="agn-dirbox" class="ag-dirbox" hidden><div class="ag-grid" style="grid-template-columns:minmax(0,3fr) minmax(0,1fr)"><label>Dirección <span class="ag-dir-origen" id="agn-dir-origen"></span><input type="text" id="agn-dir" placeholder="Calle, número, localidad"></label><label id="agn-monto-lbl">Monto a retirar<input type="number" id="agn-monto" min="0" placeholder="Opcional"></label></div></div>'
+    +'<div id="agn-dirbox" class="ag-dirbox" hidden><div class="ag-grid" style="grid-template-columns:minmax(0,3fr) minmax(0,1fr)"><label>Dirección <span class="ag-dir-origen" id="agn-dir-origen"></span><input type="text" id="agn-dir" placeholder="Calle, número, localidad"></label><label id="agn-monto-lbl">Monto a retirar<input type="number" id="agn-monto" min="0" placeholder="Opcional"></label></div><div class="ag-grid ag-vend-row" style="display:none;grid-template-columns:minmax(0,1fr)"><label>Vendedor que retira <span class="ag-dir-origen">(sale de la cartera; queda en su recorrido)</span><select class="ag-vend" id="agn-vend" data-resp="agn-resp"></select></label></div></div>'
     +'<label>Detalle</label><input type="text" id="agn-desc" placeholder="Ej: retirar cheques en administración, preguntar por Marta">'
     +'<label class="ag-check" id="agn-gest-lbl"><input type="checkbox" id="agn-gest" checked> Anotarlo también como gestión en la ficha del cliente</label><div id="agm-err" class="ag-err"></div>';
   agOpcionesTipo(document.getElementById('agn-tipo'),pre.tipo||'llamar');agOpcionesResp(document.getElementById('agn-resp'));
@@ -6470,7 +6497,7 @@ function agAbrirNueva(pre){
     document.getElementById('agn-cli-info').innerHTML=!n?'':i>=0?'<span style="color:var(--green)"><i class="ti ti-link"></i> Cliente de cartera · deuda '+fmtN(clientes[i].deuda)+'</span>':enG?'<span style="color:var(--text3)"><i class="ti ti-link"></i> Cliente sin deuda en cartera (tiene ficha)</span>':'<span style="color:var(--text3)"><i class="ti ti-unlink"></i> No está en cartera: queda como acción suelta</span>';
     document.getElementById('agn-gest-lbl').style.display=(i>=0||enG)?'':'none';};
   document.getElementById('agn-tipo').addEventListener('change',tg);
-  document.getElementById('agn-cli').addEventListener('change',()=>{document.getElementById('agn-dir').value='';tg();info();});
+  document.getElementById('agn-cli').addEventListener('change',()=>{document.getElementById('agn-dir').value='';document.getElementById('agn-vend').dataset.cli='\u0000';tg();info();});
   document.getElementById('agn-cli').addEventListener('input',info);
   tg();info();
   document.getElementById('agm-ok').textContent='Agendar';document.getElementById('agm-ok').style.display='';document.getElementById('agm-extra').innerHTML='';
@@ -6484,41 +6511,48 @@ async function agGuardarNueva(){
   const f=v('agn-fecha');if(!f)return err('Elegí el día.');
   const tipo=v('agn-tipo');const dir=agConDir(tipo)?v('agn-dir'):'';
   if(tipo==='moto'&&!dir)return err('Para el retiro con moto poné la dirección.');
+  if(tipo==='vendedor'&&!v('agn-vend'))return err('Elegí el vendedor que retira.');
   const btn=document.getElementById('agm-ok');btn.disabled=true;
   try{
-    const resp=v('agn-resp');const desc=v('agn-desc');const mm=tipo==='moto'?parseFloat(v('agn-monto'))||null:null;
+    const resp=v('agn-resp');const desc=v('agn-desc');const mm=agEsRetiro(tipo)?parseFloat(v('agn-monto'))||null:null;
     const tieneFicha=agIdxCli(n)>=0||!!gestionesPorNombre[n];let hts=null;
-    const a0=agNueva({cliente:n,tipo,fecha:f,hora:v('agn-hora')||null,descripcion:desc,responsable:resp,responsable_nombre:agNom(resp),...(dir?{direccion:dir}:{}),...(mm?{monto:mm}:{})});
+    const a0=agVendSet(agNueva({cliente:n,tipo,fecha:f,hora:v('agn-hora')||null,descripcion:desc,responsable:resp,responsable_nombre:agNom(resp),...(dir?{direccion:dir}:{}),...(mm?{monto:mm}:{})}),tipo,document.getElementById('agn-vend'));
     if(tieneFicha&&document.getElementById('agn-gest').checked){
-      hts=await agGuardarGestion(n,'📅 Agendado: '+agEtiq(a0)+' · '+agNom(resp)+(dir?' · '+dir:'')+(mm?' · '+fmtN(mm):'')+(desc?' — '+desc:''));
+      hts=await agGuardarGestion(n,'📅 Agendado: '+agEtiq(a0)+(tipo==='vendedor'?' ('+a0.vendedor+')':'')+' · '+agNom(resp)+(dir?' · '+dir:'')+(mm?' · '+fmtN(mm):'')+(desc?' — '+desc:''));
       if(!hts)throw new Error('no se pudo guardar la gestión');}
     a0.gestion_ts=hts;
-    const r=await agInsert([a0]);(r||[]).forEach(x=>{agenda.push(x);agAvisar(x);});
+    const r=await agInsertar([a0]);(r||[]).forEach(x=>{agenda.push(x);agAvisar(x);});
     document.getElementById('modal-ag').classList.remove('open');agModal=null;
     showToast('Acción agendada para el '+agFmt(f)+' ✓');agPintarContador();if(agVistaActiva)renderAgenda();render();
   }catch(e){err('No se pudo guardar: '+String(e.message||e).slice(0,200));}
   finally{btn.disabled=false;}
 }
 // ---------- Recorrido de moto (para mandarle al que retira) ----------
-function agRecoItems(f){return agenda.filter(a=>a.tipo==='moto'&&a.estado==='pendiente'&&a.fecha===f&&agVisible(a)).sort((x,y)=>(x.hora||'99').localeCompare(y.hora||'99')||String(x.direccion||'').localeCompare(String(y.direccion||'')));}
+let agRecoQuien='moto';
+function agRecoItems(f,q){q=q||agRecoQuien;return agenda.filter(a=>a.estado==='pendiente'&&a.fecha===f&&agVisible(a)&&(q==='moto'?a.tipo==='moto':a.tipo==='vendedor'&&normCli(agVendDe(a))===normCli(q))).sort((x,y)=>(x.hora||'99').localeCompare(y.hora||'99')||String(x.direccion||'').localeCompare(String(y.direccion||'')));}
 function agRecoTexto(f){
   const L=agRecoItems(f);
-  return '🛵 Retiros '+agDiaSem(f)+' '+agFmt(f)+' ('+L.length+')\n\n'+L.map((a,i)=>{const i2=agIdxCli(a.cliente);const tel=i2>=0?getTel(i2):'';
+  return (agRecoQuien==='moto'?'🛵 Retiros ':'💼 Retiros de '+agRecoQuien+' · ')+agDiaSem(f)+' '+agFmt(f)+' ('+L.length+')\n\n'+L.map((a,i)=>{const i2=agIdxCli(a.cliente);const tel=i2>=0?getTel(i2):'';
     return (i+1)+'. '+a.cliente+(a.hora?' · '+a.hora+' hs':'')+'\n   📍 '+(a.direccion||'(sin dirección)')+'\n   '+agMapa(a.direccion||a.cliente)+(a.monto?'\n   💰 '+fmtN(a.monto):'')+(tel?'\n   📞 '+tel:'')+(a.descripcion?'\n   📝 '+a.descripcion:'');}).join('\n\n');
 }
 function agAbrirRecorrido(f){
   agModal={modo:'reco'};f=f||agHoy();
-  document.getElementById('agm-tit').innerHTML='<i class="ti ti-motorbike"></i> Recorrido de moto';
-  document.getElementById('agm-sub').textContent='Retiros con moto pendientes del día, ordenados por hora. Copialo y pegalo en WhatsApp para el que sale a retirar.';
-  const pinta=()=>{const d=document.getElementById('agr-fecha').value;const L=agRecoItems(d);
-    document.getElementById('agr-lista').innerHTML=L.length?L.map((a,i)=>'<div class="ag-mini" style="border-left-color:var(--orange)"><div><strong>'+(i+1)+'. '+escH(a.cliente)+'</strong>'+(a.hora?' · '+escH(a.hora):'')+(a.monto?' · '+fmtN(a.monto):'')+'<div class="ag-dir"><i class="ti ti-map-pin"></i> '+(a.direccion?'<a href="'+agMapa(a.direccion)+'" target="_blank" rel="noopener">'+escH(a.direccion)+'</a>':'<span style="color:var(--red)">sin dirección</span>')+'</div>'+(a.descripcion?'<div style="color:var(--text2)">'+escH(a.descripcion)+'</div>':'')+'</div></div>').join(''):'<div class="notif-empty">No hay retiros con moto pendientes ese día.</div>';
+  document.getElementById('agm-tit').innerHTML='<i class="ti ti-route"></i> Recorrido de retiros';
+  document.getElementById('agm-sub').textContent='Retiros pendientes del día (con moto o de un vendedor), ordenados por hora. Copialo y pegalo en WhatsApp para el que sale a retirar.';
+  const opcQuien=()=>{const d=document.getElementById('agr-fecha').value;const vs=[...new Set(agenda.filter(a=>a.tipo==='vendedor'&&a.estado==='pendiente'&&a.fecha===d&&agVisible(a)).map(agVendDe))].sort((a,b)=>a.localeCompare(b,'es'));
+    const s=document.getElementById('agr-quien');const nm=agRecoItems(d,'moto').length;
+    s.innerHTML='<option value="moto">🛵 Moto ('+nm+')</option>'+vs.map(v=>'<option value="'+escH(v)+'">💼 '+escH(v)+' ('+agRecoItems(d,v).length+')</option>').join('');
+    if(![...s.options].some(o=>o.value===agRecoQuien))agRecoQuien='moto';s.value=agRecoQuien;};
+  const pinta=()=>{const d=document.getElementById('agr-fecha').value;opcQuien();const L=agRecoItems(d);
+    document.getElementById('agr-lista').innerHTML=L.length?L.map((a,i)=>'<div class="ag-mini" style="border-left-color:var(--orange)"><div><strong>'+(i+1)+'. '+escH(a.cliente)+'</strong>'+(a.hora?' · '+escH(a.hora):'')+(a.monto?' · '+fmtN(a.monto):'')+'<div class="ag-dir"><i class="ti ti-map-pin"></i> '+(a.direccion?'<a href="'+agMapa(a.direccion)+'" target="_blank" rel="noopener">'+escH(a.direccion)+'</a>':'<span style="color:var(--red)">sin dirección</span>')+'</div>'+(a.descripcion?'<div style="color:var(--text2)">'+escH(a.descripcion)+'</div>':'')+'</div></div>').join(''):'<div class="notif-empty">'+(agRecoQuien==='moto'?'No hay retiros con moto pendientes ese día.':'No hay retiros de '+escH(agRecoQuien)+' pendientes ese día.')+'</div>';
     document.getElementById('agm-ok').style.display=L.length?'':'none';};
-  document.getElementById('agm-body').innerHTML='<label>Día</label><input type="date" id="agr-fecha" value="'+f+'" style="width:180px"><div id="agr-lista" style="margin-top:10px"></div><div id="agm-err" class="ag-err"></div>';
+  document.getElementById('agm-body').innerHTML='<div class="ag-grid" style="grid-template-columns:180px minmax(0,1fr)"><label>Día<input type="date" id="agr-fecha" value="'+f+'"></label><label>Quién retira<select id="agr-quien"></select></label></div><div id="agr-lista" style="margin-top:10px"></div><div id="agm-err" class="ag-err"></div>';
   document.getElementById('agr-fecha').addEventListener('change',pinta);
+  document.getElementById('agr-quien').addEventListener('change',e=>{agRecoQuien=e.target.value;pinta();});
   document.getElementById('agm-ok').textContent='Copiar para WhatsApp';
   document.getElementById('agm-extra').innerHTML='<button class="btn" id="agr-imp"><i class="ti ti-printer"></i> Imprimir</button>';
   document.getElementById('agr-imp').addEventListener('click',()=>{const d=document.getElementById('agr-fecha').value;const w=window.open('','_blank');
-    if(w){w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recorrido moto '+agFmt(d)+'</title><style>body{font-family:Arial,sans-serif;font-size:14px;padding:20px}pre{white-space:pre-wrap;font-family:inherit}</style></head><body><pre>'+escH(agRecoTexto(d))+'</pre></body></html>');w.document.close();setTimeout(()=>w.print(),400);}});
+    if(w){w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Recorrido '+escH(agRecoQuien==='moto'?'moto':agRecoQuien)+' '+agFmt(d)+'</title><style>body{font-family:Arial,sans-serif;font-size:14px;padding:20px}pre{white-space:pre-wrap;font-family:inherit}</style></head><body><pre>'+escH(agRecoTexto(d))+'</pre></body></html>');w.document.close();setTimeout(()=>w.print(),400);}});
   pinta();document.getElementById('modal-ag').classList.add('open');
 }
 async function agCopiarRecorrido(){
