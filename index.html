@@ -67,6 +67,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .summary-bar strong{color:var(--yellow)}
 .table-wrap{background:var(--bg2);border-radius:var(--radius-lg);border:1px solid var(--border);overflow:hidden}
 .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+/* Cumplimiento: títulos de columna fijos al bajar por los clientes */
+#view-cumplimiento .table-scroll,#prc-body .table-scroll{max-height:72vh;overflow:auto}
+#view-cumplimiento thead th,#prc-body thead th{position:sticky;top:0;z-index:3;background:var(--bg3);box-shadow:inset 0 -1px 0 var(--border)}
+th .calc-ic{font-size:12px;color:var(--text3);cursor:help;margin-left:2px}
+th[data-calc]:hover .calc-ic{color:var(--yellow)}
 table{width:100%;border-collapse:collapse;font-size:13px;min-width:750px}
 thead tr{background:var(--bg3);border-bottom:1px solid var(--border)}
 th{padding:10px 12px;text-align:left;font-weight:600;color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap}
@@ -583,42 +588,11 @@ th.th-on{color:var(--yellow)!important}
     </div>
   </div>
 
-  <div class="metrics">
-    <div class="metric m-all" data-filter="" onclick="setCuMetricFilter('')"><div class="metric-label">Cobrado (recibos pagados)</div><div class="metric-value" id="cu-total-pagado">$0</div><div class="metric-sub" id="cu-n-clientes">0 clientes</div></div>
-    <div class="metric m-med" data-filter="proceso" onclick="setCuMetricFilter('proceso')"><div class="metric-label">En proceso de cobro</div><div class="metric-value" id="cu-total-proceso">$0</div><div class="metric-sub">Clic para ver quién tiene</div></div>
-    <div class="metric m-temp" data-filter="cheques" onclick="setCuMetricFilter('cheques')"><div class="metric-label">En cheques diferidos</div><div class="metric-value" id="cu-cheques-monto">$0</div><div class="metric-sub" id="cu-cheques-n">0 cheques</div></div>
-    <div class="metric m-crit" data-filter="plazo" onclick="setCuMetricFilter('plazo')" title="Días entre la fecha del recibo y la del cheque más lejano. Promedio de los promedios por cliente."><div class="metric-label">Plazo prom. de cheque</div><div class="metric-value" id="cu-plazo-prom">0 días</div><div class="metric-sub">recibo → cheque más lejano · clic: &gt; 45d</div></div>
-  </div>
-
-  <div class="cump-panel" id="pr-panel">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
-      <h3 style="margin:0">Plazo real de pago <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--text3)">· de la factura al dinero disponible (cheques a su fecha de cobro)</span> <span class="help-link" data-ayuda="a-real" style="text-transform:none;letter-spacing:0;font-weight:400;margin-left:6px">¿cómo funciona?</span></h3>
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <select id="pr-ventana" style="width:160px"><option value="3">Últimos 3 meses</option><option value="6" selected>Últimos 6 meses</option><option value="12">Últimos 12 meses</option></select>
-        <button class="btn" id="pr-btn-upload" title="Subí juntos los 2 Excel de Odoo de una empresa: facturas con recibos + pagos con cheques"><i class="ti ti-file-upload"></i> Cargar facturas + pagos</button>
-        <input type="file" id="pr-file-input" accept=".xlsx,.xls" multiple style="display:none">
-      </div>
-    </div>
-    <div id="pr-fuente" style="font-size:11.5px;color:var(--text3);margin:6px 0 2px"></div>
-    <div style="font-size:11.5px;color:var(--text3)">Usa los mismos filtros de empresa y búsqueda de abajo.</div>
-    <div id="pr-wrap"></div>
-  </div>
-  <div class="cump-panel">
-    <h3>Mezcla de medios de pago (sobre el monto cobrado)</h3>
-    <div id="cu-metodos"></div>
-  </div>
-
-  <div class="cump-panel">
-    <h3>Conciliación de transferencias con extractos bancarios</h3>
-    <div id="conc-intro" style="font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:12px">
-      Cruza cada "Transferencia" registrada acá contra los créditos detectados en el Panel de Intereses (extractos bancarios). Usá el filtro de mes de arriba para elegir qué mes conciliar.
-    </div>
-    <button class="btn btn-yellow" id="btn-conciliar"><i class="ti ti-refresh-dot"></i> Conciliar transferencias<span id="conc-mes-lbl"></span></button>
-    <div id="conc-resultado" style="margin-top:14px"></div>
-  </div>
-
-  <div class="toolbar">
+  <div style="font-size:11.5px;color:var(--text3);margin:-4px 0 6px">Los filtros de vendedor, cliente, empresa y búsqueda se aplican a toda la solapa (tarjetas, plazo real, medios de pago y tabla de clientes).</div>
+  <div class="toolbar" id="cu-toolbar">
     <div class="search-wrap"><i class="ti ti-search"></i><input type="text" id="cu-search" placeholder="Buscar cliente…"></div>
+    <select id="cu-vend-filter" style="width:170px" title="Clientes de ese vendedor (cartera actual o, si ya no está, la de la foto del mes)"><option value="">Todos los vendedores</option></select>
+    <select id="cu-cli-filter" style="width:220px" title="Un solo cliente"><option value="">Todos los clientes</option></select>
     <select id="cu-mes-filter" style="width:150px"><option value="">Todos los meses</option></select>
     <select id="cu-empresa-filter">
       <option value="">Ambas empresas</option>
@@ -643,6 +617,40 @@ th.th-on{color:var(--yellow)!important}
     <button class="btn" id="cu-btn-admin" title="Ver cargas, deshacer o limpiar recibos"><i class="ti ti-database-cog"></i> Administrar recibos</button>
     <input type="file" id="cu-file-input" accept=".xlsx,.xls" style="display:none">
   </div>
+  <div class="metrics">
+    <div class="metric m-all" data-filter="" onclick="setCuMetricFilter('')"><div class="metric-label">Cobrado (recibos pagados)</div><div class="metric-value" id="cu-total-pagado">$0</div><div class="metric-sub" id="cu-n-clientes">0 clientes</div></div>
+    <div class="metric m-med" data-filter="proceso" onclick="setCuMetricFilter('proceso')"><div class="metric-label">En proceso de cobro</div><div class="metric-value" id="cu-total-proceso">$0</div><div class="metric-sub">Clic para ver quién tiene</div></div>
+    <div class="metric m-temp" data-filter="cheques" onclick="setCuMetricFilter('cheques')"><div class="metric-label">En cheques diferidos</div><div class="metric-value" id="cu-cheques-monto">$0</div><div class="metric-sub" id="cu-cheques-n">0 cheques</div></div>
+    <div class="metric m-crit" data-filter="plazo" onclick="setCuMetricFilter('plazo')" title="Días entre la fecha del recibo y la del cheque más lejano. Promedio de los promedios por cliente."><div class="metric-label">Plazo prom. de cheque</div><div class="metric-value" id="cu-plazo-prom">0 días</div><div class="metric-sub">recibo → cheque más lejano · clic: &gt; 45d</div></div>
+  </div>
+
+  <div class="cump-panel" id="pr-panel">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+      <h3 style="margin:0">Plazo real de pago <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--text3)">· de la factura al dinero disponible (cheques a su fecha de cobro)</span> <span class="help-link" data-ayuda="a-real" style="text-transform:none;letter-spacing:0;font-weight:400;margin-left:6px">¿cómo funciona?</span></h3>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <select id="pr-ventana" style="width:160px"><option value="3">Últimos 3 meses</option><option value="6" selected>Últimos 6 meses</option><option value="12">Últimos 12 meses</option></select>
+        <button class="btn" id="pr-btn-upload" title="Subí juntos los 2 Excel de Odoo de una empresa: facturas con recibos + pagos con cheques"><i class="ti ti-file-upload"></i> Cargar facturas + pagos</button>
+        <input type="file" id="pr-file-input" accept=".xlsx,.xls" multiple style="display:none">
+      </div>
+    </div>
+    <div id="pr-fuente" style="font-size:11.5px;color:var(--text3);margin:6px 0 2px"></div>
+    <div style="font-size:11.5px;color:var(--text3)">Usa los filtros de arriba (vendedor, cliente, empresa y búsqueda).</div>
+    <div id="pr-wrap"></div>
+  </div>
+  <div class="cump-panel">
+    <h3>Mezcla de medios de pago (sobre el monto cobrado)</h3>
+    <div id="cu-metodos"></div>
+  </div>
+
+  <div class="cump-panel">
+    <h3>Conciliación de transferencias con extractos bancarios</h3>
+    <div id="conc-intro" style="font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:12px">
+      Cruza cada "Transferencia" registrada acá contra los créditos detectados en el Panel de Intereses (extractos bancarios). Usá el filtro de mes de arriba para elegir qué mes conciliar.
+    </div>
+    <button class="btn btn-yellow" id="btn-conciliar"><i class="ti ti-refresh-dot"></i> Conciliar transferencias<span id="conc-mes-lbl"></span></button>
+    <div id="conc-resultado" style="margin-top:14px"></div>
+  </div>
+
   <div class="summary-bar" id="cu-summary-bar"></div>
 
   <div class="table-wrap">
@@ -650,7 +658,7 @@ th.th-on{color:var(--yellow)!important}
     <table>
       <thead><tr>
         <th data-cusort="cliente">Cliente</th><th data-cusort="empresa">Empresa</th><th style="text-align:center" data-cusort="recibos" data-num>Recibos</th><th data-cusort="cobrado" data-num>Cobrado</th><th data-cusort="proceso" data-num>En proceso</th>
-        <th data-cusort="metodo">Método principal</th><th data-cusort="cheques" data-num>Cheques diferidos</th><th style="text-align:center" data-cusort="plazo" data-num title="Promedio de días entre la fecha del recibo y la fecha del cheque más lejano de cada recibo">Plazo cheque <i class="ti ti-info-circle"></i></th><th data-cusort="ultimo" data-num>Último pago</th>
+        <th data-cusort="metodo">Método principal</th><th data-cusort="cheques" data-num>Cheques diferidos</th><th style="text-align:center" data-cusort="plazo" data-num>Plazo cheque</th><th data-cusort="ultimo" data-num>Último pago</th>
       </tr></thead>
       <tbody id="cu-tbody"></tbody>
     </table>
@@ -816,6 +824,8 @@ th.th-on{color:var(--yellow)!important}
 <tr><td>Cheques diferidos</td><td>Cantidad y monto de cheques recibidos en los recibos del período.</td></tr>
 <tr><td>Último pago</td><td>Fecha del recibo más reciente.</td></tr>
 <tr><td>Filtro de mes</td><td>Toma los recibos cuya <strong>fecha de recibo</strong> cae en ese mes.</td></tr>
+<tr><td>Filtros de vendedor y cliente</td><td>Arriba de todo en la solapa. El vendedor de cada cliente es el de la cartera actual o, si el cliente ya no tiene deuda, el de la foto del mes. Se aplican a las tarjetas, al plazo real, a los medios de pago y a la tabla. La lista de clientes se achica al vendedor elegido.</td></tr>
+<tr><td>Títulos de columna</td><td>Quedan fijos al bajar por la tabla. Pasando el mouse por el título (o tocando ⓘ) se ve cómo se calcula ese dato, con un ejemplo.</td></tr>
 </table></div>
 
 <h3 id="a-recibos">Subir recibos y corregir cargas</h3>
@@ -981,7 +991,7 @@ th.th-on{color:var(--yellow)!important}
 <li><strong>Recorrido retiros:</strong> botón en la Agenda (antes “Recorrido moto”). En <em>Quién retira</em> elegís la moto o un vendedor y lista sus retiros pendientes del día elegido, ordenados por hora, con dirección (link a Google Maps), monto, teléfono y detalle. <em>Copiar para WhatsApp</em> deja el texto listo para pegar; también se puede imprimir.</li>
 <li><strong>Nueva acción desde la Agenda:</strong> botón <em>Nueva acción</em>. Si elegís un cliente de la lista queda vinculado a su ficha (y, si querés, se anota como gestión); si escribís otro nombre queda como acción suelta.</li>
 <li><strong>Dirección del contacto:</strong> sale del Excel de contactos de Odoo (en <em>Actualizar</em>): columna “Dirección” o se arma con Calle, Calle2, Ciudad y Provincia. Se ve en la ficha, pestaña Contacto.</li>
-<li><strong>Compromisos de pago:</strong> la <em>Fecha compromiso de pago</em> de la gestión crea sola una acción <em>Verificar pago</em> para ese día y con ese monto. Si después cambiás la fecha, la acción se mueve (cuenta como reprogramada); si la borrás, se cancela.</li>
+<li><strong>Compromisos de pago:</strong> la <em>Fecha compromiso de pago</em> de la gestión crea sola una acción <em>Verificar pago</em> para ese día y con ese monto. <strong>Si no se carga monto</strong>, se toma lo vencido a la fecha del compromiso (suma de las facturas con vencimiento hasta ese día); la ficha lo muestra debajo del campo antes de guardar. Si después cambiás la fecha, la acción se mueve (cuenta como reprogramada); si la borrás, se cancela.</li>
 <li><strong>Responsable:</strong> por defecto quien carga la gestión. Si se la asignás a otra persona, le llega una mención (campana y Seguimiento) que queda respondida cuando la resuelve.</li>
 <li><strong>Estados:</strong> <em>Pendiente</em> (fecha futura), <em>Hoy</em>, <em>Atrasada</em> (pasó la fecha y no se resolvió; muestra los días), <em>Resuelta</em> y <em>Cancelada</em>. Hoy y Atrasada se calculan solos con la fecha.</li>
 <li><strong>Resolver:</strong> se anota el resultado y, por defecto, queda también como gestión en la ficha (empieza con 📅). Ahí mismo se puede cargar la próxima acción. En los pagos se marca si cumplió o no; el panel sugiere la respuesta comparando la deuda del cliente de hoy con la que tenía cuando se agendó (si bajó, o si ya no está en Cartera, sugiere “Sí, pagó”). Al resolver un pago se borra la fecha de compromiso de la ficha.</li>
@@ -1080,6 +1090,7 @@ th.th-on{color:var(--yellow)!important}
       <input type="date" id="m-fecha">
       <label>Monto comprometido a pagar</label>
       <input type="number" id="m-monto-comp" placeholder="Ej: 50000" min="0">
+      <div id="m-monto-hint" style="font-size:11.5px;color:var(--text3);margin:-4px 0 8px"></div>
       <div class="ag-prox" id="m-ag-box">
         <div class="ag-prox-tit"><i class="ti ti-calendar-plus"></i> Próxima acción <span>(queda en la Agenda; la fecha de compromiso de pago se agenda sola)</span></div>
         <div class="ag-grid">
@@ -1992,7 +2003,7 @@ function openModal(idx){
   document.getElementById('m-vend').value=getVend(idx);
   document.getElementById('m-nota').value='';
   document.getElementById('m-fecha').value=g.fecha_comp||'';
-  document.getElementById('m-monto-comp').value=g.monto_comp||'';
+  document.getElementById('m-monto-comp').value=g.monto_comp||'';actualizarHintMonto();
   document.getElementById('m-info-grid').innerHTML=[['Dirección',c.direccion||'—'],['Ciudad',c.ciudad||'—'],['Zona',c.zona||'—'],['Categoría',c.categoria||'—'],['Empresa',c.empresa]].map(([l,v])=>'<div class="info-item"><span class="info-label">'+l+'</span><span class="info-value">'+v+'</span></div>').join('');
   document.getElementById('m-facturas').innerHTML=c.facturas.map(f=>{
     const et=f.emp?'<span class="inv-emp '+(f.emp==='SPL'?'ie-spl':'ie-spots')+'">'+f.emp+'</span>':'';
@@ -2025,11 +2036,31 @@ function openModal(idx){
 
 document.getElementById('mcancel').addEventListener('click',()=>document.getElementById('modal-bg').classList.remove('open'));
 document.getElementById('modal-bg').addEventListener('click',e=>{if(e.target===document.getElementById('modal-bg'))document.getElementById('modal-bg').classList.remove('open');});
+// Acuerdo de pago sin monto: se toma lo vencido a la fecha del compromiso
+// (suma de las facturas del cliente con vencimiento hasta ese día, incluidas las ya vencidas).
+function vencidoAlCompromiso(c,fecha){
+  if(!c)return 0;const f=fecha||hoyISO();
+  return Math.round((c.facturas||[]).reduce((s,x)=>s+(x.vto&&x.vto!=='-'&&x.vto<=f?(+x.monto||0):0),0)*100)/100;
+}
+function actualizarHintMonto(){
+  const el=document.getElementById('m-monto-hint');if(!el)return;
+  const c=currentIdx!==null?clientes[currentIdx]:null;const fe=document.getElementById('m-fecha').value;
+  const mo=document.getElementById('m-monto-comp');
+  if(!c||!fe){el.innerHTML='';mo.placeholder='Ej: 50000';return;}
+  const v=vencidoAlCompromiso(c,fe);
+  mo.placeholder=v>0?'Vacío = '+fmtN(v):'Ej: 50000';
+  el.innerHTML=v>0?'Si no ponés monto se toma <strong>'+fmtN(v)+'</strong>: lo vencido al '+fmtFecha(fe)+' (facturas con vencimiento hasta ese día).':'Al '+fmtFecha(fe)+' no hay facturas vencidas: cargá el monto acordado.';
+}
+document.getElementById('m-fecha').addEventListener('change',actualizarHintMonto);
+document.getElementById('m-fecha').addEventListener('input',actualizarHintMonto);
 document.getElementById('msave').addEventListener('click',()=>{
   if(currentIdx===null)return;
   if(!agValidarFicha())return;
   const prev=gestiones[currentIdx]||{};const prevComp={fecha_comp:prev.fecha_comp||'',monto_comp:prev.monto_comp||null};
   const nota=document.getElementById('m-nota').value.trim();
+  let montoAuto=null;
+  {const fe=document.getElementById('m-fecha').value,mo=document.getElementById('m-monto-comp');
+   if(fe&&!mo.value){const v=vencidoAlCompromiso(clientes[currentIdx],fe);if(v>0){mo.value=v;montoAuto=v;}}}
   const hist=prev.historial||[];
   if(nota){const d=new Date();hist.push({fecha:d.toLocaleDateString('es-AR')+' '+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),ts:d.toISOString(),nota,por:currentUser?currentUser.nombre:''});if(!prev.nota)gestionesCount++;}
   gestiones[currentIdx]={email:document.getElementById('m-email').value.trim(),telefono:document.getElementById('m-tel').value.replace(/\D/g,''),vendedor:document.getElementById('m-vend').value.trim(),nota:nota||prev.nota||'',fecha_comp:document.getElementById('m-fecha').value,
@@ -2043,7 +2074,7 @@ document.getElementById('msave').addEventListener('click',()=>{
   }
   agDesdeFicha(clientes[currentIdx],nota?hist[hist.length-1].ts:null,prevComp,gestiones[currentIdx],nota);
   document.getElementById('modal-bg').classList.remove('open');
-  fillVendedorFilter();render();showToast('Gestión guardada ✓');
+  fillVendedorFilter();render();showToast(montoAuto?'Gestión guardada ✓ · monto del acuerdo: '+fmtN(montoAuto)+' (vencido al '+fmtFecha(gestiones[currentIdx].fecha_comp)+')':'Gestión guardada ✓');
   saveToSheets();
 });
 
@@ -2804,11 +2835,33 @@ function vendedorClienteCumpl(nombre){
   return vendedorClienteCumpl._map[k]||'Sin asignar';
 }
 function veClienteCumpl(nombre){return !carteraRestringida()||veVendedor(vendedorClienteCumpl(nombre));}
+// Filtros de la solapa Cumplimiento: vendedor y cliente elegidos arriba
+function cuPasaVC(nombre){
+  const v=(document.getElementById('cu-vend-filter')||{}).value||'',c=(document.getElementById('cu-cli-filter')||{}).value||'';
+  if(c&&normCli(nombre)!==c)return false;
+  if(v&&normCli(vendedorClienteCumpl(nombre))!==v)return false;
+  return true;
+}
+function fillCuFiltrosVC(){
+  const sv=document.getElementById('cu-vend-filter'),sc=document.getElementById('cu-cli-filter');if(!sv||!sc)return;
+  const nombres={};
+  pagosMensual.forEach(r=>{const k=normCli(r.c);if(k&&!nombres[k])nombres[k]=r.c;});
+  try{prFilas().forEach(x=>{if(prEsInterco(x.cli))return;const k=normCli(x.cli);if(k&&!nombres[k])nombres[k]=x.cli;});}catch(_){}
+  const vis=Object.entries(nombres).filter(([k,n])=>veClienteCumpl(n));
+  const vends={};vis.forEach(([k,n])=>{const v=vendedorClienteCumpl(n)||'Sin asignar';vends[normCli(v)]=v;});
+  const vSel=sv.value;
+  sv.innerHTML='<option value="">Todos los vendedores</option>'+Object.entries(vends).sort((a,b)=>a[1].localeCompare(b[1],'es')).map(([k,v])=>'<option value="'+escH(k)+'">'+escH(v)+'</option>').join('');
+  sv.value=vends[vSel]?vSel:'';
+  const cSel=sc.value;const cl=vis.filter(([k,n])=>!sv.value||normCli(vendedorClienteCumpl(n))===sv.value).sort((a,b)=>a[1].localeCompare(b[1],'es'));
+  sc.innerHTML='<option value="">Todos los clientes'+(sv.value?' de '+escH(vends[sv.value]):'')+' ('+cl.length+')</option>'+cl.map(([k,n])=>'<option value="'+escH(k)+'">'+escH(n)+'</option>').join('');
+  sc.value=cl.some(([k])=>k===cSel)?cSel:'';
+}
 function buildPagosCliente(mes){
   const map={};
   pagosMensual.forEach(r=>{
     if(mes&&r.m!==mes)return;
     if(!veClienteCumpl(r.c))return;
+    if(!cuPasaVC(r.c))return;
     if(!map[r.c])map[r.c]={cliente:r.c,total_pagado:0,total_proceso:0,n_recibos:0,metodo_monto:{},n_cheques_dif:0,monto_cheques_dif:0,plazos:[],ultima_fecha:null,emp_monto:{}};
     const a=map[r.c];
     a.total_pagado+=r.p;a.total_proceso+=r.e;a.n_recibos+=r.n;
@@ -3684,7 +3737,7 @@ function getCuFiltered(){
 }
 
 function updateCuClearBtn(){
-  const has=document.getElementById('cu-search').value||document.getElementById('cu-metodo-filter').value||document.getElementById('cu-empresa-filter').value||document.getElementById('cu-mes-filter').value||cuActiveFilter;
+  const has=document.getElementById('cu-vend-filter').value||document.getElementById('cu-cli-filter').value||document.getElementById('cu-search').value||document.getElementById('cu-metodo-filter').value||document.getElementById('cu-empresa-filter').value||document.getElementById('cu-mes-filter').value||cuActiveFilter;
   document.getElementById('cu-btn-clear').style.display=has?'inline-flex':'none';
 }
 
@@ -3702,6 +3755,10 @@ function updateCuMetrics(){
   document.getElementById('cu-cheques-monto').textContent=fmtN(montoCheques);
   document.getElementById('cu-cheques-n').textContent=nCheques.toLocaleString('es-AR')+' cheques';
   document.getElementById('cu-plazo-prom').textContent=Math.round(plazoProm)+' días';
+  setCalc(cardDe('cu-total-pagado'),'<div>Suma de los recibos en estado <strong>Pagado</strong> + todas las <strong>Transferencias</strong> del período y los filtros elegidos.</div>'+cRow('Clientes con recibos',all.length)+cRow('Cobrado',fmtN(totPagado),'calc-tot'));
+  setCalc(cardDe('cu-total-proceso'),'<div>Recibos que todavía <strong>no están pagados</strong> y no son transferencia (en general cheques sin depositar o sin acreditar).</div>'+cRow('En proceso',fmtN(totProceso),'calc-tot')+'<div class="calc-nota">Clic en la tarjeta para ver solo los clientes que tienen.</div>');
+  setCalc(cardDe('cu-cheques-monto'),'<div>Cheques recibidos en los recibos pagados con cheque (cantidad y suma de importes).</div>'+cRow('Cheques',nCheques.toLocaleString('es-AR'))+cRow('Monto',fmtN(montoCheques),'calc-tot'));
+  setCalc(cardDe('cu-plazo-prom'),'<div>Para cada recibo con cheques: días entre la <strong>fecha del recibo</strong> y la del <strong>cheque más lejano</strong>. Se promedia por cliente y después se promedian los clientes (cada cliente pesa igual).</div>'+cRow('Clientes con el dato',plazos.length)+cRow('Promedio',Math.round(plazoProm)+' días','calc-tot')+'<div class="calc-nota">Ejemplo: recibo del 10/10 con cheques al 30/10 y 09/11 → 30 días. No mide desde la factura: eso es <em>Plazo real de pago</em>.</div>');
 
   const metodoMonto={Cheque:0,Transferencia:0,Efectivo:0};
   all.forEach(c=>{Object.entries(c.metodo_monto||{}).forEach(([k,v])=>{metodoMonto[k]=(metodoMonto[k]||0)+v;});});
@@ -3713,8 +3770,45 @@ function updateCuMetrics(){
   }).join('');
 }
 
+
+// --- Explicación de cada columna de Cumplimiento (globo ⓘ en el título) ---
+const EJ_FACT='<div class="calc-nota" style="margin-top:8px"><strong>Ejemplo:</strong> factura del 01/09 que vence el 01/10 (30 días). El cliente paga el 10/10 con un cheque al 30/10.<br>Plazo otorgado = 30d · Atraso = +9d · Cheque = 20d · <strong>Plazo real = 59d</strong> (01/09 → 30/10).</div>';
+const AYUDA_COL_CU={
+  cliente:'<strong>Cliente</strong> según el recibo de Odoo. Clic en el título para ordenar A→Z.',
+  empresa:'<strong>Empresa</strong> que emitió los recibos: SPL, Spotsline o <em>Ambas</em> si el cliente tiene recibos en las dos.',
+  recibos:'<strong>Cantidad de recibos</strong> del cliente en el período elegido (filtro de mes; sin mes = todos los cargados). Un recibo pagado con varias formas de pago cuenta una vez.',
+  cobrado:'<strong>Cobrado</strong> = suma de los recibos en estado <em>Pagado</em> + todas las <em>Transferencias</em> (aunque Odoo las marque “en proceso”: la plata ya salió de la cuenta del cliente).',
+  proceso:'<strong>En proceso</strong> = recibos que todavía no están pagados y no son transferencia. Normalmente son <strong>cheques que aún no se depositaron o no se acreditaron</strong>.',
+  metodo:'<strong>Método principal</strong> = el medio de pago con <strong>más monto</strong> en los recibos del cliente (Cheque / Transferencia / Efectivo), según el diario del recibo.',
+  cheques:'<strong>Cheques diferidos</strong> = cantidad de cheques · suma de sus importes, de los recibos pagados con cheque en el período.',
+  plazo:'<strong>Plazo cheque</strong>: para cada recibo con cheques se cuentan los días entre la <strong>fecha del recibo</strong> y la <strong>fecha del cheque más lejano</strong> de ese recibo. Se muestra el <strong>promedio simple</strong> de esos recibos.<div class="calc-nota" style="margin-top:8px"><strong>Ejemplo:</strong> recibo del 10/10 con cheques al 30/10 y al 09/11 → 30 días (se toma el del 09/11).</div><div class="calc-nota">No mide desde la factura: para eso está <em>Plazo real de pago</em> arriba. Verde ≤ 30d · naranja 31–60d · rojo &gt; 60d.</div>',
+  ultimo:'<strong>Último pago</strong> = fecha del recibo más reciente del cliente en el período.'
+};
+const AYUDA_COL_PR={
+  c:'<strong>Cliente</strong> de las facturas cargadas en <em>Cargar facturas + pagos</em>. “AJ x%” = parte cobrada en comprobantes AJ (sin IVA). Clic en la fila para ver factura por factura.',
+  e:'<strong>Empresa</strong> de las facturas: SPL, Spotsline o Ambas.',
+  n:'<strong>Facturas</strong> cobradas por completo cuyo <strong>último recibo</strong> cae dentro de la ventana elegida (3, 6 o 12 meses).',
+  t:'<strong>Cobrado</strong> = suma del total de esas facturas. Es también el <strong>peso</strong> de cada factura en los promedios: una factura de $1.000.000 pesa 10 veces más que una de $100.000.',
+  o:'<strong>Plazo otorgado</strong> = <strong>fecha de vencimiento − fecha de la factura</strong>. Es el plazo que se le dio al cliente. Promedio ponderado por importe.'+EJ_FACT,
+  at:'<strong>Atraso</strong> = <strong>fecha del último recibo − fecha de vencimiento</strong>. Positivo (rojo) = pagó después de vencer; negativo (verde) = pagó antes. Promedio ponderado por importe.'+EJ_FACT,
+  ch:'<strong>Cheque</strong> = <strong>fecha en que el dinero está disponible − fecha del recibo</strong>. Efectivo y transferencia dan 0; con cheques se usa la fecha de cobro de cada cheque, ponderada por su importe. Es lo que el cliente “estira” pagando con cheque.'+EJ_FACT,
+  r:'<strong>Plazo real</strong> = <strong>fecha del dinero disponible − fecha de la factura</strong>. Es cuánto tarda de verdad en entrar la plata desde que se factura. = plazo otorgado + atraso + cheque. Verde ≤ 30d · naranja 31–60d · rojo &gt; 60d.'+EJ_FACT,
+  pt:'<strong>% en término</strong> = importe de las facturas cuyo último recibo es <strong>hasta el día del vencimiento</strong> ÷ total cobrado del cliente.<div class="calc-nota" style="margin-top:8px"><strong>Ejemplo:</strong> cobradas $1.000.000; de eso $700.000 se pagó antes de vencer → 70%.</div>',
+  tv:'<strong>Tendencia</strong> = plazo real de los <strong>últimos 3 meses</strong> comparado con el de toda la ventana. ▼ mejora (paga más rápido) si bajó más de 3 días; ▲ empeora si subió más de 3 días; = estable en el medio.',
+  u:'<strong>Último pago</strong> = fecha del recibo más reciente entre esas facturas.'
+};
+function ponerAyudaCols(table,attr,mapa){
+  if(!table)return;
+  table.querySelectorAll('thead th['+attr+']').forEach(th=>{
+    const h=mapa[th.getAttribute(attr)];if(!h)return;
+    th.setAttribute('data-calc',h);th.removeAttribute('title');
+    if(!th.querySelector('.calc-ic'))th.insertAdjacentHTML('beforeend',' <i class="ti ti-info-circle calc-ic" title=""></i>');
+  });
+}
 function renderCumplimiento(){
   vendedorClienteCumpl._map=null;
+  fillCuFiltrosVC();
+  ponerAyudaCols(document.querySelector('#view-cumplimiento .table-wrap table'),'data-cusort',AYUDA_COL_CU);
   renderPlazoReal().catch(e=>console.warn('plazo real:',e));
   pagosCliente=buildPagosCliente(document.getElementById('cu-mes-filter').value);
   const data=getCuFiltered();
@@ -3723,6 +3817,9 @@ function renderCumplimiento(){
   const mesLbl=mesSel.options[mesSel.selectedIndex]?mesSel.options[mesSel.selectedIndex].text:'';
   let bar='<span>Mostrando <strong>'+data.length+'</strong> clientes</span><span>Cobrado: <strong>'+fmtN(data.reduce((s,c)=>s+c.total_pagado,0))+'</strong></span><span>En proceso: <strong>'+fmtN(data.reduce((s,c)=>s+c.total_proceso,0))+'</strong></span>';
   if(mesSel.value)bar+='<span>Mes: <strong style="color:var(--yellow)">'+mesLbl+'</strong></span>';
+  {const sv=document.getElementById('cu-vend-filter'),sc=document.getElementById('cu-cli-filter');
+   if(sv.value)bar+='<span>Vendedor: <strong style="color:var(--yellow)">'+escH(sv.options[sv.selectedIndex].text)+'</strong></span>';
+   if(sc.value)bar+='<span>Cliente: <strong style="color:var(--yellow)">'+escH(sc.options[sc.selectedIndex].text)+'</strong></span>';}
   if(cuActiveFilter){const lbl={proceso:'En proceso',cheques:'Con cheques diferidos',plazo:'Plazo cheque > 45d'}[cuActiveFilter];bar+='<span>Filtro: <strong style="color:var(--yellow)">'+lbl+'</strong></span>';}
   document.getElementById('cu-summary-bar').innerHTML=bar;
   const pageData=data.slice((cuPage-1)*CU_PER,cuPage*CU_PER);
@@ -3751,10 +3848,11 @@ function renderCuPag(total){
 function cuGp(p){cuPage=p;renderCumplimiento();window.scrollTo(0,0);}
 
 document.getElementById('cu-sort').addEventListener('change',()=>{cuSort={k:null,dir:1};document.querySelectorAll('th[data-cusort]').forEach(th=>{th.classList.remove('th-on');const i=th.querySelector('.ord-ic');if(i)i.textContent=' ⇅';});});
-['cu-search','cu-empresa-filter','cu-metodo-filter','cu-sort'].forEach(id=>{document.getElementById(id).addEventListener(id==='cu-search'?'input':'change',()=>{cuPage=1;updateCuClearBtn();renderCumplimiento();});});
+['cu-search','cu-empresa-filter','cu-metodo-filter','cu-sort','cu-vend-filter','cu-cli-filter'].forEach(id=>{document.getElementById(id).addEventListener(id==='cu-search'?'input':'change',()=>{cuPage=1;updateCuClearBtn();renderCumplimiento();});});
 document.getElementById('cu-mes-filter').addEventListener('change',function(){pagosCliente=buildPagosCliente(this.value);cuPage=1;updateCuClearBtn();renderCumplimiento();});
 document.getElementById('cu-btn-clear').addEventListener('click',()=>{
   document.getElementById('cu-search').value='';document.getElementById('cu-empresa-filter').value='';document.getElementById('cu-metodo-filter').value='';
+  document.getElementById('cu-vend-filter').value='';document.getElementById('cu-cli-filter').value='';
   document.getElementById('cu-mes-filter').value='';pagosCliente=buildPagosCliente('');
   cuActiveFilter='';document.querySelectorAll('#view-cumplimiento .metric').forEach(m=>m.classList.remove('active'));
   cuPage=1;updateCuClearBtn();renderCumplimiento();
@@ -5277,6 +5375,7 @@ function marcarOrden(thead,attr,st){
 // Primer clic: de mayor a menor en números, A→Z en textos; segundo clic invierte
 function clicOrden(st,k,esNum){if(st.k===k)st.dir=-st.dir;else{st.k=k;st.dir=esNum?-1:1;}}
 document.addEventListener('click',e=>{
+  if(e.target.closest&&e.target.closest('.calc-ic'))return; // el ⓘ abre la explicación, no ordena
   const th=e.target.closest&&e.target.closest('th[data-sort],th[data-cusort],th[data-dsort]');if(!th)return;
   if(th.hasAttribute('data-sort')){clicOrden(cartSort,th.dataset.sort,th.hasAttribute('data-num'));document.getElementById('f-sort').value='';page=1;render();marcarOrden(th.closest('thead'),'data-sort',cartSort);return;}
   if(th.hasAttribute('data-cusort')){clicOrden(cuSort,th.dataset.cusort,th.hasAttribute('data-num'));cuPage=1;renderCumplimiento();marcarOrden(th.closest('thead'),'data-cusort',cuSort);return;}
@@ -5741,7 +5840,7 @@ function prMetricas(l){
 function prCobradas(meses,emp,busca){
   const desde=prSumaDias(hoyISO(),-Math.round(meses*30.4));
   return prFilas().filter(x=>x.est==='P'&&x.C&&x.C>=desde&&x.C>=x.A&&!prEsInterco(x.cli)
-    &&(!emp||emp==='Ambas'||x.emp===emp)&&(!busca||normTxt(x.cli).includes(busca))&&veClienteCumpl(x.cli));
+    &&(!emp||emp==='Ambas'||x.emp===emp)&&(!busca||normTxt(x.cli).includes(busca))&&veClienteCumpl(x.cli)&&cuPasaVC(x.cli));
 }
 const prFmtD=v=>v===null||v===undefined?'—':(Math.round(v)+'d');
 const prFmtS=v=>v===null||v===undefined?'—':((v>0?'+':'')+Math.round(v)+'d');
@@ -5773,6 +5872,7 @@ function prDetalleCliente(cli,emp){
 async function renderPlazoReal(){
   const wrap=document.getElementById('pr-wrap');if(!wrap)return;
   await prLoad();
+  fillCuFiltrosVC();
   const btn=document.getElementById('pr-btn-upload');if(btn)btn.style.display=puede('actualizar')?'':'none';
   const info=PR_EMPRESAS.map(e=>prCache[e]?'<strong>'+e+'</strong> cargado el '+fmtFecha(prCache[e].cargado.slice(0,10))+' ('+prCache[e].f.length+' facturas)':'<span style="color:var(--orange)">'+e+': sin cargar</span>').join(' · ');
   document.getElementById('pr-fuente').innerHTML=info+prOdooTexto();
@@ -5801,9 +5901,9 @@ async function renderPlazoReal(){
     +'<div style="font-size:12px;color:var(--text3)">'+filas.length+' clientes · '+M.n+' facturas cobradas · '+fmtN(M.tot)+' · '+M.nD+' con fecha de dinero disponible. Promedios ponderados por importe. Sin pagos entre empresas.</div>'
     +'<div style="display:flex;gap:6px"><button class="btn" id="pr-xls"><i class="ti ti-file-spreadsheet"></i> Excel detalle</button></div></div>'
     +'<div class="table-scroll"><table id="pr-tabla"><thead><tr><th data-dsort="c">Cliente</th><th data-dsort="e">Empresa</th><th style="text-align:center" data-dsort="n" data-num>Facturas</th><th data-dsort="t" data-num>Cobrado</th>'
-    +'<th style="text-align:center" data-dsort="o" data-num title="Vencimiento − emisión">Plazo otorgado</th><th style="text-align:center" data-dsort="at" data-num title="Recibo − vencimiento. Negativo = pagó antes">Atraso</th>'
-    +'<th style="text-align:center" data-dsort="ch" data-num title="Cobro del cheque − recibo">Cheque</th><th style="text-align:center" data-dsort="r" data-num title="Dinero disponible − emisión">Plazo real</th>'
-    +'<th style="text-align:center" data-dsort="pt" data-num>% en término</th>'+(meses>3?'<th data-dsort="tv" data-num title="Plazo real de los últimos 3 meses contra la ventana elegida (±3 días = estable)">Tendencia</th>':'')+'<th data-dsort="u">Último pago</th></tr></thead><tbody>'
+    +'<th style="text-align:center" data-dsort="o" data-num>Plazo otorgado</th><th style="text-align:center" data-dsort="at" data-num>Atraso</th>'
+    +'<th style="text-align:center" data-dsort="ch" data-num>Cheque</th><th style="text-align:center" data-dsort="r" data-num>Plazo real</th>'
+    +'<th style="text-align:center" data-dsort="pt" data-num>% en término</th>'+(meses>3?'<th data-dsort="tv" data-num>Tendencia</th>':'')+'<th data-dsort="u">Último pago</th></tr></thead><tbody>'
     +ver.map(f=>{const m=f.m;return'<tr data-prcli="'+escH(f.c)+'" style="cursor:pointer" title="Ver las facturas de este cliente"><td style="font-weight:600">'+escH(f.c)+(f.aj/f.m.tot>=0.01?' <span style="font-size:10.5px;color:var(--text3)" title="Parte cobrada en AJ (sin IVA)">AJ '+Math.round(f.aj/m.tot*100)+'%</span>':'')+'</td><td>'+empBadge(f.emp)+'</td>'
       +'<td style="text-align:center">'+m.n+'</td><td class="amount" data-v="'+Math.round(m.tot)+'">'+fmtN(m.tot)+'</td>'
       +'<td style="text-align:center" data-v="'+(m.otorgado??'')+'">'+prFmtD(m.otorgado)+'</td><td style="text-align:center;color:'+(m.atraso>0?'var(--red)':'var(--green)')+'" data-v="'+(m.atraso??'')+'">'+prFmtS(m.atraso)+'</td>'
@@ -5812,11 +5912,12 @@ async function renderPlazoReal(){
     +'</tbody></table></div>'
     +(filas.length>40?'<div style="text-align:center;margin-top:8px"><button class="btn" id="pr-vertodos">'+(prVerTodos?'Ver solo los 40 que más pagaron':'Ver los '+filas.length+' clientes')+'</button></div>':'');
   wrap.innerHTML=h;
+  ponerAyudaCols(document.getElementById('pr-tabla'),'data-dsort',AYUDA_COL_PR);
   aplicarOrdenDom('pr-tabla');
   const vt=document.getElementById('pr-vertodos');if(vt)vt.onclick=()=>{prVerTodos=!prVerTodos;renderPlazoReal();};
   document.getElementById('pr-xls').onclick=()=>prDescargar(l);
   wrap.querySelectorAll('[data-prcli]').forEach(tr=>tr.addEventListener('click',()=>prDetalleCliente(tr.dataset.prcli,emp)));
-  const ej='<div style="margin-top:6px;color:var(--text3)">Ventana: facturas con último recibo en los últimos '+meses+' meses. Cada factura pesa según su importe.</div>';
+  const ej='<div style="margin-top:6px;color:var(--text3)">Ventana: facturas con último recibo en los últimos '+meses+' meses. Cada factura pesa según su importe.</div>'+EJ_FACT;
   setCalc('pr-k-real','<div>Para cada factura cobrada: <strong>fecha en que el dinero está disponible − fecha de la factura</strong>.</div><div style="margin-top:6px">Dinero disponible: efectivo y transferencia = fecha del recibo; cheques = fecha de cobro de cada cheque, ponderada por su importe. Si la factura tuvo varios recibos se toma el último.</div>'+cRow('Facturas con el dato',M.nD+' de '+M.n)+cRow('Promedio',prFmtD(M.real),'calc-tot')+ej);
   setCalc('pr-k-atraso','<div><strong>Fecha del recibo − vencimiento</strong> de cada factura. Negativo = pagó antes de que venza.</div>'+cRow('Facturas',M.n)+cRow('Promedio',prFmtS(M.atraso),'calc-tot')+ej);
   setCalc('pr-k-cheque','<div><strong>Cobro de los cheques − fecha del recibo</strong> (solo facturas con fecha de dinero disponible; si se pagó en efectivo o transferencia da 0).</div>'+cRow('Promedio',prFmtD(M.cheque),'calc-tot')+cRow('Plazo real = a recibo + cheque',prFmtD(M.aRecibo)+' + '+prFmtD(M.cheque))+ej);
