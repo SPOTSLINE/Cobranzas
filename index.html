@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+<script>try{var _pv=new URLSearchParams(location.search).get("pv");if(_pv)localStorage.setItem("cob_pv",_pv);}catch(_){}</script>
 <script src="/Paneldepaneles/candado.js" data-panel="cobranzas"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -113,6 +114,13 @@ tr:hover td{background:var(--bg3)}
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center}
 .modal-bg.open{display:flex}
 .modal{background:var(--bg2);border-radius:var(--radius-lg);border:1px solid var(--border2);padding:22px;width:520px;max-width:96vw;max-height:90vh;overflow-y:auto}
+.modal{position:relative;resize:both;min-width:320px;min-height:160px}
+.zoomable{position:relative}
+.modal-zoom{position:absolute;top:3px;right:3px;width:20px;height:20px;padding:0;border:1px solid var(--border2);border-radius:5px;background:var(--bg3);color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;z-index:6;opacity:.75}
+.modal-zoom:hover{color:var(--yellow);border-color:var(--yellow);opacity:1}
+.modal.modal-max{width:98vw!important;max-width:98vw!important;height:96vh!important;max-height:96vh!important;resize:none}
+.zoom-max:not(.modal){position:fixed!important;inset:1.5vh 1vw;z-index:150;overflow:auto!important;margin:0!important;box-shadow:0 0 0 100vmax rgba(0,0,0,.7)}
+.modal-max [style*="max-height:70vh"],.modal-max [style*="max-height:60vh"],.modal-max [style*="max-height:65vh"],.zoom-max .table-scroll{max-height:calc(96vh - 130px)!important}
 .modal h2{font-size:16px;font-weight:700;margin-bottom:2px;color:var(--text)}
 .modal-sub{font-size:12px;color:var(--text3);margin-bottom:16px;line-height:1.6}
 .modal label{font-size:12px;color:var(--text3);display:block;margin:10px 0 4px}
@@ -239,6 +247,9 @@ tr:hover td{background:var(--bg3)}
   table tbody tr td:nth-child(2),
   table tbody tr td:nth-child(3),
   table tbody tr td:nth-child(7){display:none}
+  /* Cartera: con la columna Vencido, la 7 es Deuda total (se ve) y la 8 Facturas (se oculta) */
+  table:has(#tbody) thead tr th:nth-child(7),#tbody tr td:nth-child(7){display:table-cell}
+  table:has(#tbody) thead tr th:nth-child(8),#tbody tr td:nth-child(8){display:none}
 }
 @media(max-width:480px){
   .last-update{display:none}
@@ -422,6 +433,23 @@ th.th-on{color:var(--yellow)!important}
 .modal .ag-radios input,.modal .ag-check input{width:auto}
 .ag-err{color:var(--red);font-size:12.5px;margin-top:8px;min-height:1em}
 @media(max-width:760px){.ag-row{grid-template-columns:1fr}.ag-der{align-items:flex-start}.ag-sem{grid-template-columns:1fr}}
+/* ===== Feedback con vendedores ===== */
+.pv-fila{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:start;padding:8px 10px;border-bottom:1px solid var(--border);background:var(--bg2)}
+.pv-fila.on{background:var(--bg3);box-shadow:inset 3px 0 0 var(--yellow)}
+.pv-chk input{width:auto;margin:3px 0 0}
+.pv-mas{margin-top:8px}.pv-mas summary{cursor:pointer;color:var(--blue);font-size:12.5px;padding:6px 0}
+#pv-lista{border:1px solid var(--border);border-radius:var(--radius);max-height:42vh;overflow:auto}
+.pv-ok{background:var(--green-bg);border:1px solid #1a4a2e;color:var(--text);border-radius:var(--radius);padding:8px 12px;font-size:12.5px;margin-top:10px}
+.pv-ok a{color:var(--blue);word-break:break-all}.pv-ok i{color:var(--green)}
+.pv-msg-in{margin-top:8px;background:var(--yellow-dim);border-left:3px solid var(--yellow);padding:6px 10px;color:var(--text);font-size:13px}
+.fbr-item{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 12px;margin-bottom:10px}
+.fbr-item.fbr-cerrado{opacity:.75}
+.fbr-item textarea{width:100%;margin-top:8px;min-height:54px}
+.fbr-pide{margin-top:6px;color:var(--text);font-size:13px}
+.modal label.fbn-chip{display:inline-flex;width:auto;align-items:center;gap:5px;border:1px solid var(--border2);border-radius:99px;padding:3px 10px;margin:0 6px 6px 0;font-size:12px;color:var(--text2);cursor:pointer}
+.fbn-chip.on{border-color:var(--yellow);color:var(--text)}.fbn-chip input{width:auto;margin:0}.fbn-chip small{color:var(--green)}
+.rep-chk{width:auto!important;margin:0!important;cursor:pointer}
+.rep-pedir-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px}
 </style>
 </head>
 <body>
@@ -452,6 +480,7 @@ th.th-on{color:var(--yellow)!important}
       <button class="btn" id="btn-notif" title="Notificaciones"><i class="ti ti-bell"></i><span id="notif-badge" class="notif-badge" style="display:none">0</span></button>
       <button class="btn" id="btn-seguimiento" title="Seguimiento de menciones: lo que tenés que responder y lo que estás esperando"><i class="ti ti-at"></i> Seguimiento <span class="pcount" id="seg-count" hidden></span></button>
       <button class="btn" id="btn-agenda" title="Mi agenda"><i class="ti ti-calendar-time"></i> Agenda <span class="pcount" id="ag-count" hidden></span></button>
+      <button class="btn" id="btn-fb" style="display:none" title="Pedidos de cobranzas a los vendedores"><i class="ti ti-messages"></i> Vendedores <span class="pcount" id="fb-count" hidden></span></button>
       <div id="notif-dropdown" class="notif-dropdown"></div>
     </div>
     <div class="user-badge" id="user-badge" style="display:none">
@@ -480,6 +509,7 @@ th.th-on{color:var(--yellow)!important}
     <button class="tab" data-view="cumplimiento" onclick="switchMainView('cumplimiento')"><i class="ti ti-clock-check" style="vertical-align:-2px;margin-right:5px"></i>Cumplimiento de pagos</button>
     <button class="tab" data-view="objetivos" onclick="switchMainView('objetivos')"><i class="ti ti-target-arrow" style="vertical-align:-2px;margin-right:5px"></i>Objetivos de cobranza</button>
     <button class="tab" data-view="agenda" onclick="switchMainView('agenda')"><i class="ti ti-calendar-time" style="vertical-align:-2px;margin-right:5px"></i>Agenda</button>
+    <button class="tab" data-view="feedback" onclick="switchMainView('feedback')"><i class="ti ti-messages" style="vertical-align:-2px;margin-right:5px"></i>Vendedores</button>
     <button class="tab" data-view="ayuda" onclick="switchMainView('ayuda')"><i class="ti ti-help-circle" style="vertical-align:-2px;margin-right:5px"></i>Ayuda</button>
   </div>
 </div>
@@ -568,7 +598,7 @@ th.th-on{color:var(--yellow)!important}
     <table>
       <thead><tr>
         <th data-sort="nombre">Cliente</th><th data-sort="empresa">Empresa</th><th data-sort="vendedor">Vendedor</th><th data-sort="estado" data-num>Estado</th>
-        <th style="text-align:center" data-sort="dias" data-num>Días venc.</th><th data-sort="deuda" data-num>Deuda</th><th data-sort="facturas" data-num>Facturas</th><th>Acciones</th>
+        <th style="text-align:center" data-sort="dias" data-num>Días venc.</th><th data-sort="vencido" data-num title="Suma de las facturas ya vencidas (lo que realmente está en mora)">Vencido</th><th data-sort="deuda" data-num>Deuda total</th><th data-sort="facturas" data-num>Facturas</th><th>Acciones</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
     </table>
@@ -778,11 +808,32 @@ th.th-on{color:var(--yellow)!important}
   <div id="ag-supervision" style="display:none"></div>
 </div>
 
+<div class="main" id="view-feedback" style="display:none;padding-bottom:80px">
+  <div class="cump-banner">
+    <i class="ti ti-messages"></i>
+    <div><strong style="color:var(--text)">Feedback con vendedores.</strong> Lo que se le pide a cada vendedor y lo que responde, todo registrado. Los pedidos se arman desde <em>Reporte</em> (marcando clientes), desde la ficha o con <em>Pedido nuevo</em>: se manda por WhatsApp o mail con el resumen y el link, y queda una tarea en la agenda hasta que responda. Lo que se habla por fuera se carga con <em>Registrar conversación</em>. <span class="help-link" data-ayuda="a-feedback">¿cómo funciona?</span></div>
+  </div>
+  <div id="fb-aviso"></div>
+  <div class="metrics" id="fb-kpis"></div>
+  <div class="toolbar">
+    <select id="fb-f-vend" style="width:200px"></select>
+    <select id="fb-f-estado" style="width:200px"><option value="pend">Pedidos sin responder</option><option value="resp">Pedidos respondidos</option><option value="notas">Conversaciones registradas</option><option value="todo">Todo</option></select>
+    <select id="fb-f-canal" style="width:140px"><option value="">Todos los canales</option><option value="whatsapp">WhatsApp</option><option value="mail">Mail</option><option value="llamada">Llamada</option><option value="reunion">En persona</option><option value="panel">Panel</option><option value="otro">Otro</option></select>
+    <input type="text" id="fb-f-q" placeholder="Buscar cliente, vendedor o texto">
+    <button class="btn" id="fb-kpi-off" style="display:none"><i class="ti ti-x"></i> Quitar filtro de la tarjeta</button>
+    <span class="ped-fil" id="fb-vistas" style="margin:0 0 0 auto"><button type="button" class="lnk" data-fbvista="vend"><i class="ti ti-users"></i> Por vendedor</button><button type="button" class="lnk" data-fbvista="cli"><i class="ti ti-building-store"></i> Por cliente</button><button type="button" class="lnk" data-fbvista="todo"><i class="ti ti-list"></i> Detalle</button></span>
+    <button class="btn" id="fb-btn-nota" title="Cargar lo que se habló por WhatsApp, mail o teléfono"><i class="ti ti-message-plus"></i> Registrar conversación</button>
+    <button class="btn btn-yellow" id="fb-btn-pedir"><i class="ti ti-send"></i> Pedido nuevo</button>
+    <button class="btn" id="fb-refrescar" title="Volver a leer"><i class="ti ti-refresh"></i></button>
+  </div>
+  <div id="fb-lista"></div>
+</div>
+
 <div class="main" id="view-ayuda" style="display:none">
 <article class="ayuda">
 <h2 id="a-top">Instructivo del Panel de Cobranzas</h2>
 <p class="muted">Qué muestra cada pestaña, de dónde salen los números y cómo se calculan. Si algo no queda claro, anotalo con <strong>Pedido de mejora</strong>.</p>
-<nav class="toc" aria-label="Contenido"><a href="#a-cartera">Cartera</a><a href="#a-tramos">Tipos de deudor</a><a href="#a-cump">Cumplimiento de pagos</a><a href="#a-plazo">Plazo de cheque: qué compara</a><a href="#a-real">Plazo real de pago</a><a href="#a-conc">Conciliación</a><a href="#a-obj">Objetivos</a><a href="#a-foto">Foto mensual</a><a href="#a-pct">% por tipo de deudor</a><a href="#a-cobrado">Cobrado y cumplimiento</a><a href="#a-mail">Mails de vendedores</a><a href="#a-usuarios">Usuarios</a><a href="#a-menciones">Menciones @</a><a href="#a-agenda">Agenda</a><a href="#a-pedidos">Pedidos de mejora</a><a href="#a-faq">Preguntas frecuentes</a></nav>
+<nav class="toc" aria-label="Contenido"><a href="#a-cartera">Cartera</a><a href="#a-tramos">Tipos de deudor</a><a href="#a-cump">Cumplimiento de pagos</a><a href="#a-plazo">Plazo de cheque: qué compara</a><a href="#a-real">Plazo real de pago</a><a href="#a-conc">Conciliación</a><a href="#a-obj">Objetivos</a><a href="#a-foto">Foto mensual</a><a href="#a-pct">% por tipo de deudor</a><a href="#a-cobrado">Cobrado y cumplimiento</a><a href="#a-mail">Mails de vendedores</a><a href="#a-usuarios">Usuarios</a><a href="#a-menciones">Menciones @</a><a href="#a-agenda">Agenda</a><a href="#a-feedback">Vendedores</a><a href="#a-pedidos">Pedidos de mejora</a><a href="#a-faq">Preguntas frecuentes</a></nav>
 
 <h2 id="a-cartera">1. Cartera</h2>
 <p>Muestra la deuda abierta de cada cliente (SPL y Spotsline) según el último Excel de Odoo cargado con <em>Actualizar</em> (apunte contable <code>account_move_line</code>, columna “residual”). Cada vez que se sube un Excel nuevo, la cartera se reemplaza y se publica para todo el equipo; las gestiones, contactos y compromisos de pago se conservan.</p>
@@ -825,6 +876,7 @@ th.th-on{color:var(--yellow)!important}
 <tr><td>Último pago</td><td>Fecha del recibo más reciente.</td></tr>
 <tr><td>Filtro de mes</td><td>Toma los recibos cuya <strong>fecha de recibo</strong> cae en ese mes.</td></tr>
 <tr><td>Filtros de vendedor y cliente</td><td>Arriba de todo en la solapa. El vendedor de cada cliente es el de la cartera actual o, si el cliente ya no tiene deuda, el de la foto del mes. Se aplican a las tarjetas, al plazo real, a los medios de pago y a la tabla. La lista de clientes se achica al vendedor elegido.</td></tr>
+<tr><td>Agrandar</td><td>Toda ventana, tabla o panel tiene arriba a la derecha el botón <i class="ti ti-arrows-maximize"></i>: la pasa a pantalla completa (otro clic o Esc vuelve). Las ventanas también se pueden estirar desde la esquina de abajo a la derecha, o con doble clic en el título.</td></tr>
 <tr><td>Títulos de columna</td><td>Quedan fijos al bajar por la tabla. Pasando el mouse por el título (o tocando ⓘ) se ve cómo se calcula ese dato, con un ejemplo.</td></tr>
 </table></div>
 
@@ -969,6 +1021,21 @@ th.th-on{color:var(--yellow)!important}
 </ul>
 <p class="muted">Técnico: las claves se encriptan en Supabase (bcrypt) dentro de la función <code>secure-write</code>; el panel nunca las guarda. Si al abrir Usuarios aparece “Falta actualizar la función secure-write”, hay que pegar la versión nueva de la función y correr el SQL de instalación.</p>
 
+<h3 id="a-feedback">Vendedores: pedidos y feedback</h3>
+<p>Registra todo lo que se habla con los vendedores sobre la cobranza: lo que se les pide y lo que responden, por cliente.</p>
+<ul>
+<li><strong>Pedir gestión al vendedor:</strong> en <em>Reporte</em> tocá un número (por ejemplo <em>Sin gestión 3+ días</em> o <em>Pedidos sin responder</em>), marcá los clientes y tocá <em>Pedir gestión al vendedor</em>. También desde la ficha del cliente (Gestión → <em>Pedir al vendedor</em>) o desde la solapa <em>Vendedores</em> (<em>Pedido nuevo</em> o <em>Pedir gestión</em> en la fila del vendedor, que trae marcados sus clientes sin gestión).</li>
+<li>En el pedido se ve cada cliente con deuda, tipo de deudor, días de atraso y última gestión, y una línea editable con <strong>qué necesitamos</strong> (se propone según el caso: compromiso incumplido, mora crítica, media, temprana o preventivo). Se elige el plazo para responder (por defecto 2 días hábiles).</li>
+<li><strong>Mandar por WhatsApp</strong> abre WhatsApp con el resumen; <strong>Abrir mi correo</strong> copia el mail con formato y abre Gmail/Outlook (pegar con Ctrl+V). Los dos llevan el <strong>link para responder</strong> (<code>…/Cobranzas/?pv=…</code>). El teléfono del vendedor se guarda para la próxima (también se carga en <em>Reporte → Mails de vendedores</em>).</li>
+<li>Al mandarlo se crea <strong>una tarea por cliente</strong> en la agenda (tipo <em>Respuesta del vendedor</em>, con fecha = plazo). Si el vendedor tiene usuario en el Panel de Paneles la tarea queda a su nombre; si no, a nombre de quien pidió. A los clientes vencidos se les suma un reclamo, igual que con el informe.</li>
+<li><strong>El vendedor responde:</strong> entra con el link (o con el botón <em>Vendedores</em> de la barra, que muestra cuántos tiene pendientes) y escribe qué pasó con cada cliente y, si acordó, la fecha y el monto de pago. Al guardar: queda en el historial de gestión del cliente (se reinicia el contador de reclamos), se resuelve la tarea, le llega un aviso a quien pidió y, si hay fecha de pago, se agenda <em>Verificar pago</em> para quien pidió (si el monto queda vacío se toma lo vencido a esa fecha).</li>
+<li>Si el vendedor contesta por WhatsApp o mail, cobranzas carga su respuesta con <em>Cargar respuesta</em> (eligiendo por dónde respondió). En la Agenda, <em>Resolver</em> una tarea <em>Respuesta del vendedor</em> abre esa misma carga.</li>
+<li><strong>Registrar conversación:</strong> para lo que se habla por fuera de un pedido. Se pega el chat (si viene con el formato de WhatsApp toma la fecha del primer mensaje) y se detectan los clientes nombrados de la cartera de ese vendedor. Si un cliente tenía un pedido pendiente, se puede tomar como respuesta. Opcionalmente se guarda en la gestión de cada cliente.</li>
+<li><strong>Seguimiento:</strong> la solapa muestra tarjetas (sin responder, plazo vencido, respondidos 7 días, demora media 30 días, compromisos informados) y tres vistas: <em>Por vendedor</em> (sin gestión, pendientes, vencidos, % respondido en plazo, demora media, último contacto, botones <em>Pedir gestión</em> y <em>Recordar</em> por WhatsApp), <em>Por cliente</em> y <em>Detalle</em>. En la ficha de cada cliente, pestaña Gestión, está el bloque <em>Feedback con el vendedor</em>.</li>
+<li>% en plazo = pedidos respondidos hasta la fecha de plazo ÷ respondidos en los últimos 30 días. Demora media = promedio de horas entre el pedido y la respuesta (30 días).</li>
+<li>Permisos: solapa <em>Vendedores</em> (<code>tab_feedback</code>) y <em>Pedir gestión a vendedores</em> (<code>pedir_vendedor</code>, por defecto todos menos rol vendedor). Cada uno ve solo los vendedores de su cartera.</li>
+<li>Instalación: correr una vez <code>supabase_instalar/7_sql_feedback_vendedor.sql</code> en Supabase (tabla <code>feedback_vendedor</code>, con la misma seguridad que gestiones).</li>
+</ul>
 <h3 id="a-menciones">Menciones @ y su seguimiento</h3>
 <ul>
 <li><strong>Mencionar:</strong> en la ficha del cliente, pestaña Gestión, escribí <strong>@</strong> en la nota y elegí a la persona. Al guardar, le llega una notificación (campana 🔔).</li>
@@ -1104,6 +1171,7 @@ th.th-on{color:var(--yellow)!important}
         <label>Detalle</label><input type="text" id="m-ag-desc" placeholder="Ej: llamar a Juan de pagos para confirmar la transferencia">
       </div>
       <div id="m-ag-abiertas"></div>
+      <div id="m-fb"></div>
       <div id="m-historial" style="margin-top:14px"></div>
     </div>
     <div class="modal-footer">
@@ -1159,7 +1227,7 @@ th.th-on{color:var(--yellow)!important}
 <!-- MODAL MAILS DE VENDEDORES -->
 <div class="modal-bg" id="modal-mails-vend">
   <div class="modal" style="width:600px">
-    <h2><i class="ti ti-address-book" style="vertical-align:-2px;margin-right:8px;color:var(--yellow)"></i>Mails de vendedores</h2>
+    <h2><i class="ti ti-address-book" style="vertical-align:-2px;margin-right:8px;color:var(--yellow)"></i>Mails y WhatsApp de vendedores</h2>
     <div class="modal-sub">Se usan para completar solo el destinatario del informe por mail. Se guardan para todo el equipo. Podés poner más de un mail separado por coma (ej. vendedor + supervisor).</div>
     <div id="mails-vend-tabla"></div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
@@ -1170,6 +1238,66 @@ th.th-on{color:var(--yellow)!important}
   </div>
 </div>
 
+
+<!-- MODAL PEDIDO AL VENDEDOR -->
+<div class="modal-bg" id="modal-pv">
+  <div class="modal" style="width:860px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><h2><i class="ti ti-send" style="vertical-align:-2px;margin-right:8px;color:var(--yellow)"></i>Pedir gestión al vendedor</h2><button class="btn" id="pv-cerrar">Cerrar</button></div>
+    <div class="modal-sub" style="margin-top:4px">Se manda el resumen de cada cliente con lo que necesitamos y un link para que responda en el panel. Se crea una tarea por cliente en la agenda hasta que conteste. <span class="help-link" data-ayuda="a-feedback">Ver instructivo ›</span></div>
+    <div class="usr-grid">
+      <div><label>Vendedor</label><select id="pv-vend"></select></div>
+      <div><label>Responder antes del</label><input type="date" id="pv-plazo"></div>
+      <div><label>WhatsApp del vendedor <span style="color:var(--text3)">(se guarda)</span></label><input type="text" id="pv-tel" placeholder="Ej: 1155443322"></div>
+      <div><label>Mail del vendedor</label><input type="text" id="pv-mail" placeholder="vendedor@spotsline.com.ar"></div>
+    </div>
+    <div id="pv-aviso" style="font-size:12px;color:var(--text2);margin:8px 0"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 6px"><span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Clientes del pedido</span><strong id="pv-n" style="font-size:12.5px;color:var(--yellow2)"></strong></div>
+    <div id="pv-lista"></div>
+    <label style="margin-top:10px">Mensaje general (opcional)</label><textarea id="pv-msg" style="min-height:44px" placeholder="Ej: son los que más nos preocupan para el cierre de mes"></textarea>
+    <details style="margin-top:8px"><summary style="cursor:pointer;color:var(--blue);font-size:12.5px">Ver el texto que se manda</summary><textarea id="pv-texto" readonly style="min-height:160px;margin-top:6px;font-size:12px"></textarea></details>
+    <div id="pv-res"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn" data-pvenviar="whatsapp" style="color:#25d366;border-color:#1d4a2e;font-size:14px;padding:9px 16px"><i class="ti ti-brand-whatsapp"></i> Mandar por WhatsApp</button>
+      <button class="btn btn-yellow" data-pvenviar="mail" style="font-size:14px;padding:9px 16px"><i class="ti ti-mail-forward"></i> Abrir mi correo</button>
+      <label style="display:flex;align-items:center;gap:6px;margin:0;font-size:12px;color:var(--text3)">con <select class="sel-correo" style="padding:6px 8px"><option value="gmail">Gmail</option><option value="outlook">Outlook web</option><option value="app">Programa de correo</option></select></label>
+      <button class="btn" data-pvenviar="copiar" title="Crea el pedido y copia el texto para mandarlo por donde quieras"><i class="ti ti-copy"></i> Copiar texto</button>
+      <button class="btn" data-pvenviar="panel" style="margin-left:auto" title="Crea las tareas sin mandar mensaje (le llega solo en el panel)"><i class="ti ti-checklist"></i> Solo crear tareas</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESPUESTA DEL VENDEDOR -->
+<div class="modal-bg" id="modal-fbr">
+  <div class="modal" style="width:760px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><h2><i class="ti ti-message-reply" style="vertical-align:-2px;margin-right:8px;color:var(--yellow)"></i>Pedido de cobranzas</h2><button class="btn" id="fbr-cerrar">Cerrar</button></div>
+    <div class="modal-sub" id="fbr-sub" style="margin-top:4px"></div>
+    <div id="fbr-canal-wrap" style="margin-bottom:10px"><label>¿Cómo respondió el vendedor?</label><select id="fbr-canal" style="width:220px"><option value="whatsapp">WhatsApp</option><option value="mail">Mail</option><option value="llamada">Llamada</option><option value="reunion">En persona</option><option value="otro">Otro</option></select></div>
+    <div id="fbr-lista"></div>
+    <div class="modal-footer"><button class="btn btn-yellow" id="fbr-guardar"><i class="ti ti-send"></i> Guardar respuestas</button></div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR CONVERSACIÓN -->
+<div class="modal-bg" id="modal-fbn">
+  <div class="modal" style="width:700px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px"><h2><i class="ti ti-message-plus" style="vertical-align:-2px;margin-right:8px;color:var(--yellow)"></i>Registrar conversación con el vendedor</h2><button class="btn" id="fbn-cerrar">Cerrar</button></div>
+    <div class="modal-sub" style="margin-top:4px">Pegá el chat de WhatsApp, el mail o anotá lo que hablaron por teléfono. Los clientes que se nombran se detectan solos.</div>
+    <div class="usr-grid">
+      <div><label>Vendedor</label><select id="fbn-vend"></select></div>
+      <div><label>Cuándo</label><input type="datetime-local" id="fbn-fecha"></div>
+      <div><label>Canal</label><select id="fbn-canal"><option value="whatsapp">WhatsApp</option><option value="mail">Mail</option><option value="llamada">Llamada</option><option value="reunion">En persona</option><option value="otro">Otro</option></select></div>
+      <div><label>Quién habló</label><select id="fbn-sentido"><option value="recibido">Lo dijo / respondió el vendedor</option><option value="enviado">Le escribimos nosotros</option></select></div>
+    </div>
+    <label style="margin-top:10px">Conversación</label><textarea id="fbn-txt" style="min-height:130px" placeholder="Pegá acá el chat o el mail…"></textarea>
+    <label>Clientes</label>
+    <div id="fbn-clis"></div>
+    <div style="display:flex;gap:6px;margin-top:4px"><input type="text" id="fbn-cli-inp" list="fbn-dl" placeholder="Agregar otro cliente…" style="flex:1;margin:0"><datalist id="fbn-dl"></datalist><button class="btn" id="fbn-agregar" type="button"><i class="ti ti-plus"></i></button></div>
+    <div id="fbn-pend"></div>
+    <div class="ag-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-top:6px"><label>Fecha de pago acordada (opcional, para los clientes marcados)<input type="date" id="fbn-cfecha"></label><label>Monto (opcional)<input type="number" min="0" id="fbn-cmonto"></label></div>
+    <label style="display:flex;gap:6px;align-items:center;margin-top:10px;color:var(--text)"><input type="checkbox" id="fbn-gestion" checked style="width:auto;margin:0"> Guardarlo también en la gestión de cada cliente</label>
+    <div class="modal-footer"><button class="btn btn-yellow" id="fbn-guardar"><i class="ti ti-device-floppy"></i> Guardar</button></div>
+  </div>
+</div>
 
 <!-- MODAL USUARIOS -->
 <div class="modal-bg" id="modal-usuarios">
@@ -1512,7 +1640,7 @@ let mailVencidosActuales=[];
 // Login único (Panel de Paneles): los usuarios salen del portal
 function aliasPortal(u){return ((u&&u.config&&u.config.usuario)||String((u&&u.email)||'').split('@')[0]||(u&&u.nombre)||'').trim().toLowerCase();}
 function loadUsuarios(){
-  window.PORTAL.usuarios().then(l=>{usuariosList=(l||[]).map(u=>({nombre:u.nombre,usuario:aliasPortal(u),vendedor_nombre:(u.config&&u.config.vendedor_nombre)||''}));}).catch(e=>console.error('Error usuarios:',e));
+  window.PORTAL.usuarios().then(l=>{usuariosList=(l||[]).map(u=>({nombre:u.nombre,usuario:aliasPortal(u),vendedor_nombre:(u.config&&u.config.vendedor_nombre)||'',email:u.email||''}));if(typeof fbPintarContador==='function')fbPintarContador();}).catch(e=>console.error('Error usuarios:',e));
 }
 
 function loadReclamos(){
@@ -1741,6 +1869,18 @@ function loadClientesFromSheets(){
 
 
 function tramo(d){if(d<=0)return'Preventivo';if(d<=15)return'Mora temprana';if(d<=45)return'Mora media';return'Mora crítica';}
+// Deuda de un cliente separada por tipo de deudor FACTURA POR FACTURA (cada una según su propio vencimiento).
+// La diferencia con el saldo del cliente (notas de crédito / pagos a cuenta sin imputar) se descuenta
+// primero de lo más vencido; si el saldo es mayor que la suma de facturas, el resto va al tramo del cliente.
+function porTramoCliente(c){
+  const o={'Preventivo':0,'Mora temprana':0,'Mora media':0,'Mora crítica':0};const hoy=new Date();let suma=0;
+  (c.facturas||[]).forEach(f=>{const m=+f.monto||0;if(!m)return;const d=f.vto&&f.vto!=='-'?Math.round((hoy-new Date(f.vto))/86400000):0;o[tramo(isNaN(d)?0:d)]+=m;suma+=m;});
+  let dif=(+c.deuda||0)-suma;
+  if(dif>=1)o[tramo(c.dias_vencidos||0)]+=dif;
+  else if(dif<=-1){let resta=-dif;['Mora crítica','Mora media','Mora temprana','Preventivo'].forEach(t=>{const q=Math.min(o[t],resta);o[t]-=q;resta-=q;});}
+  return o;
+}
+function vencidoCli(c){const o=porTramoCliente(c);return Math.round((o['Mora temprana']+o['Mora media']+o['Mora crítica'])*100)/100;}
 function diasFactura(vto){if(!vto||vto==='-')return 0;const d=Math.round((new Date()-new Date(vto))/86400000);return isNaN(d)?0:d;}
 const tramoColor={'Preventivo':'var(--green)','Mora temprana':'var(--orange)','Mora media':'#f39c12','Mora crítica':'var(--red)'};
 function desgloseDeuda(c){
@@ -1901,13 +2041,16 @@ function updateMetrics(){
   const emp=deudaPorEmpresaList(all);
   document.getElementById('hero-empresas').textContent='SPL: '+fmtN(emp.spl)+'   ·   Spotsline: '+fmtN(emp.spots);
   // Total en mora = crítica + media + temprana. Lo que está en Preventivo todavía no venció (eso queda en Deuda total en cartera).
+  // Montos: lo realmente vencido, factura por factura (una factura nueva de un cliente en mora no suma como mora).
   const enMora=all.filter(c=>tramo(c.dias_vencidos)!=='Preventivo');
+  const pt={'Preventivo':0,'Mora temprana':0,'Mora media':0,'Mora crítica':0};all.forEach(c=>{const o=porTramoCliente(c);Object.keys(pt).forEach(t=>pt[t]+=o[t]);});
+  const vencTot=pt['Mora temprana']+pt['Mora media']+pt['Mora crítica'];
   document.getElementById('m-total').textContent=enMora.length;
-  document.getElementById('m-deuda-total').textContent=fmtN(sumD(enMora));
-  const crit=byT('Mora crítica');document.getElementById('m-crit').textContent=crit.length;document.getElementById('m-crit-d').textContent=fmtN(sumD(crit));
-  const med=byT('Mora media');document.getElementById('m-med').textContent=med.length;document.getElementById('m-med-d').textContent=fmtN(sumD(med));
-  const temp=byT('Mora temprana');document.getElementById('m-temp').textContent=temp.length;document.getElementById('m-temp-d').textContent=fmtN(sumD(temp));
-  const prev=byT('Preventivo');document.getElementById('m-prev').textContent=prev.length;document.getElementById('m-prev-d').textContent=fmtN(sumD(prev));
+  document.getElementById('m-deuda-total').textContent=fmtN(vencTot)+' vencido';
+  const crit=byT('Mora crítica');document.getElementById('m-crit').textContent=crit.length;document.getElementById('m-crit-d').textContent=fmtN(pt['Mora crítica']);
+  const med=byT('Mora media');document.getElementById('m-med').textContent=med.length;document.getElementById('m-med-d').textContent=fmtN(pt['Mora media']);
+  const temp=byT('Mora temprana');document.getElementById('m-temp').textContent=temp.length;document.getElementById('m-temp-d').textContent=fmtN(pt['Mora temprana']);
+  const prev=byT('Preventivo');document.getElementById('m-prev').textContent=prev.length;document.getElementById('m-prev-d').textContent=fmtN(pt['Preventivo']);
   const myGest=isVendedor?Object.entries(gestiones).filter(([i,g])=>g.nota&&clientes[parseInt(i)]&&veCliente(clientes[parseInt(i)],parseInt(i))).length:gestionesCount;
   document.getElementById('m-gest').textContent=myGest;
 }
@@ -1932,7 +2075,7 @@ function render(){
     const vendTag=getVend(i)?'<span class="vend-tag">'+getVend(i)+'</span>':'<span style="color:var(--text3);font-size:11px">—</span>';
     const invs=c.facturas.slice(0,2).map(f=>{const et=f.emp?'<span class="inv-emp '+(f.emp==='SPL'?'ie-spl':'ie-spots')+'">'+(f.emp==='SPL'?'SPL':'SL')+'</span>':'';return'<span class="inv-line">'+f.num+et+' · '+fmtN(f.monto)+'</span>';}).join('')+(c.facturas.length>2?'<span class="inv-line" style="color:var(--text3)">+'+( c.facturas.length-2)+' más</span>':'');
     const dias=c.dias_vencidos>0?'<span class="dias-neg">+'+c.dias_vencidos+'d</span>':'<span class="dias-ok">'+c.dias_vencidos+'d</span>';
-    return'<tr><td><span style="font-weight:600">'+c.nombre+'</span>'+nota+ciudad+'</td><td>'+empBadge(c.empresa)+'</td><td>'+vendTag+'</td><td><span class="badge '+bc(t)+'">'+t+'</span></td><td style="text-align:center">'+dias+'</td><td class="amount">'+fmtN(c.deuda)+'</td><td>'+invs+'</td><td><div class="actions">'+(wa?'<a class="act-btn wa" href="'+wa+'" target="_blank"><i class="ti ti-brand-whatsapp"></i></a>':'<span class="act-btn disabled"><i class="ti ti-brand-whatsapp"></i></span>')+(ml?'<a class="act-btn em" href="'+ml+'" data-mail-idx="'+i+'" title="Mail de cobranza con formato"><i class="ti ti-mail"></i></a>':'<span class="act-btn disabled"><i class="ti ti-mail"></i></span>')+'<button class="act-btn nt" onclick="openModal('+i+')"><i class="ti ti-notes"></i></button></div></td></tr>';
+    return'<tr><td><span style="font-weight:600">'+c.nombre+'</span>'+nota+ciudad+'</td><td>'+empBadge(c.empresa)+'</td><td>'+vendTag+'</td><td><span class="badge '+bc(t)+'">'+t+'</span></td><td style="text-align:center">'+dias+'</td>'+(()=>{const v=vencidoCli(c);return'<td class="amount" style="color:'+(v>0?'var(--red)':'var(--text3)')+'">'+(v>0?fmtN(v):'—')+'</td>';})()+'<td class="amount">'+fmtN(c.deuda)+'</td><td>'+invs+'</td><td><div class="actions">'+(wa?'<a class="act-btn wa" href="'+wa+'" target="_blank"><i class="ti ti-brand-whatsapp"></i></a>':'<span class="act-btn disabled"><i class="ti ti-brand-whatsapp"></i></span>')+(ml?'<a class="act-btn em" href="'+ml+'" data-mail-idx="'+i+'" title="Mail de cobranza con formato"><i class="ti ti-mail"></i></a>':'<span class="act-btn disabled"><i class="ti ti-mail"></i></span>')+'<button class="act-btn nt" onclick="openModal('+i+')"><i class="ti ti-notes"></i></button></div></td></tr>';
   }).join('');
   renderPag(data.length);
 }
@@ -1997,7 +2140,7 @@ function openModal(idx){
   document.getElementById('mtitle').textContent=c.nombre;
   const desglose=desgloseDeuda(c);
   const desgloseHtml=desglose.length>1?'<div style="margin-top:6px;display:flex;gap:14px;flex-wrap:wrap">'+desglose.map(({t,monto})=>'<span style="font-size:12px">'+t+': <strong style="color:'+tramoColor[t]+'">'+fmtF(monto)+'</strong></span>').join('')+'</div>':'';
-  document.getElementById('msub').innerHTML=empBadge(c.empresa)+'&nbsp; Deuda total: <strong style="color:var(--yellow)">'+fmtF(c.deuda)+'</strong>'+(c.dias_vencidos>0?' &nbsp;<span style="color:var(--red)">+'+c.dias_vencidos+' días</span>':'')+desgloseHtml;
+  document.getElementById('msub').innerHTML=empBadge(c.empresa)+'&nbsp; Deuda total: <strong style="color:var(--yellow)">'+fmtF(c.deuda)+'</strong>'+(c.dias_vencidos>0?' &nbsp;<span style="color:var(--red)">Vencido: <strong>'+fmtF(vencidoCli(c))+'</strong> · +'+c.dias_vencidos+' días</span>':'')+desgloseHtml;
   document.getElementById('m-email').value=getEmail(idx);
   document.getElementById('m-tel').value=getTel(idx);
   document.getElementById('m-vend').value=getVend(idx);
@@ -2401,6 +2544,7 @@ function renderReporte(){
     if(d.temp)html+='<div class="rep-row'+rk('temp')+'"><span>Mora temprana</span><span style="color:#f39c12">'+d.temp+'</span></div>';
     if(d.prev)html+='<div class="rep-row'+rk('prev')+'"><span>Preventivo</span><span style="color:var(--green)">'+d.prev+'</span></div>';
     html+='<div class="rep-row'+rk('gestion')+'"><span>Con gestión</span><span>'+d.conGestion+'</span></div>';
+    {const pf=(typeof fbRows!=='undefined'?fbRows:[]).filter(r=>r.tipo==='pedido'&&r.estado==='pendiente'&&r.vendedor===v);if(pf.length)html+='<div class="rep-row'+rk('fbpend')+'"><span style="color:var(--orange)"><i class="ti ti-send" style="font-size:12px;vertical-align:-1px"></i> Pedidos sin responder</span><span style="color:var(--orange);font-weight:700">'+pf.length+(pf.some(fbAtrasado)?' ('+pf.filter(fbAtrasado).length+' vencidos)':'')+'</span></div>';}
     if(d.estancados)html+='<div class="rep-row'+rk('estancados')+'" style="border-top:1px solid var(--border);margin-top:4px;padding-top:6px"><span style="color:var(--red)"><i class="ti ti-alert-triangle" style="font-size:12px;vertical-align:-1px"></i> Sin gestión '+UMBRAL_ESTANCADO+'+ días</span><span style="color:var(--red);font-weight:700">'+d.estancados+' ('+fmtN(d.estancadosDeuda)+')</span></div>';
     html+='</div>';
   });
@@ -2425,9 +2569,18 @@ function renderReporte(){
   }
   const rc=document.getElementById('reporte-content');rc.innerHTML=html;
   if(!rc._drill){rc._drill=true;rc.addEventListener('click',e=>{
+    if(e.target.closest('[data-repchk-td]')||e.target.closest('[data-repchk]')){e.stopPropagation();const cb=e.target.closest('[data-repchk]')||e.target.closest('[data-repchk-td]').querySelector('input');if(cb&&e.target!==cb)cb.checked=!cb.checked;repMarcar(cb);return;}
+    if(e.target.closest('#rep-pedir')){const ids=[...repSel];if(ids.length)fbAbrirPedido(repSelVend,ids,'reporte');return;}
     const ab=e.target.closest('[data-abrir]');if(ab){repAbrirCliente(+ab.dataset.abrir);return;}
     if(e.target.closest('[data-cerrar-drill]')){document.getElementById('rep-drill').innerHTML='';rc.querySelectorAll('.rep-card.rep-sel').forEach(x=>x.classList.remove('rep-sel'));return;}
     const r=e.target.closest('.rep-click');if(r)repDrill(+r.dataset.vi,r.dataset.k);});}
+}
+let repSel=new Set(),repSelVend='';
+function repMarcar(cb){
+  if(!cb)return;const box=document.getElementById('rep-drill');
+  if(cb.dataset.repchk==='todos'){box.querySelectorAll('input[data-repchk]:not([data-repchk="todos"])').forEach(x=>{x.checked=cb.checked;const i=+x.dataset.repchk;if(cb.checked)repSel.add(i);else repSel.delete(i);});}
+  else{const i=+cb.dataset.repchk;if(cb.checked)repSel.add(i);else repSel.delete(i);}
+  const b=document.getElementById('rep-pedir');if(b){b.disabled=!repSel.size;document.getElementById('rep-pedir-n').textContent='('+repSel.size+')';}
 }
 // Detalle al tocar un número del reporte: los clientes de ese vendedor y esa categoría, con deuda y gestión.
 function repAbrirCliente(i){document.getElementById('modal-reporte').classList.remove('open');openModal(i);switchTab('gestion');}
@@ -2437,18 +2590,21 @@ function repDrill(vi,k){
   const est=x=>{if(!(x.c.dias_vencidos>0))return false;const s=diasSinGestion(x.i);return s===null||s>=UMBRAL_ESTANCADO;};
   const T={todos:['Clientes',()=>true],deuda:['Deuda total',()=>true],crit:['Mora crítica',x=>tr(x)==='Mora crítica'],med:['Mora media',x=>tr(x)==='Mora media'],
     temp:['Mora temprana',x=>tr(x)==='Mora temprana'],prev:['Preventivo',x=>tr(x)==='Preventivo'],gestion:['Con gestión',x=>gestiones[x.i]&&gestiones[x.i].nota],
-    estancados:['Sin gestión '+UMBRAL_ESTANCADO+'+ días (en mora)',est]};
+    estancados:['Sin gestión '+UMBRAL_ESTANCADO+'+ días (en mora)',est],fbpend:['Pedidos al vendedor sin responder',x=>fbPendDeCliente(x.c.nombre).length>0]};
   const[tit,fn]=T[k]||T.todos;
   const l=d.clientes.filter(fn).sort((a,b)=>k==='estancados'||/crit|med|temp/.test(k)?(b.c.dias_vencidos-a.c.dias_vencidos||b.c.deuda-a.c.deuda):b.c.deuda-a.c.deuda);
   const tot=l.reduce((s,x)=>s+(x.c.deuda||0),0);
   document.querySelectorAll('#reporte-content .rep-card').forEach(x=>x.classList.toggle('rep-sel',x.dataset.vi===String(vi)));
+  const puedePv=puede('pedir_vendedor')&&v!=='Sin asignar';repSel=new Set();repSelVend=v;
   const filas=l.map(({c,i})=>{const g=gestiones[i]||{};const h=(g.historial||[]).filter(x=>x.ts);const u=h[h.length-1];
     const dsg=diasSinGestion(i);const cerr=gestionCerrada(g);
     const cuando=cerr?'<span style="color:var(--green)">Cerrada</span>':dsg===null?'<span style="color:var(--red)">Nunca</span>':'<span style="color:'+(c.dias_vencidos>0&&dsg>=UMBRAL_ESTANCADO?'var(--red)':'var(--text2)')+'">'+(dsg===0?'Hoy':'Hace '+dsg+'d')+'</span>';
     const nota=g.nota||(u&&u.nota)||'';
     const comp=g.fecha_comp?'<div style="font-size:11px;color:var(--yellow2)"><i class="ti ti-calendar"></i> Compromiso '+fmtFecha(g.fecha_comp)+(g.monto_comp?' · '+fmtN(+g.monto_comp):'')+'</div>':'';
+    const fp=fbPendDeCliente(c.nombre);
     return'<tr style="border-bottom:1px solid var(--border);cursor:pointer" data-abrir="'+i+'" title="Abrir la ficha del cliente">'
-      +'<td style="padding:6px 8px;color:var(--text);font-weight:600">'+escH(c.nombre)+'</td>'
+      +(puedePv?'<td style="padding:6px 4px 6px 8px" data-repchk-td><input type="checkbox" class="rep-chk" data-repchk="'+i+'"'+(repSel.has(i)?' checked':'')+'></td>':'')
+      +'<td style="padding:6px 8px;color:var(--text);font-weight:600">'+escH(c.nombre)+(fp.length?'<div style="font-size:11px;color:'+(fp.some(fbAtrasado)?'var(--red)':'var(--orange)')+';font-weight:400"><i class="ti ti-send"></i> pedido al vendedor '+haceCuanto(fp[0].creado_ts)+(fp.some(fbAtrasado)?' · plazo vencido':'')+'</div>':'')+'</td>'
       +'<td style="padding:6px 8px"><span class="badge '+bc(tramo(c.dias_vencidos))+'">'+tramo(c.dias_vencidos)+'</span>'+(c.dias_vencidos>0?'<div style="font-size:11px;color:var(--text3)">'+c.dias_vencidos+' días</div>':'')+'</td>'
       +'<td style="padding:6px 8px;text-align:right;font-weight:700;color:var(--yellow2);white-space:nowrap">'+fmtN(c.deuda)+'<div style="font-size:11px;color:var(--text3);font-weight:400">'+(c.facturas||[]).length+' comp.</div></td>'
       +'<td style="padding:6px 8px;font-size:12px">'+cuando+(nota?'<div style="color:var(--text2);max-width:320px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+escH(nota)+'">'+escH(nota)+'</div>':'')+comp+'</td>'
@@ -2457,7 +2613,8 @@ function repDrill(vi,k){
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><strong style="color:var(--yellow)">'+escH(v)+' · '+escH(tit)+'</strong>'
     +'<span style="color:var(--text3);font-size:12px">'+l.length+' cliente'+(l.length!==1?'s':'')+' · '+fmtN(tot)+'</span>'
     +'<button class="btn" data-cerrar-drill style="margin-left:auto;padding:3px 8px;font-size:11px"><i class="ti ti-x"></i> Cerrar</button></div>'
-    +(l.length?'<div style="overflow-x:auto;max-height:360px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="border-bottom:1px solid var(--border)"><th style="padding:6px 8px;color:var(--text3);text-align:left">Cliente</th><th style="padding:6px 8px;color:var(--text3);text-align:left">Estado</th><th style="padding:6px 8px;color:var(--text3);text-align:right">Deuda</th><th style="padding:6px 8px;color:var(--text3);text-align:left">Última gestión</th><th></th></tr></thead><tbody>'+filas+'</tbody></table></div>'
+    +(l.length&&puedePv?'<div class="rep-pedir-bar"><button class="btn btn-yellow" id="rep-pedir" disabled style="padding:5px 12px;font-size:12px"><i class="ti ti-send"></i> Pedir gestión al vendedor <span id="rep-pedir-n">(0)</span></button><span style="font-size:11.5px;color:var(--text3)">Marcá los clientes: se le manda el resumen por WhatsApp o mail, con el link para responder, y queda una tarea en la agenda.</span></div>':'')
+    +(l.length?'<div style="overflow-x:auto;max-height:360px;overflow-y:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr style="border-bottom:1px solid var(--border)">'+(puedePv?'<th style="padding:6px 4px 6px 8px;text-align:left"><input type="checkbox" class="rep-chk" data-repchk="todos" title="Marcar todos"></th>':'')+'<th style="padding:6px 8px;color:var(--text3);text-align:left">Cliente</th><th style="padding:6px 8px;color:var(--text3);text-align:left">Estado</th><th style="padding:6px 8px;color:var(--text3);text-align:right">Deuda</th><th style="padding:6px 8px;color:var(--text3);text-align:left">Última gestión</th><th></th></tr></thead><tbody>'+filas+'</tbody></table></div>'
       :'<div style="color:var(--text3)">Sin clientes.</div>')
     +'<div style="font-size:11px;color:var(--text3);margin-top:6px">Tocá un cliente para abrir su ficha en la pestaña Gestión.</div></div>';
   el.scrollIntoView({behavior:'smooth',block:'start'});
@@ -2803,10 +2960,10 @@ document.getElementById('btn-apply').addEventListener('click',()=>{
 
 // Export
 document.getElementById('btn-export').addEventListener('click',()=>{
-  const rows=[['Cliente','Ciudad','Zona','Empresa','Vendedor','Estado','Días vencidos','Deuda total','Facturas','Email','Teléfono','Nota gestión','Fecha compromiso']];
-  clientes.forEach((c,i)=>{if(!veCliente(c,i))return;const g=gestiones[i]||{};const facs=c.facturas.map(f=>f.num+' '+fmtF(f.monto)+' vto:'+f.vto).join(' | ');rows.push([c.nombre,c.ciudad||'',c.zona||'',c.empresa,getVend(i),tramo(c.dias_vencidos),c.dias_vencidos,c.deuda,facs,getEmail(i),getTel(i),g.nota||'',g.fecha_comp||'']);});
+  const rows=[['Cliente','Ciudad','Zona','Empresa','Vendedor','Estado','Días vencidos','Vencido','Deuda total','Facturas','Email','Teléfono','Nota gestión','Fecha compromiso']];
+  clientes.forEach((c,i)=>{if(!veCliente(c,i))return;const g=gestiones[i]||{};const facs=c.facturas.map(f=>f.num+' '+fmtF(f.monto)+' vto:'+f.vto).join(' | ');rows.push([c.nombre,c.ciudad||'',c.zona||'',c.empresa,getVend(i),tramo(c.dias_vencidos),c.dias_vencidos,vencidoCli(c),c.deuda,facs,getEmail(i),getTel(i),g.nota||'',g.fecha_comp||'']);});
   const wb=XLSX.utils.book_new();const ws=XLSX.utils.aoa_to_sheet(rows);
-  ws['!cols']=[{wch:30},{wch:18},{wch:14},{wch:14},{wch:20},{wch:14},{wch:12},{wch:16},{wch:50},{wch:28},{wch:14},{wch:40},{wch:15}];
+  ws['!cols']=[{wch:30},{wch:18},{wch:14},{wch:14},{wch:20},{wch:14},{wch:12},{wch:16},{wch:16},{wch:50},{wch:28},{wch:14},{wch:40},{wch:15}];
   XLSX.utils.book_append_sheet(wb,ws,'Cobranzas');
   XLSX.writeFile(wb,'cobranzas_'+new Date().toISOString().slice(0,10)+'.xlsx');
   showToast('Excel exportado ✓');
@@ -3707,6 +3864,8 @@ function switchMainView(view){
   document.getElementById('view-ayuda').style.display=view==='ayuda'?'':'none';
   document.getElementById('view-agenda').style.display=view==='agenda'?'':'none';
   agVistaActiva=view==='agenda';if(agVistaActiva){renderAgenda();loadAgenda();}
+  document.getElementById('view-feedback').style.display=view==='feedback'?'':'none';
+  fbVistaActiva=view==='feedback';if(fbVistaActiva){renderFeedback();loadFeedback();}
   if(view==='ayuda')window.scrollTo(0,0);
   if(view==='cumplimiento'){cuPage=1;renderCumplimiento();}
   if(view==='objetivos'){renderObjetivos();}
@@ -3985,7 +4144,7 @@ const ESTADOS_PED={pendiente:'Pendiente','en curso':'En curso',resuelto:'Resuelt
 const abiertoPed=x=>x.estado!=='resuelto'&&x.estado!=='descartado';
 function vistaActual(){const t=document.querySelector('#main-tab-bar .tab.active');return t?t.dataset.view:'cartera';}
 function contextoPantalla(){
-  const nombres={cartera:'Cartera',cumplimiento:'Cumplimiento de pagos',objetivos:'Objetivos de cobranza',ayuda:'Ayuda'};
+  const nombres={cartera:'Cartera',cumplimiento:'Cumplimiento de pagos',objetivos:'Objetivos de cobranza',agenda:'Agenda',feedback:'Vendedores',ayuda:'Ayuda'};
   const v=vistaActual();const p=[nombres[v]||v];
   if(v==='objetivos')p.push('mes '+nombreMesObj(objMesActual));
   if(v==='cumplimiento'){const s=document.getElementById('cu-mes-filter');if(s&&s.value)p.push('mes '+s.options[s.selectedIndex].text);}
@@ -4104,7 +4263,7 @@ document.getElementById('ped-peg-ok').addEventListener('click',async()=>{
 
 // ===================== MAILS DE VENDEDORES =====================
 // objetivos_cobranza, fila id='vendedores_mail', valor={mails:{"Nombre vendedor":"mail1, mail2"}}
-let mailsVendedores={},mailsVendLoaded=false,mvVendedorActual='';
+let mailsVendedores={},telsVendedores={},mailsVendLoaded=false,mvVendedorActual='';
 const reMail=/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
 function mailsValidos(txt){const l=String(txt||'').split(/[,;\s]+/).map(x=>x.trim()).filter(Boolean);return l.length>0&&l.every(x=>reMail.test(x));}
 function normMails(txt){return String(txt||'').split(/[,;\s]+/).map(x=>x.trim().toLowerCase()).filter(Boolean).join(', ');}
@@ -4114,16 +4273,16 @@ async function loadMailsVendedores(force){
     const r=await fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE_OBJ+'?id=eq.vendedores_mail&select=valor',{headers:SUPABASE_HEADERS});
     if(!r.ok)throw new Error('HTTP '+r.status);
     const rows=await r.json();
-    mailsVendedores=(rows[0]&&rows[0].valor&&rows[0].valor.mails)||{};mailsVendLoaded=true;
+    mailsVendedores=(rows[0]&&rows[0].valor&&rows[0].valor.mails)||{};telsVendedores=(rows[0]&&rows[0].valor&&rows[0].valor.tels)||{};mailsVendLoaded=true;
   }catch(e){console.error('Error cargando mails de vendedores:',e);}
   return mailsVendedores;
 }
-async function guardarMailsVendedores(mutar){
+async function guardarMailsVendedores(mutar,mutarTels){
   await loadMailsVendedores(true);
-  mutar(mailsVendedores);
+  mutar(mailsVendedores);if(mutarTels)mutarTels(telsVendedores);
   const r=await fetch(SUPABASE_URL+'/rest/v1/'+SUPABASE_TABLE_OBJ+'?on_conflict=id',{
     method:'POST',headers:{...SUPABASE_HEADERS,'Prefer':'resolution=merge-duplicates,return=minimal'},
-    body:JSON.stringify({id:'vendedores_mail',valor:{mails:mailsVendedores},updated_at:new Date().toISOString()})
+    body:JSON.stringify({id:'vendedores_mail',valor:{mails:mailsVendedores,tels:telsVendedores},updated_at:new Date().toISOString()})
   });
   if(!r.ok)throw new Error('HTTP '+r.status);
 }
@@ -4139,8 +4298,8 @@ function pintarMailsVend(){
   const wrap=document.getElementById('mails-vend-tabla');
   if(!vs.length){wrap.innerHTML='<div style="color:var(--text3);font-size:12.5px">No hay vendedores en la cartera todavía.</div>';return;}
   const nClientes=v=>clientes.filter((_,i)=>getVend(i)===v).length;
-  wrap.innerHTML='<table class="obj-cfg" style="min-width:0"><thead><tr><th>Vendedor</th><th>Mail</th><th style="text-align:center">Clientes</th></tr></thead><tbody>'
-    +vs.map(v=>'<tr><td style="font-weight:600;vertical-align:middle">'+escH(v)+'</td><td><input type="text" class="mv-mail-inp" data-v="'+escH(v)+'" value="'+escH(mailDeVendedor(v))+'" placeholder="vendedor@spotsline.com.ar" style="margin:0"></td><td style="text-align:center;vertical-align:middle;color:var(--text3)">'+nClientes(v)+'</td></tr>').join('')
+  wrap.innerHTML='<table class="obj-cfg" style="min-width:0"><thead><tr><th>Vendedor</th><th>Mail</th><th>WhatsApp</th><th style="text-align:center">Clientes</th></tr></thead><tbody>'
+    +vs.map(v=>'<tr><td style="font-weight:600;vertical-align:middle">'+escH(v)+'</td><td><input type="text" class="mv-mail-inp" data-v="'+escH(v)+'" value="'+escH(mailDeVendedor(v))+'" placeholder="vendedor@spotsline.com.ar" style="margin:0"></td><td><input type="text" class="mv-tel-inp" data-v="'+escH(v)+'" value="'+escH((Object.entries(telsVendedores).find(([n])=>normCli(n)===normCli(v))||[])[1]||'')+'" placeholder="1155443322" style="margin:0;width:130px"></td><td style="text-align:center;vertical-align:middle;color:var(--text3)">'+nClientes(v)+'</td></tr>').join('')
     +'</tbody></table>';
 }
 document.getElementById('btn-rep-mails').addEventListener('click',async()=>{
@@ -4161,7 +4320,8 @@ document.getElementById('mails-vend-guardar').addEventListener('click',async()=>
   inps.forEach(i=>i.style.borderColor=malos.includes(i)?'var(--red)':'');
   if(malos.length){showToast('Revisá los mails marcados en rojo');return;}
   try{
-    await guardarMailsVendedores(m=>{inps.forEach(i=>{const v=i.dataset.v,val=i.value.trim();if(val)m[v]=normMails(val);else delete m[v];});});
+    const tinps=[...document.querySelectorAll('#mails-vend-tabla .mv-tel-inp')];
+    await guardarMailsVendedores(m=>{inps.forEach(i=>{const v=i.dataset.v,val=i.value.trim();if(val)m[v]=normMails(val);else delete m[v];});},t=>{tinps.forEach(i=>{const v=i.dataset.v,val=i.value.replace(/\D/g,'');Object.keys(t).filter(n=>normCli(n)===normCli(v)).forEach(n=>delete t[n]);if(val)t[v]=val;});});
     showToast('Mails de vendedores guardados ✓');
     document.getElementById('modal-mails-vend').classList.remove('open');
   }catch(e){showToast('No se pudo guardar: '+e.message);}
@@ -4177,6 +4337,7 @@ const PERMISOS_DEF=[
   {k:'tab_cumplimiento',grupo:'solapa',view:'cumplimiento',lbl:'Cumplimiento de pagos',desc:'Recibos, medios de pago, plazos de cheque',def:()=>true},
   {k:'tab_objetivos',grupo:'solapa',view:'objetivos',lbl:'Objetivos de cobranza',desc:'Objetivo del mes y cumplimiento por vendedor',def:()=>true},
   {k:'tab_agenda',grupo:'solapa',view:'agenda',lbl:'Agenda',desc:'Próximas acciones de las gestiones (llamar, verificar pago…)',def:()=>true},
+  {k:'tab_feedback',grupo:'solapa',view:'feedback',lbl:'Vendedores',desc:'Pedidos a vendedores, sus respuestas y conversaciones registradas',def:()=>true},
   {k:'tab_ayuda',grupo:'solapa',view:'ayuda',lbl:'Ayuda',desc:'Instructivo',def:()=>true},
   {k:'actualizar',grupo:'accion',lbl:'Actualizar datos',desc:'Subir Excel de Odoo (cartera, contactos y recibos)',def:r=>r!=='vendedor'},
   {k:'exportar',grupo:'accion',lbl:'Exportar a Excel',desc:'Descargar la cartera completa',def:r=>r!=='vendedor'},
@@ -4184,6 +4345,7 @@ const PERMISOS_DEF=[
   {k:'editar_objetivos',grupo:'accion',lbl:'Editar objetivos',desc:'% por tipo de deudor, foto del mes, gastos a cubrir',def:r=>r!=='vendedor'},
   {k:'mails_vendedores',grupo:'accion',lbl:'Mails de vendedores',desc:'Cargar/editar los mails del informe',def:r=>r!=='vendedor'},
   {k:'plantillas',grupo:'accion',lbl:'Editar plantilla de mail',desc:'Textos, datos bancarios y contacto del mail al cliente',def:r=>r!=='vendedor'},
+  {k:'pedir_vendedor',grupo:'accion',lbl:'Pedir gestión a vendedores',desc:'Armar pedidos desde Reporte/ficha y mandarlos por WhatsApp o mail',def:r=>r!=='vendedor'},
   {k:'agenda_equipo',grupo:'accion',lbl:'Agenda de todo el equipo',desc:'Ver y gestionar las acciones de los demás y el resumen por responsable',def:r=>r!=='vendedor'},
   {k:'usuarios',grupo:'accion',lbl:'Usuarios y permisos',desc:'Alta/baja de usuarios, claves y permisos',def:r=>r!=='vendedor'}
 ];
@@ -4210,6 +4372,7 @@ function aplicarPermisos(){
   set('btn-mi-clave',false);
   set('btn-obj-excel',puede('editar_objetivos'));
   set('btn-agenda',puede('tab_agenda'));
+  if(typeof fbPintarContador==='function')fbPintarContador();
   // Ayuda: los links "Ver instructivo" solo si tiene la solapa
   document.querySelectorAll('[data-ayuda]').forEach(a=>a.style.display=puede('tab_ayuda')?'':'none');
   const actual=vistaActual();
@@ -5355,7 +5518,7 @@ const TRAMO_RANK={'Preventivo':0,'Mora temprana':1,'Mora media':2,'Mora crítica
 function cmpVal(a,b){if(a===b)return 0;if(a===null||a===undefined||a==='')return 1;if(b===null||b===undefined||b==='')return -1;return typeof a==='number'&&typeof b==='number'?a-b:String(a).localeCompare(String(b),'es',{numeric:true});}
 function ordenarCartera(data){
   if(!cartSort.k)return data;
-  const g={nombre:c=>c.nombre,empresa:c=>c.empresa,vendedor:c=>getVend(c._idx!==undefined?c._idx:clientes.indexOf(c))||c.vendedor||'',estado:c=>TRAMO_RANK[tramo(c.dias_vencidos)],dias:c=>c.dias_vencidos,deuda:c=>c.deuda,facturas:c=>(c.facturas||[]).length}[cartSort.k];
+  const g={nombre:c=>c.nombre,empresa:c=>c.empresa,vendedor:c=>getVend(c._idx!==undefined?c._idx:clientes.indexOf(c))||c.vendedor||'',estado:c=>TRAMO_RANK[tramo(c.dias_vencidos)],dias:c=>c.dias_vencidos,vencido:c=>vencidoCli(c),deuda:c=>c.deuda,facturas:c=>(c.facturas||[]).length}[cartSort.k];
   if(!g)return data;
   return data.sort((a,b)=>{const va=g(a),vb=g(b);const r=cmpVal(va,vb);return (va===''||va==null||vb===''||vb==null)?r:r*cartSort.dir;});
 }
@@ -5500,11 +5663,11 @@ function explicarObjetivos(X){
 // --- Cartera y Cumplimiento (definiciones fijas) ---
 function explicarFijos(){
   const D={
-    'm-total':'<p>Clientes con deuda vencida: mora crítica + media + temprana. No incluye Preventivo (todavía no venció). La deuda total de la cartera, con Preventivo, está arriba en el recuadro amarillo.</p>'+cRow('Número grande','cantidad de clientes en mora')+cRow('Abajo','suma de su deuda'),
-    'm-crit':'<p>Clientes cuya <strong>factura impaga más vieja</strong> venció hace <strong>más de 45 días</strong>.</p><p class="calc-nota">El monto es toda la deuda de esos clientes (también sus facturas más nuevas). Días = hoy − vencimiento de la factura más vieja.</p>',
-    'm-med':'<p>Clientes cuya factura impaga más vieja venció hace <strong>16 a 45 días</strong>.</p><p class="calc-nota">El monto es toda la deuda de esos clientes.</p>',
-    'm-temp':'<p>Clientes cuya factura impaga más vieja venció hace <strong>1 a 15 días</strong>.</p><p class="calc-nota">El monto es toda la deuda de esos clientes.</p>',
-    'm-prev':'<p>Clientes que <strong>todavía no tienen nada vencido</strong> (su factura más vieja vence hoy o más adelante).</p>',
+    'm-total':'<p>Clientes con deuda vencida: mora crítica + media + temprana. No incluye Preventivo (todavía no venció). La deuda total de la cartera, con Preventivo, está arriba en el recuadro amarillo.</p>'+cRow('Número grande','cantidad de clientes en mora')+cRow('Abajo','suma de lo <strong>realmente vencido</strong>')+'<p class="calc-nota">Se cuenta factura por factura: si un cliente tiene una factura vieja vencida y otra nueva que todavía no vence, solo la vieja suma acá. Las notas de crédito o pagos a cuenta sin imputar se descuentan primero de lo más vencido.</p>',
+    'm-crit':'<p>Clientes cuya <strong>factura impaga más vieja</strong> venció hace <strong>más de 45 días</strong>.</p><p class="calc-nota">El monto suma solo las <strong>facturas</strong> vencidas hace más de 45 días (de cualquier cliente). Días = hoy − vencimiento de la factura más vieja.</p>',
+    'm-med':'<p>Clientes cuya factura impaga más vieja venció hace <strong>16 a 45 días</strong>.</p><p class="calc-nota">El monto suma las <strong>facturas</strong> vencidas hace 16 a 45 días, de cualquier cliente (también las de clientes en mora crítica).</p>',
+    'm-temp':'<p>Clientes cuya factura impaga más vieja venció hace <strong>1 a 15 días</strong>.</p><p class="calc-nota">El monto suma las <strong>facturas</strong> vencidas hace 1 a 15 días, de cualquier cliente.</p>',
+    'm-prev':'<p>Clientes que <strong>todavía no tienen nada vencido</strong> (su factura más vieja vence hoy o más adelante).</p><p class="calc-nota">El monto suma todas las facturas que <strong>todavía no vencieron</strong>, de cualquier cliente. Preventivo + temprana + media + crítica = deuda total.</p>',
     'm-gest':'<p>Clientes que tienen al menos una gestión cargada (nota, compromiso o mail registrado).</p>',
     'hero-deuda':'<p>Suma del saldo de todos los clientes de la cartera que ves, según el último Excel de Odoo cargado en <em>Actualizar</em>.</p><p class="calc-nota">Abajo se separa por empresa: en clientes que deben a las dos, se reparte según sus facturas de cada una.</p>',
     'cu-total-pagado':'<p>Suma de los recibos que cuentan como <strong>cobrados</strong> en el período elegido: estado <em>Pagado</em> + todas las transferencias (aunque Odoo las marque en proceso).</p><p class="calc-nota">Período: el mes del filtro, o todos los meses cargados. Abajo: cantidad de clientes con recibos.</p>',
@@ -5515,6 +5678,26 @@ function explicarFijos(){
   Object.entries(D).forEach(([id,h])=>{const el=id==='hero-deuda'?document.getElementById(id).parentElement:cardDe(id);if(el){if(id==='hero-deuda'){const l=el.querySelector('.hero-label');if(l)l.classList.add('calc-lbl');}setCalc(el,h);}});
 }
 explicarFijos();
+
+// --- Agrandar subpantallas (pedido #38): botón ⤢ en ventanas, tablas y paneles; las ventanas también se estiran desde la esquina ---
+const ZOOM_SEL='.modal-bg > .modal, .main > .table-wrap, .main > .cump-panel';
+function ponerBotonesZoom(){
+  document.querySelectorAll(ZOOM_SEL).forEach(el=>{
+    if(el.querySelector(':scope > .modal-zoom'))return;
+    if(!el.classList.contains('modal'))el.classList.add('zoomable');
+    el.insertAdjacentHTML('afterbegin','<button type="button" class="modal-zoom" title="Agrandar / volver al tamaño normal"><i class="ti ti-arrows-maximize"></i></button>');
+  });
+}
+function alternarZoom(el,forzar){
+  const on=forzar!==undefined?forzar:!el.classList.contains(el.classList.contains('modal')?'modal-max':'zoom-max');
+  if(el.classList.contains('modal')){el.classList.toggle('modal-max',on);if(on){el.style.width='';el.style.height='';}}else el.classList.toggle('zoom-max',on);
+  const b=el.querySelector(':scope > .modal-zoom i');if(b)b.className='ti '+(on?'ti-arrows-minimize':'ti-arrows-maximize');
+}
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('.modal-zoom');if(!b)return;e.preventDefault();e.stopPropagation();alternarZoom(b.parentElement);},true);
+document.addEventListener('dblclick',e=>{const h=e.target.closest&&e.target.closest('.modal > h2');if(h)alternarZoom(h.parentElement);});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;const z=document.querySelector('.zoom-max');if(z&&!document.querySelector('.modal-bg.open'))alternarZoom(z,false);});
+ponerBotonesZoom();
+new MutationObserver(()=>{clearTimeout(ponerBotonesZoom._t);ponerBotonesZoom._t=setTimeout(ponerBotonesZoom,150);}).observe(document.body,{childList:true});
 
 // ===================== OBJETIVO Y CUMPLIMIENTO POR FACTURA =====================
 // La foto guarda cada factura (fc: [cliente, vendedor, número, empresa, vencimiento, saldo]).
@@ -6156,7 +6339,7 @@ document.getElementById('view-ayuda').addEventListener('click',e=>{const a=e.tar
 // cliente y a la gestión (historial) que la originó por gestion_ts. Estados guardados: pendiente /
 // resuelta / cancelada. "Hoy" y "Atrasada" se calculan con la fecha. Reprogramar no cambia el
 // estado: mueve la fecha y suma 1 a reprogramaciones (queda todo en log).
-const AG_TIPOS={llamar:{l:'Llamar',i:'ti-phone'},whatsapp:{l:'WhatsApp',i:'ti-brand-whatsapp'},mail:{l:'Mail',i:'ti-mail'},visita:{l:'Visita',i:'ti-map-pin'},moto:{l:'Retiro con moto',i:'ti-motorbike'},vendedor:{l:'Retiro vendedor',i:'ti-briefcase'},pago:{l:'Verificar pago',i:'ti-cash'},otro:{l:'Otro',i:'ti-checklist'}};
+const AG_TIPOS={llamar:{l:'Llamar',i:'ti-phone'},whatsapp:{l:'WhatsApp',i:'ti-brand-whatsapp'},mail:{l:'Mail',i:'ti-mail'},visita:{l:'Visita',i:'ti-map-pin'},moto:{l:'Retiro con moto',i:'ti-motorbike'},vendedor:{l:'Retiro vendedor',i:'ti-briefcase'},pago:{l:'Verificar pago',i:'ti-cash'},respvend:{l:'Respuesta del vendedor',i:'ti-message-reply'},otro:{l:'Otro',i:'ti-checklist'}};
 const AG_EST={atrasada:{l:'Atrasada',c:'var(--red)',bg:'var(--red-bg)',bd:'#4a1810'},hoy:{l:'Hoy',c:'var(--yellow)',bg:'var(--yellow-dim)',bd:'#4a3d00'},pendiente:{l:'Pendiente',c:'var(--text2)',bg:'var(--bg3)',bd:'var(--border2)'},resuelta:{l:'Resuelta',c:'var(--green)',bg:'var(--green-bg)',bd:'#1a4a2e'},cancelada:{l:'Cancelada',c:'var(--text3)',bg:'var(--bg3)',bd:'var(--border)'}};
 let agenda=[],agError='',agVistaActiva=false;
 let agF={resp:null,estado:'abiertas',tipo:'',q:'',kpi:'',vista:'lista',semana:0};
@@ -6261,7 +6444,7 @@ function agOpcionesResp(sel,actual){
   sel.innerHTML=lista.map(u=>'<option value="'+escH(String(u.usuario).toLowerCase())+'">'+escH(u.nombre)+(String(u.usuario).toLowerCase()===me?' (yo)':'')+'</option>').join('');
   sel.value=String(actual||me).toLowerCase();
 }
-function agOpcionesTipo(sel,actual){sel.innerHTML=Object.entries(AG_TIPOS).map(([k,t])=>'<option value="'+k+'">'+t.l+'</option>').join('');sel.value=actual||'llamar';}
+function agOpcionesTipo(sel,actual){sel.innerHTML=Object.entries(AG_TIPOS).filter(([k])=>k!=='respvend'||actual==='respvend').map(([k,t])=>'<option value="'+k+'">'+t.l+'</option>').join('');sel.value=actual||'llamar';}
 // Muestra dirección (+ monto si es moto) según el tipo; si la dirección está vacía, la completa sola
 function agToggleDir(tipoSel,box,dirInp,montoLbl,cliente,origenEl){
   const t=tipoSel.value;box.hidden=!agConDir(t);if(montoLbl)montoLbl.style.display=agEsRetiro(t)?'':'none';
@@ -6286,6 +6469,7 @@ function agPintarFicha(){
   const el=document.getElementById('m-ag-abiertas');if(!el||currentIdx===null)return;
   const n=clientes[currentIdx].nombre;
   const ab=agenda.filter(a=>a.cliente===n&&a.estado==='pendiente').sort((x,y)=>x.fecha.localeCompare(y.fecha));
+  agFilaMiniFb();
   el.innerHTML=agError==='falta-tabla'?'<div class="ag-aviso">La agenda todavía no está instalada en Supabase (falta correr 5_sql_agenda.sql).</div>'
     :!ab.length?'':'<div class="ag-sub-tit">Acciones abiertas en la agenda ('+ab.length+')</div>'+ab.map(a=>agFilaMini(a)).join('');
   // marcar en el historial qué gestión generó cada acción
@@ -6295,6 +6479,7 @@ function agPintarFicha(){
     if(ac.length)it.insertAdjacentHTML('beforeend',ac.map(a=>'<div class="ag-hist-tag"><i class="ti ti-calendar-event"></i> '+escH(agEtiq(a))+' · '+agNom(a.responsable)+' '+agBadge(agEstado(a))+(a.resultado?' <span style="color:var(--text3)">— '+escH(a.resultado)+'</span>':'')+'</div>').join(''));
   });
 }
+function agFilaMiniFb(){if(typeof fbPintarFicha==='function')fbPintarFicha();}
 function agFilaMini(a){
   const t=AG_TIPOS[a.tipo]||AG_TIPOS.otro;const e=agEstado(a);
   return'<div class="ag-mini"><div><i class="ti '+t.i+'"></i> <strong>'+escH(agEtiq(a))+'</strong>'+(a.tipo==='vendedor'?' ('+escH(agVendDe(a))+')':'')+' · '+escH(agNom(a.responsable))+' '+agBadge(e,e==='atrasada'?' '+agDif(a.fecha,agHoy())+' d':'')
@@ -6710,6 +6895,601 @@ function agIrCliente(nombre,hts){
 })();
 
 
+// ===================== FEEDBACK CON VENDEDORES (20-nov-2026) =====================
+// Tabla Supabase "feedback_vendedor" (7_sql_feedback_vendedor.sql):
+//  · tipo 'pedido': cobranzas le pide al vendedor que gestione un cliente (desde Reporte, la ficha o la solapa
+//    Vendedores). Un mismo pedido (pedido_id) agrupa varios clientes y va en el link ?pv=<pedido_id>.
+//    Crea una tarea "Respuesta del vendedor" en la agenda (responsable = usuario del vendedor si tiene, si no quien pidió).
+//    Estados: pendiente → respondido / cancelado. La respuesta queda en la misma fila, en la gestión del cliente,
+//    resuelve la tarea y le avisa a quien pidió (campana). Si informa compromiso de pago se agenda "Verificar pago".
+//  · tipo 'nota': conversación registrada a mano (WhatsApp, mail, llamada…), enviada o recibida.
+const FB_URL='https://cbuceta.github.io/Cobranzas/';
+const FB_CANALES={whatsapp:{l:'WhatsApp',i:'ti-brand-whatsapp'},mail:{l:'Mail',i:'ti-mail'},llamada:{l:'Llamada',i:'ti-phone'},reunion:{l:'En persona',i:'ti-users'},panel:{l:'Panel',i:'ti-layout-dashboard'},otro:{l:'Otro',i:'ti-message'}};
+let fbRows=[],fbError='',fbVistaActiva=false;
+let fbF={vend:'',estado:'pend',canal:'',q:'',vista:'vend',kpi:''};
+let pvEstado=null;   // pedido que se está armando
+let fbrLista=null;   // filas abiertas en el modal de respuesta
+let fbPendienteAbrir=null;
+// Link ?pv= : se guarda antes de que el login pueda redirigir (ver script al principio del <head>)
+(function(){try{const p=new URLSearchParams(location.search).get('pv');if(p){localStorage.setItem('cob_pv',p);history.replaceState(null,'',location.pathname+location.hash);}fbPendienteAbrir=localStorage.getItem('cob_pv');}catch(_){}})();
+
+function fbUuid(){if(window.crypto&&crypto.randomUUID)return crypto.randomUUID();return'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&3|8)).toString(16);});}
+function fbCanalLbl(c){return(FB_CANALES[c]||FB_CANALES.otro).l;}
+function fbHoy(){return agHoy();}
+function fbDiasDesde(iso){return iso?Math.max(0,Math.floor((Date.now()-new Date(iso).getTime())/864e5)):0;}
+function fbEsVendedorDe(r){const v=currentUser&&currentUser.vendedor_nombre;return !!v&&normCli(v)===normCli(r.vendedor);}
+function fbVisible(r){return veVendedor(r.vendedor||'Sin asignar');}
+function fbBase(){return fbRows.filter(fbVisible);}
+function fbAtrasado(r){return r.tipo==='pedido'&&r.estado==='pendiente'&&r.plazo&&r.plazo<fbHoy();}
+function fbMisPendientes(){return fbRows.filter(r=>r.tipo==='pedido'&&r.estado==='pendiente'&&fbEsVendedorDe(r));}
+function fbPendDeCliente(n){return fbRows.filter(r=>r.tipo==='pedido'&&r.estado==='pendiente'&&r.cliente===n);}
+function fbTelVend(v){const k=normCli(v);const e=Object.entries(telsVendedores||{}).find(([n])=>normCli(n)===k);return e?e[1]:'';}
+function fbMailVend(v){let m=mailDeVendedor(v);if(!m){const u=agUsuarioVend(v);if(u&&u.email)m=u.email;}return m||'';}
+
+async function loadFeedback(){
+  if(!currentUser)return;
+  const desde=new Date(Date.now()-200*864e5).toISOString();
+  try{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/feedback_vendedor?select=*&or=(estado.eq.pendiente,creado_ts.gte.'+desde+',respondido_ts.gte.'+desde+')&order=creado_ts.desc&limit=5000',{headers:SUPABASE_HEADERS});
+    if(!r.ok){const t=await r.text();fbError=/feedback_vendedor|42P01|PGRST205/.test(t)?'falta-tabla':t;fbRows=[];}
+    else{fbRows=await r.json()||[];fbError='';}
+  }catch(e){fbError=e.message;}
+  fbPintarContador();
+  if(fbVistaActiva)renderFeedback();
+  if(document.getElementById('modal-bg').classList.contains('open')&&currentIdx!==null)fbPintarFicha();
+  if(document.getElementById('modal-reporte').classList.contains('open'))renderReporte();
+  if(fbPendienteAbrir){const p=fbPendienteAbrir;fbPendienteAbrir=null;try{localStorage.removeItem('cob_pv');}catch(_){}fbAbrirRespuesta(p==='mis'?null:p);}
+}
+async function fbPatch(id,c){c.updated_ts=new Date().toISOString();const r=await _rest('feedback_vendedor?id=eq.'+_q(id),{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(c)});
+  const n=r&&r[0];if(n){const i=fbRows.findIndex(x=>x.id===id);if(i>=0)fbRows[i]=n;}return n;}
+async function fbInsert(rows){const r=await _rest('feedback_vendedor',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(rows)});(r||[]).forEach(x=>fbRows.unshift(x));return r||[];}
+
+// ---------- Contador en la barra ----------
+function fbPintarContador(){
+  const b=document.getElementById('btn-fb');if(!b)return;
+  const mias=fbMisPendientes();const base=fbBase().filter(r=>r.tipo==='pedido'&&r.estado==='pendiente');
+  const esVend=!!(currentUser&&currentUser.vendedor_nombre);
+  const n=esVend?mias.length:base.filter(fbAtrasado).length;
+  b.style.display=(puede('tab_feedback')||mias.length)?'':'none';
+  const c=document.getElementById('fb-count');c.hidden=!n;c.textContent=n>99?'99+':n;
+  c.style.background=esVend?'var(--yellow)':'var(--red)';c.style.color=esVend?'#000':'#fff';
+  b.title=esVend?'Pedidos de cobranzas para responder: '+mias.length:'Pedidos a vendedores pendientes: '+base.length+' · con el plazo vencido: '+n;
+}
+
+// ---------- Foto del cliente y texto por defecto de lo que se pide ----------
+function fbFotoCliente(i){
+  const c=clientes[i];const g=gestiones[i]||{};const h=(g.historial||[]).filter(x=>x.ts);const u=h[h.length-1];
+  return{deuda:Math.round(c.deuda||0),tramo:tramo(c.dias_vencidos),dias:c.dias_vencidos||0,nfact:(c.facturas||[]).length,
+    dsg:diasSinGestion(i),ult_fecha:u?String(u.fecha||'').split(' ')[0]:'',ult_nota:u?String(u.nota||'').slice(0,160):'',
+    fecha_comp:g.fecha_comp||'',monto_comp:g.monto_comp||null,
+    prox_vto:((c.facturas||[]).map(f=>f.vto).filter(v=>v&&v!=='-').sort()[0])||''};
+}
+function fbPedidoDefault(i){
+  const f=fbFotoCliente(i);const hoy=fbHoy();
+  if(f.fecha_comp&&f.fecha_comp<hoy)return'Tenía compromiso de pago el '+agFmt(f.fecha_comp)+' y no se registró: ¿qué pasó y cuál es la nueva fecha?';
+  const pre=f.dsg===null?'Nunca se gestionó. ':'';
+  if(f.tramo==='Mora crítica')return pre+'Situación del cliente y fecha concreta de pago (o si hay que pasar a gestión legal).';
+  if(f.tramo==='Mora media')return pre+'Confirmar fecha y forma de pago.';
+  if(f.tramo==='Mora temprana')return pre+'Confirmar cuándo paga lo vencido.';
+  return'Recordarle el vencimiento'+(f.prox_vto?' del '+fmtFecha(f.prox_vto):'')+' y confirmar el pago.';
+}
+function fbLineaCliente(f){
+  return fmtN(f.deuda)+' · '+f.tramo+(f.dias>0?' ('+f.dias+' días)':'')+' · últ. gestión: '+(f.dsg===null?'nunca':f.dsg===0?'hoy':'hace '+f.dsg+'d');
+}
+
+// ---------- Armar el pedido (modal) ----------
+// preIdx: índices de cartera ya marcados. vend: vendedor (si no, se toma del primer cliente).
+async function fbAbrirPedido(vend,preIdx,origen){
+  if(!puede('pedir_vendedor')){showToast('No tenés permiso para pedir gestiones a los vendedores');return;}
+  if(fbError==='falta-tabla'){showToast('Falta instalar 7_sql_feedback_vendedor.sql en Supabase');return;}
+  preIdx=(preIdx||[]).filter(i=>clientes[i]);
+  if(!vend&&preIdx.length)vend=getVend(preIdx[0])||'Sin asignar';
+  await loadMailsVendedores();
+  const vendSel=document.getElementById('pv-vend');
+  const vs=listaVendedoresConocidos().filter(v=>veVendedor(v));
+  vendSel.innerHTML='<option value="">Elegí el vendedor…</option>'+vs.map(v=>'<option value="'+escH(v)+'">'+escH(v)+'</option>').join('');
+  if(vend&&!vs.includes(vend))vendSel.insertAdjacentHTML('beforeend','<option value="'+escH(vend)+'">'+escH(vend)+'</option>');
+  vendSel.value=vend||'';
+  pvEstado={vend:vend||'',sel:{},pedido:{},origen:origen||'reporte',creado:null,pedido_id:null};
+  preIdx.forEach(i=>{pvEstado.sel[clientes[i].nombre]=true;});
+  document.getElementById('pv-plazo').value=agHabil(agSum(fbHoy(),2));
+  document.getElementById('pv-msg').value='';
+  document.getElementById('pv-res').innerHTML='';
+  pvCargarVendedor();
+  document.getElementById('modal-pv').classList.add('open');
+}
+function pvClientesVend(){
+  const v=pvEstado.vend;if(!v)return[];
+  return clientes.map((c,i)=>({c,i})).filter(x=>(getVend(x.i)||'Sin asignar')===v&&veCliente(x.c,x.i))
+    .sort((a,b)=>b.c.dias_vencidos-a.c.dias_vencidos||b.c.deuda-a.c.deuda);
+}
+function pvCargarVendedor(){
+  const v=pvEstado.vend;
+  document.getElementById('pv-tel').value=v?fbTelVend(v):'';
+  document.getElementById('pv-mail').value=v?fbMailVend(v):'';
+  const u=v?agUsuarioVend(v):null;
+  document.getElementById('pv-aviso').innerHTML=!v?'':u?'<i class="ti ti-user-check" style="color:var(--green)"></i> '+escH(v)+' tiene usuario (<strong>'+escH(u.nombre)+'</strong>): le queda la tarea en su agenda y entra con el link a responder.'
+    :'<span style="color:var(--orange)"><i class="ti ti-alert-triangle"></i> '+escH(v)+' no tiene usuario en el Panel de Paneles: le llega el mensaje pero no puede entrar a responder. Cuando conteste por WhatsApp o mail, cargá su respuesta desde la solapa Vendedores (la tarea queda a tu nombre).</span>';
+  pvPintar();
+}
+function pvPintar(){
+  const L=pvClientesVend();const el=document.getElementById('pv-lista');
+  if(!pvEstado.vend){el.innerHTML='<div class="notif-empty">Elegí el vendedor.</div>';pvActualizarTexto();return;}
+  const pend=n=>fbPendDeCliente(n);
+  const fila=({c,i})=>{const n=c.nombre;const on=!!pvEstado.sel[n];const f=fbFotoCliente(i);const p=pend(n);
+    return'<div class="pv-fila'+(on?' on':'')+'"><label class="pv-chk"><input type="checkbox" data-pvsel="'+escH(n)+'"'+(on?' checked':'')+'></label><div style="min-width:0">'
+      +'<div><strong>'+escH(n)+'</strong> <span class="badge '+bc(f.tramo)+'" style="font-size:10px">'+f.tramo+'</span>'+(p.length?' <span class="ag-chip" style="color:var(--orange);border-color:#3a2510">ya tiene pedido pendiente ('+haceCuanto(p[0].creado_ts)+')</span>':'')+'</div>'
+      +'<div style="font-size:11.5px;color:var(--text3)">'+escH(fbLineaCliente(f))+(f.fecha_comp?' · compromiso '+agFmt(f.fecha_comp):'')+'</div>'
+      +(on?'<input type="text" data-pvped="'+escH(n)+'" value="'+escH(pvEstado.pedido[n]!=null?pvEstado.pedido[n]:fbPedidoDefault(i))+'" placeholder="Qué necesitamos que haga / nos cuente" style="width:100%;margin:5px 0 0">':'')
+      +'</div><div style="text-align:right;font-weight:700;color:var(--yellow2);white-space:nowrap">'+fmtN(c.deuda)+'</div></div>';};
+  const marcados=L.filter(x=>pvEstado.sel[x.c.nombre]);const resto=L.filter(x=>!pvEstado.sel[x.c.nombre]);
+  const enMora=resto.filter(x=>x.c.dias_vencidos>0);
+  el.innerHTML=(marcados.length?marcados.map(fila).join(''):'<div class="notif-empty" style="padding:10px">No hay clientes marcados. Elegilos abajo.</div>')
+    +'<details class="pv-mas"'+(marcados.length?'':' open')+'><summary>Agregar otros clientes de '+escH(pvEstado.vend)+' ('+resto.length+(enMora.length?' · '+enMora.length+' en mora':'')+')</summary>'
+    +'<div style="display:flex;gap:6px;margin:6px 0"><button type="button" class="lnk" data-pvtodos="estancados">Marcar los sin gestión '+UMBRAL_ESTANCADO+'+ días</button><button type="button" class="lnk" data-pvtodos="mora">Marcar todos los en mora</button></div>'
+    +resto.map(fila).join('')+'</details>';
+  pvActualizarTexto();
+}
+function pvItems(){
+  return pvClientesVend().filter(x=>pvEstado.sel[x.c.nombre]).map(({c,i})=>({cliente:c.nombre,i,foto:fbFotoCliente(i),pedido:String(pvEstado.pedido[c.nombre]!=null?pvEstado.pedido[c.nombre]:fbPedidoDefault(i)).trim()}));
+}
+function pvLink(){return FB_URL+'?pv='+(pvEstado.pedido_id||'(se genera al enviar)');}
+function pvTexto(){
+  const it=pvItems();const v=pvEstado.vend;const pl=document.getElementById('pv-plazo').value;const msg=document.getElementById('pv-msg').value.trim();
+  const nom=String(v||'').split(' ')[0];const nom2=nom?nom.charAt(0)+nom.slice(1).toLowerCase():'';
+  let t='Hola '+nom2+'! Te paso '+it.length+' cliente'+(it.length!==1?'s':'')+' para gestionar'+(pl?' (necesitamos respuesta antes del '+agDiaSem(pl)+' '+agFmt(pl)+')':'')+':\n';
+  it.forEach((x,k)=>{t+='\n'+(k+1)+') *'+x.cliente+'* — '+fbLineaCliente(x.foto)+(x.pedido?'\n   👉 '+x.pedido:'')+'\n';});
+  if(msg)t+='\n'+msg+'\n';
+  t+='\nRespondé cada uno acá (queda registrado en el panel): '+pvLink()+'\nGracias!';
+  return t;
+}
+function pvHtmlMail(){
+  const it=pvItems();const pl=document.getElementById('pv-plazo').value;const msg=document.getElementById('pv-msg').value.trim();
+  const F="font-family:Arial,Helvetica,sans-serif;";const col={'Mora crítica':'#c0392b','Mora media':'#e67e22','Mora temprana':'#d39e00','Preventivo':'#27ae60'};
+  const filas=it.map((x,k)=>'<tr style="border-bottom:1px solid #e5e5e5"><td style="'+F+'padding:8px;vertical-align:top;color:#999">'+(k+1)+'</td><td style="'+F+'padding:8px;vertical-align:top"><strong>'+escH(x.cliente)+'</strong><div style="font-size:12px;color:#666">'+escH(fbLineaCliente(x.foto))+'</div>'
+    +(x.pedido?'<div style="margin-top:4px;font-size:13px;color:#222">👉 '+escH(x.pedido)+'</div>':'')+'</td><td style="'+F+'padding:8px;vertical-align:top;text-align:right;white-space:nowrap"><strong>'+fmtN(x.foto.deuda)+'</strong><div style="font-size:11px;color:'+(col[x.foto.tramo]||'#666')+'">'+x.foto.tramo+'</div></td></tr>').join('');
+  return'<div style="'+F+'max-width:680px;color:#222;font-size:14px">'
+    +'<p>Hola,</p><p>Te pasamos <strong>'+it.length+' cliente'+(it.length!==1?'s':'')+'</strong> para gestionar'+(pl?', con respuesta antes del <strong>'+agDiaSem(pl)+' '+agFmt(pl)+'</strong>':'')+':</p>'
+    +'<table style="border-collapse:collapse;width:100%;font-size:13px">'+filas+'</table>'
+    +(msg?'<p style="background:#fff8db;border-left:4px solid #f1b70f;padding:8px 12px">'+escH(msg).replace(/\n/g,'<br>')+'</p>':'')
+    +'<p style="margin:18px 0"><a href="'+escH(pvLink())+'" style="background:#f1b70f;color:#000;text-decoration:none;padding:10px 18px;border-radius:6px;font-weight:bold">Responder en el panel</a></p>'
+    +'<p style="font-size:12px;color:#888">Cada respuesta queda registrada en la gestión del cliente.</p></div>';
+}
+function pvActualizarTexto(){
+  const it=pvEstado&&pvEstado.vend?pvItems():[];
+  document.getElementById('pv-texto').value=it.length?pvTexto():'';
+  document.getElementById('pv-n').textContent=it.length+' cliente'+(it.length!==1?'s':'')+' · '+fmtN(it.reduce((s,x)=>s+x.foto.deuda,0));
+  document.querySelectorAll('#modal-pv [data-pvenviar]').forEach(b=>b.disabled=!it.length&&!pvEstado.creado);
+}
+// Crea el pedido: filas en feedback_vendedor + tareas en la agenda (una sola vez por pedido armado)
+async function pvCrear(canal){
+  if(pvEstado.creado)return true;
+  const it=pvItems();if(!it.length){showToast('Marcá al menos un cliente');return false;}
+  const v=pvEstado.vend;const plazo=document.getElementById('pv-plazo').value||agHabil(agSum(fbHoy(),2));const msg=document.getElementById('pv-msg').value.trim();
+  const u=agUsuarioVend(v);const resp=u?String(u.usuario).toLowerCase():agYo();const respNom=u?u.nombre:currentUser.nombre;
+  const pid=pvEstado.pedido_id;
+  // guarda tel/mail si se escribieron a mano
+  const tel=document.getElementById('pv-tel').value.replace(/\D/g,'');const mail=document.getElementById('pv-mail').value.trim();
+  if((tel&&tel!==fbTelVend(v))||(mail&&mailsValidos(mail)&&normMails(mail)!==normMails(mailDeVendedor(v))))
+    guardarMailsVendedores(m=>{if(mail&&mailsValidos(mail))m[v]=normMails(mail);},t=>{if(tel)t[v]=tel;}).catch(e=>console.warn('tel/mail vendedor',e));
+  try{
+    let ag=[];
+    if(agError!=='falta-tabla'){
+      ag=await agInsertar(it.map(x=>agNueva({cliente:x.cliente,tipo:'respvend',fecha:plazo,responsable:resp,responsable_nombre:respNom,origen:'pedido_vendedor',
+        descripcion:('Pedido de '+currentUser.nombre+': '+x.pedido).slice(0,500),vendedor:v,log:[{ts:new Date().toISOString(),por:currentUser.nombre,acc:'creada',det:'Pedido al vendedor por '+fbCanalLbl(canal)}]})))||[];
+      ag.forEach(a=>agenda.push(a));
+    }
+    const rows=it.map((x,k)=>({pedido_id:pid,tipo:'pedido',vendedor:v,cliente:x.cliente,canal,sentido:'enviado',texto:x.pedido,
+      datos:Object.assign({},x.foto,{msg,canales:[canal]}),deuda_al_crear:x.foto.deuda,plazo,estado:'pendiente',
+      agenda_id:(ag.find(a=>a.cliente===x.cliente)||{}).id||null,autor:agYo(),autor_nombre:currentUser.nombre,origen:pvEstado.origen}));
+    await fbInsert(rows);
+    secureWrite('registrar_reclamo',{clientes:it.filter(x=>x.foto.dias>0).map(x=>x.cliente)});
+    pvEstado.creado=true;
+    agPintarContador();fbPintarContador();if(agVistaActiva)renderAgenda();if(fbVistaActiva)renderFeedback();
+    document.getElementById('pv-res').innerHTML='<div class="pv-ok"><i class="ti ti-circle-check"></i> Pedido creado: <strong>'+it.length+'</strong> tarea'+(it.length!==1?'s':'')+' en la agenda'+(u?' de '+escH(u.nombre):' (a tu nombre)')+', con plazo '+agFmt(plazo)+'. Link para responder: <a href="'+escH(pvLink())+'" target="_blank" rel="noopener">'+escH(pvLink())+'</a>. Podés mandarlo también por el otro canal.</div>';
+    document.querySelectorAll('#modal-pv [data-pvsel],#modal-pv [data-pvped],#pv-vend,#pv-plazo,#pv-msg').forEach(x=>x.disabled=true);
+    return true;
+  }catch(e){showToast('No se pudo crear el pedido: '+e.message);console.error(e);return false;}
+}
+async function pvEnviar(canal,btn){
+  if(!pvEstado.pedido_id)pvEstado.pedido_id=fbUuid();
+  pvActualizarTexto();
+  const texto=document.getElementById('pv-texto').value;
+  if(canal==='whatsapp'){
+    const t=document.getElementById('pv-tel').value.replace(/\D/g,'').replace(/^0+/,'');const num=t?(t.startsWith('54')?t:'54'+t):'';
+    const w=window.open('about:blank','_blank'); // se abre dentro del clic para que el navegador no la bloquee
+    btn.disabled=true;const ok=await pvCrear('whatsapp');btn.disabled=false;
+    if(!ok){if(w)w.close();return;}
+    const url='https://wa.me/'+num+'?text='+encodeURIComponent(texto.slice(0,3800));
+    if(w)w.location.href=url;else window.open(url,'_blank');
+    pvMarcarCanal('whatsapp');
+  }else if(canal==='mail'){
+    const para=document.getElementById('pv-mail').value.trim();
+    const ok1=copiarHtmlSync(pvHtmlMail(),texto);
+    const asunto='Clientes para gestionar — '+pvEstado.vend+' — '+new Date().toLocaleDateString('es-AR');
+    const donde=abrirCorreoCon(para,asunto);
+    btn.disabled=true;const ok=await pvCrear('mail');btn.disabled=false;if(!ok)return;
+    document.getElementById('pv-res').insertAdjacentHTML('beforeend','<div style="margin-top:6px">'+mensajeAbrir(ok1,donde,'El pedido')+'</div>');
+    pvMarcarCanal('mail');
+  }else if(canal==='copiar'){
+    btn.disabled=true;const ok=await pvCrear('otro');btn.disabled=false;if(!ok)return;
+    pvActualizarTexto();
+    try{await navigator.clipboard.writeText(document.getElementById('pv-texto').value);showToast('Texto copiado ✓');}catch(_){document.getElementById('pv-texto').select();document.execCommand('copy');showToast('Texto copiado ✓');}
+  }else{ // solo tareas
+    btn.disabled=true;const ok=await pvCrear('panel');btn.disabled=false;if(ok)showToast('Pedido creado ✓');
+  }
+}
+function pvMarcarCanal(canal){
+  const pid=pvEstado.pedido_id;fbRows.filter(r=>r.pedido_id===pid).forEach(r=>{const d=Object.assign({},r.datos||{});d.canales=[...new Set((d.canales||[]).concat([canal]))];if(d.canales.length!==(r.datos&&r.datos.canales||[]).length)fbPatch(r.id,{datos:d}).catch(()=>{});});
+}
+(function(){
+  const md=document.getElementById('modal-pv');if(!md)return;
+  md.addEventListener('click',e=>{
+    if(e.target===md){md.classList.remove('open');return;}
+    const t=e.target.closest('[data-pvtodos]');if(t&&!pvEstado.creado){pvClientesVend().forEach(({c,i})=>{if(t.dataset.pvtodos==='mora'?c.dias_vencidos>0:(c.dias_vencidos>0&&(diasSinGestion(i)===null||diasSinGestion(i)>=UMBRAL_ESTANCADO)))pvEstado.sel[c.nombre]=true;});pvPintar();return;}
+    const b=e.target.closest('[data-pvenviar]');if(b){pvEnviar(b.dataset.pvenviar,b);return;}
+  });
+  md.addEventListener('change',e=>{
+    const s=e.target.closest('[data-pvsel]');if(s){pvEstado.sel[s.dataset.pvsel]=s.checked;if(!s.checked)delete pvEstado.sel[s.dataset.pvsel];pvPintar();return;}
+    if(e.target.id==='pv-vend'){pvEstado.vend=e.target.value;pvEstado.sel={};pvEstado.pedido={};pvCargarVendedor();return;}
+    if(e.target.id==='pv-plazo')pvActualizarTexto();
+  });
+  md.addEventListener('input',e=>{
+    const p=e.target.closest('[data-pvped]');if(p){pvEstado.pedido[p.dataset.pvped]=p.value;pvActualizarTexto();return;}
+    if(e.target.id==='pv-msg')pvActualizarTexto();
+  });
+  document.getElementById('pv-cerrar').addEventListener('click',()=>md.classList.remove('open'));
+})();
+
+// ---------- Responder (vendedor, o cobranzas cargando lo que contestó por WhatsApp/mail) ----------
+function fbAbrirRespuesta(pedidoId,soloIds){
+  let L;
+  if(soloIds)L=fbRows.filter(r=>soloIds.includes(r.id));
+  else if(pedidoId){L=fbRows.filter(r=>r.pedido_id===pedidoId);if(!L.length){showToast('No encontré ese pedido (puede que no tengas acceso a esos clientes)');return;}}
+  else L=fbMisPendientes();
+  L=L.filter(fbVisible).sort((a,b)=>(a.estado==='pendiente'?0:1)-(b.estado==='pendiente'?0:1)||String(a.creado_ts).localeCompare(String(b.creado_ts)));
+  fbrLista=L;
+  const md=document.getElementById('modal-fbr');
+  const yoVend=L.length&&L.every(fbEsVendedorDe);
+  const msgs=[...new Set(L.map(r=>(r.datos||{}).msg).filter(Boolean))];
+  document.getElementById('fbr-sub').innerHTML=!L.length?'No tenés pedidos pendientes 🎉'
+    :(yoVend?'Cobranzas te pidió que gestiones estos clientes. Escribí qué pasó con cada uno (y la fecha de pago si la acordaste): queda en la gestión del cliente y le avisa a quien te lo pidió.'
+      :'Cargá lo que respondió el vendedor (por ejemplo, lo que contestó por WhatsApp). Queda en la gestión del cliente y resuelve la tarea de la agenda.')
+    +msgs.map(m=>'<div class="pv-msg-in"><i class="ti ti-message"></i> '+escH(m)+'</div>').join('');
+  document.getElementById('fbr-canal-wrap').style.display=yoVend||!L.length?'none':'';
+  document.getElementById('fbr-lista').innerHTML=L.map(r=>{
+    const f=r.datos||{};const i=agIdxCli(r.cliente);const hoy=i>=0?clientes[i].deuda:0;const ab=r.estado==='pendiente';
+    const baj=(+r.deuda_al_crear||0)-hoy;
+    return'<div class="fbr-item'+(ab?'':' fbr-cerrado')+'" data-fbrid="'+r.id+'">'
+      +'<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><strong style="color:var(--yellow)">'+escH(r.cliente||'General')+'</strong> <span style="color:var(--text3);font-size:12px">· '+escH(r.vendedor)+' · pedido de '+escH(r.autor_nombre||'')+' '+haceCuanto(r.creado_ts)+(r.plazo?' · plazo '+agFmt(r.plazo):'')+'</span></div>'
+        +(ab?(fbAtrasado(r)?agBadge('atrasada',' plazo vencido'):agBadge('pendiente')):'<span class="ag-est" style="color:var(--green);background:var(--green-bg);border-color:#1a4a2e">'+(r.estado==='cancelado'?'Cancelado':'Respondido')+'</span>')+'</div>'
+      +'<div style="font-size:12px;color:var(--text3);margin-top:2px">Al pedir: '+fmtN(+r.deuda_al_crear||0)+' · '+escH(f.tramo||'')+(f.dias>0?' ('+f.dias+' días)':'')+(i>=0?' · hoy: '+fmtN(hoy)+(baj>1?' <span style="color:var(--green)">(bajó '+fmtN(baj)+')</span>':''):' · <span style="color:var(--green)">ya no tiene deuda en cartera</span>')+'</div>'
+      +(r.texto?'<div class="fbr-pide">👉 '+escH(r.texto)+'</div>':'')
+      +(ab?'<textarea data-fbrtxt rows="2" placeholder="Qué pasó con este cliente…"></textarea>'
+        +'<div class="ag-grid" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))"><label>Fecha de pago acordada (opcional)<input type="date" data-fbrfecha></label><label>Monto (opcional)<input type="number" min="0" data-fbrmonto placeholder="Si queda vacío: lo vencido a esa fecha"></label></div>'
+        :'<div class="ag-res">↳ '+escH(r.respuesta||'')+(r.compromiso_fecha?' · <strong>paga '+agFmt(r.compromiso_fecha)+(r.compromiso_monto?' '+fmtN(+r.compromiso_monto):'')+'</strong>':'')+' <span style="color:var(--text3)">— '+escH(r.respondido_por_nombre||'')+(r.respondido_ts?' '+new Date(r.respondido_ts).toLocaleDateString('es-AR'):'')+(r.canal_respuesta&&r.canal_respuesta!=='panel'?' · por '+fbCanalLbl(r.canal_respuesta):'')+'</span></div>')
+      +'</div>';}).join('');
+  document.getElementById('fbr-guardar').style.display=L.some(r=>r.estado==='pendiente')?'':'none';
+  md.classList.add('open');
+}
+async function fbGuardarRespuesta(r,txt,fecha,monto,canal){
+  const ahora=new Date().toISOString();const yo=currentUser.nombre;const v=r.vendedor;
+  const i=agIdxCli(r.cliente);
+  if(fecha&&!monto&&i>=0&&typeof vencidoAlCompromiso==='function'){const m=vencidoAlCompromiso(clientes[i],fecha);if(m>0)monto=Math.round(m);}
+  const quien=fbEsVendedorDe(r)?v:(v+' (cargado por '+yo+')');
+  const comp=fecha?' · Compromiso de pago '+agFmt(fecha)+(monto?' por '+fmtN(monto):''):'';
+  await fbPatch(r.id,{estado:'respondido',respuesta:txt,canal_respuesta:canal,compromiso_fecha:fecha||null,compromiso_monto:monto||null,respondido_ts:ahora,respondido_por:agYo(),respondido_por_nombre:yo});
+  let hts=null;
+  if(r.cliente){
+    const nota='💬 Respuesta del vendedor '+quien+(canal&&canal!=='panel'?' por '+fbCanalLbl(canal):'')+' al pedido de '+(r.autor_nombre||'cobranzas')+': '+txt+comp;
+    hts=await agGuardarGestion(r.cliente,nota,fecha?{fecha_comp:fecha,monto_comp:monto||null}:null);
+    secureWrite('reset_reclamo',{cliente:r.cliente});
+  }
+  // tarea de la agenda del pedido
+  if(r.agenda_id){const a=agenda.find(x=>x.id===r.agenda_id)||{log:[]};
+    try{await agPatch(r.agenda_id,{estado:'resuelta',resultado:(txt+comp).slice(0,500),resuelta_ts:ahora,resuelta_por:yo,log:agLog(a,'resuelta','Respuesta del vendedor'+(canal&&canal!=='panel'?' ('+fbCanalLbl(canal)+')':''))});}catch(e){console.warn('agenda',e);}}
+  // compromiso de pago → acción "Verificar pago" para quien pidió (mueve la que ya estaba)
+  if(fecha&&r.cliente)await fbAgendarCompromiso(r.cliente,fecha,monto,v,hts,r.autor||agYo(),r.autor_nombre||yo);
+  // aviso a quien pidió (campana)
+  if(r.autor&&String(r.autor).toLowerCase()!==agYo())
+    _rest('menciones',{method:'POST',body:JSON.stringify({cliente:r.cliente||'(general)',mencionado:r.autor,autor:yo,autor_usuario:currentUser.usuario,nota:('💬 '+v+' respondió tu pedido: '+txt+comp).slice(0,300),leida:false,resuelta:true,tipo:'resolucion',ts:ahora})}).catch(()=>{});
+}
+async function fbAgendarCompromiso(cliente,fecha,monto,v,hts,resp,respNom){
+  if(agError==='falta-tabla')return;
+  const ya=agenda.find(a=>a.cliente===cliente&&a.estado==='pendiente'&&a.origen==='compromiso');
+  try{
+    if(ya){if(ya.fecha!==fecha||(+ya.monto||0)!==(+monto||0))await agPatch(ya.id,{fecha,monto:monto||null,log:agLog(ya,'reprogramada','Compromiso informado por '+v+': '+agFmt(fecha))});}
+    else{const n=await agInsertar([agNueva({cliente,tipo:'pago',fecha,monto:monto||null,origen:'compromiso',gestion_ts:hts,responsable:resp,responsable_nombre:respNom,descripcion:'Compromiso informado por '+v})]);(n||[]).forEach(x=>agenda.push(x));}
+  }catch(e){console.warn('agenda compromiso',e);}
+}
+(function(){
+  const md=document.getElementById('modal-fbr');if(!md)return;
+  md.addEventListener('click',e=>{if(e.target===md)md.classList.remove('open');});
+  document.getElementById('fbr-cerrar').addEventListener('click',()=>md.classList.remove('open'));
+  document.getElementById('fbr-guardar').addEventListener('click',async e=>{
+    const btn=e.currentTarget;const canal=document.getElementById('fbr-canal-wrap').style.display==='none'?'panel':document.getElementById('fbr-canal').value;
+    const items=[...md.querySelectorAll('.fbr-item[data-fbrid]')].map(el=>({el,r:(fbrLista||[]).find(x=>x.id===el.dataset.fbrid),txt:(el.querySelector('[data-fbrtxt]')||{}).value,fecha:(el.querySelector('[data-fbrfecha]')||{}).value,monto:+((el.querySelector('[data-fbrmonto]')||{}).value||0)}))
+      .filter(x=>x.r&&x.r.estado==='pendiente'&&String(x.txt||'').trim());
+    if(!items.length){showToast('Escribí la respuesta de al menos un cliente');return;}
+    btn.disabled=true;let ok=0;
+    for(const x of items){try{await fbGuardarRespuesta(x.r,String(x.txt).trim(),x.fecha||null,x.monto||null,canal);ok++;}catch(err){console.error(err);showToast('No se pudo guardar '+x.r.cliente+': '+err.message);}}
+    btn.disabled=false;showToast(ok+' respuesta'+(ok!==1?'s':'')+' guardada'+(ok!==1?'s':'')+' ✓');
+    fbPintarContador();agPintarContador();if(agVistaActiva)renderAgenda();if(fbVistaActiva)renderFeedback();
+    const ids=(fbrLista||[]).map(r=>r.id);const quedan=fbRows.filter(r=>ids.includes(r.id)&&r.estado==='pendiente');
+    if(quedan.length)fbAbrirRespuesta(null,ids);else md.classList.remove('open');
+    setTimeout(()=>{loadFeedback();loadAgenda();},1500);
+  });
+})();
+// En la Agenda, "Resolver" de una tarea "Respuesta del vendedor" abre la carga de la respuesta
+document.addEventListener('click',e=>{
+  const b=e.target.closest&&e.target.closest('[data-agres]');if(!b)return;
+  const a=agenda.find(x=>x.id===b.dataset.agres);if(!a||a.tipo!=='respvend')return;
+  const r=fbRows.find(x=>x.agenda_id===a.id);if(!r)return; // si no se encuentra el pedido, sigue el resolver común
+  e.stopPropagation();e.preventDefault();fbAbrirRespuesta(null,[r.id]);
+},true);
+
+// ---------- Registrar conversación a mano (pegar WhatsApp / mail / llamada) ----------
+function fbnClientesVend(v){return clientes.map((c,i)=>({c,i})).filter(x=>(!v||(getVend(x.i)||'Sin asignar')===v)&&veCliente(x.c,x.i));}
+function fbNormTxt(s){return String(s||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Z0-9 ]+/g,' ').replace(/\s+/g,' ').trim();}
+const FB_SUFIJOS=/\b(S ?R ?L|S ?A ?S|S ?A|S ?H|SOCIEDAD|ANONIMA|RESPONSABILIDAD|LIMITADA|DE|DEL|LA|EL|Y|E)\b/g;
+function fbDetectarClientes(txt,v){
+  const T=' '+fbNormTxt(txt)+' ';if(T.trim().length<3)return[];
+  return fbnClientesVend(v).filter(({c})=>{const n=fbNormTxt(c.nombre);if(n.length>=4&&T.includes(' '+n+' '))return true;
+    const tk=n.replace(FB_SUFIJOS,' ').split(' ').filter(w=>w.length>=4);if(!tk.length)return false;
+    return tk.length===1?(tk[0].length>=6&&T.includes(' '+tk[0]+' ')):tk.slice(0,3).every(w=>T.includes(' '+w+' '));}).map(x=>x.c.nombre);
+}
+// Formato de chat exportado/copiado de WhatsApp: "[20/11/26, 10:32] Juan: …" o "20/11/2026 10:32 - Juan: …"
+function fbFechaWhatsapp(txt){
+  const m=String(txt||'').match(/\[?(\d{1,2})\/(\d{1,2})\/(\d{2,4}),?\s+(\d{1,2}):(\d{2})/);if(!m)return'';
+  let y=+m[3];if(y<100)y+=2000;const d=new Date(y,+m[2]-1,+m[1],+m[4],+m[5]);if(isNaN(d))return'';
+  return agISO(d)+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+}
+let fbnSel={};
+function fbAbrirNota(pre){
+  pre=pre||{};
+  const sv=document.getElementById('fbn-vend');const vs=listaVendedoresConocidos().filter(v=>veVendedor(v));
+  sv.innerHTML='<option value="">Elegí el vendedor…</option>'+vs.map(v=>'<option value="'+escH(v)+'">'+escH(v)+'</option>').join('');
+  sv.value=pre.vend||(fbF.vend||'');
+  const ahora=new Date();document.getElementById('fbn-fecha').value=agISO(ahora)+'T'+String(ahora.getHours()).padStart(2,'0')+':'+String(ahora.getMinutes()).padStart(2,'0');
+  document.getElementById('fbn-canal').value=pre.canal||'whatsapp';
+  document.getElementById('fbn-sentido').value=pre.sentido||'recibido';
+  document.getElementById('fbn-txt').value='';document.getElementById('fbn-cfecha').value='';document.getElementById('fbn-cmonto').value='';
+  document.getElementById('fbn-gestion').checked=true;
+  fbnSel={};(pre.clientes||[]).forEach(n=>fbnSel[n]=true);
+  fbnPintarClientes();
+  document.getElementById('modal-fbn').classList.add('open');
+  setTimeout(()=>document.getElementById('fbn-txt').focus(),50);
+}
+function fbnPintarClientes(){
+  const v=document.getElementById('fbn-vend').value;const txt=document.getElementById('fbn-txt').value;
+  const det=fbDetectarClientes(txt,v);det.forEach(n=>{if(!(n in fbnSel))fbnSel[n]=true;});
+  const lista=[...new Set(Object.keys(fbnSel).concat(det))];
+  const pend=lista.filter(n=>fbnSel[n]&&fbPendDeCliente(n).length);
+  document.getElementById('fbn-clis').innerHTML=(lista.length?lista.map(n=>'<label class="fbn-chip'+(fbnSel[n]?' on':'')+'"><input type="checkbox" data-fbncli="'+escH(n)+'"'+(fbnSel[n]?' checked':'')+'> '+escH(n)+(det.includes(n)?' <small>detectado</small>':'')+'</label>').join(''):'<span style="color:var(--text3);font-size:12px">Ningún cliente: queda como conversación general con el vendedor.</span>');
+  const dl=document.getElementById('fbn-dl');dl.innerHTML=fbnClientesVend(v).map(({c})=>'<option value="'+escH(c.nombre)+'">').join('');
+  const sent=document.getElementById('fbn-sentido').value;
+  document.getElementById('fbn-pend').innerHTML=sent==='recibido'&&pend.length?'<label style="display:flex;gap:6px;align-items:center;margin:8px 0 0;color:var(--text)"><input type="checkbox" id="fbn-cierra" checked style="width:auto;margin:0"> Tomarlo como respuesta a '+pend.length+' pedido'+(pend.length!==1?'s':'')+' pendiente'+(pend.length!==1?'s':'')+' ('+escH(pend.join(', '))+'): resuelve la tarea y le avisa a quien pidió</label>':'';
+}
+(function(){
+  const md=document.getElementById('modal-fbn');if(!md)return;
+  md.addEventListener('click',e=>{if(e.target===md)md.classList.remove('open');});
+  document.getElementById('fbn-cerrar').addEventListener('click',()=>md.classList.remove('open'));
+  document.getElementById('fbn-vend').addEventListener('change',()=>{fbnSel={};fbnPintarClientes();});
+  document.getElementById('fbn-sentido').addEventListener('change',fbnPintarClientes);
+  let tmr=null;
+  document.getElementById('fbn-txt').addEventListener('input',e=>{clearTimeout(tmr);tmr=setTimeout(fbnPintarClientes,350);});
+  document.getElementById('fbn-txt').addEventListener('paste',()=>setTimeout(()=>{const f=fbFechaWhatsapp(document.getElementById('fbn-txt').value);if(f)document.getElementById('fbn-fecha').value=f;fbnPintarClientes();},30));
+  md.addEventListener('change',e=>{const c=e.target.closest('[data-fbncli]');if(c){fbnSel[c.dataset.fbncli]=c.checked;fbnPintarClientes();}});
+  document.getElementById('fbn-agregar').addEventListener('click',()=>{const i=document.getElementById('fbn-cli-inp');const n=i.value.trim();if(!n)return;
+    const c=clientes.find(x=>normCli(x.nombre)===normCli(n));if(!c){showToast('No encontré ese cliente en la cartera');return;}fbnSel[c.nombre]=true;i.value='';fbnPintarClientes();});
+  document.getElementById('fbn-guardar').addEventListener('click',async e=>{
+    const v=document.getElementById('fbn-vend').value;const txt=document.getElementById('fbn-txt').value.trim();
+    if(!v){showToast('Elegí el vendedor');return;}if(!txt){showToast('Escribí o pegá la conversación');return;}
+    const canal=document.getElementById('fbn-canal').value,sentido=document.getElementById('fbn-sentido').value;
+    const fh=document.getElementById('fbn-fecha').value;const ts=fh?new Date(fh).toISOString():new Date().toISOString();
+    const cf=document.getElementById('fbn-cfecha').value||null;const cm=+document.getElementById('fbn-cmonto').value||null;
+    const clis=Object.keys(fbnSel).filter(n=>fbnSel[n]);const enGest=document.getElementById('fbn-gestion').checked;
+    const cierra=!!(document.getElementById('fbn-cierra')||{}).checked;
+    const btn=e.currentTarget;btn.disabled=true;
+    try{
+      const usados=new Set();
+      if(cierra){for(const n of clis){for(const r of fbPendDeCliente(n)){await fbGuardarRespuesta(r,txt.slice(0,2000),cf,cm,canal);usados.add(n);}}}
+      const resto=clis.filter(n=>!usados.has(n));
+      const base={tipo:'nota',vendedor:v,canal,sentido,texto:txt.slice(0,4000),autor:agYo(),autor_nombre:currentUser.nombre,origen:'manual',creado_ts:ts,compromiso_fecha:cf,compromiso_monto:cm,datos:{}};
+      const rows=(resto.length?resto:(usados.size?[]:[null])).map(n=>Object.assign({},base,{cliente:n,deuda_al_crear:n?agDeudaHoy(n):null}));
+      if(rows.length)await fbInsert(rows);
+      if(enGest)for(const n of resto){const lbl=sentido==='recibido'?'💬 '+v+' ('+fbCanalLbl(canal)+'): ':'💬 Le escribimos a '+v+' ('+fbCanalLbl(canal)+'): ';
+        let m=cm;if(cf&&!m){const i=agIdxCli(n);if(i>=0){const x=vencidoAlCompromiso(clientes[i],cf);if(x>0)m=Math.round(x);}}
+        const hts=await agGuardarGestion(n,(lbl+txt).slice(0,1500)+(cf?' · Compromiso de pago '+agFmt(cf)+(m?' por '+fmtN(m):''):''),cf?{fecha_comp:cf,monto_comp:m||null}:null);
+        if(cf)await fbAgendarCompromiso(n,cf,m,v,hts,agYo(),currentUser.nombre);}
+      showToast('Conversación registrada ✓');md.classList.remove('open');
+      fbPintarContador();if(fbVistaActiva)renderFeedback();if(document.getElementById('modal-bg').classList.contains('open'))fbPintarFicha();
+      setTimeout(()=>{loadFeedback();loadAgenda();},1500);
+    }catch(err){showToast('No se pudo guardar: '+err.message);}
+    btn.disabled=false;
+  });
+})();
+
+// ---------- Ficha del cliente: bloque "Feedback con el vendedor" ----------
+function fbPintarFicha(){
+  const el=document.getElementById('m-fb');if(!el||currentIdx===null||!clientes[currentIdx])return;
+  if(!puede('tab_feedback')&&!(currentUser&&currentUser.vendedor_nombre)){el.innerHTML='';return;}
+  const n=clientes[currentIdx].nombre;const L=fbRows.filter(r=>r.cliente===n).slice(0,6);
+  const pend=L.filter(r=>r.tipo==='pedido'&&r.estado==='pendiente');
+  el.innerHTML='<div class="ag-sub-tit" style="display:flex;align-items:center;gap:8px">Feedback con el vendedor'+(pend.length?' <span style="color:var(--orange);text-transform:none">· '+pend.length+' pedido'+(pend.length!==1?'s':'')+' sin responder</span>':'')
+    +'<span style="margin-left:auto;display:flex;gap:6px;text-transform:none;letter-spacing:0">'
+    +(puede('pedir_vendedor')?'<button type="button" class="btn" style="padding:3px 8px;font-size:11px" data-fbficha="pedir"><i class="ti ti-send"></i> Pedir al vendedor</button>':'')
+    +(puede('tab_feedback')?'<button type="button" class="btn" style="padding:3px 8px;font-size:11px" data-fbficha="nota"><i class="ti ti-message-plus"></i> Registrar conversación</button>':'')+'</span></div>'
+    +(fbError==='falta-tabla'?'<div class="ag-aviso">Falta instalar 7_sql_feedback_vendedor.sql en Supabase.</div>':!L.length?'<div style="color:var(--text3);font-size:12px">Sin pedidos ni conversaciones con el vendedor.</div>':L.map(fbHtmlMini).join(''));
+}
+function fbHtmlMini(r){
+  const ca=FB_CANALES[r.canal]||FB_CANALES.otro;
+  if(r.tipo==='nota')return'<div class="ag-mini" style="border-left-color:var(--spots)"><div><i class="ti '+ca.i+'"></i> <strong>'+(r.sentido==='recibido'?escH(r.vendedor)+' dijo':'Le escribimos a '+escH(r.vendedor))+'</strong> <span style="color:var(--text3)">· '+new Date(r.creado_ts).toLocaleDateString('es-AR')+' · '+escH(r.autor_nombre||'')+'</span><div style="color:var(--text2);white-space:pre-wrap;max-height:90px;overflow:auto">'+escH(r.texto||'')+'</div></div></div>';
+  const ab=r.estado==='pendiente';
+  return'<div class="ag-mini" style="border-left-color:'+(ab?(fbAtrasado(r)?'var(--red)':'var(--orange)'):'var(--green)')+'"><div><i class="ti ti-send"></i> <strong>Pedido a '+escH(r.vendedor)+'</strong> <span style="color:var(--text3)">· '+new Date(r.creado_ts).toLocaleDateString('es-AR')+' · '+escH(r.autor_nombre||'')+(r.plazo?' · plazo '+agFmt(r.plazo):'')+'</span>'
+    +'<div style="color:var(--text2)">👉 '+escH(r.texto||'')+'</div>'
+    +(ab?'':r.estado==='cancelado'?'<div style="color:var(--text3)">Cancelado</div>':'<div style="color:var(--text)">↳ '+escH(r.respuesta||'')+(r.compromiso_fecha?' · <strong>paga '+agFmt(r.compromiso_fecha)+'</strong>':'')+' <span style="color:var(--text3)">— '+escH(r.respondido_por_nombre||'')+' '+haceCuanto(r.respondido_ts)+'</span></div>')+'</div>'
+    +(ab?'<button class="btn" style="white-space:nowrap" data-fbresp="'+r.id+'"><i class="ti ti-message-reply"></i> '+(fbEsVendedorDe(r)?'Responder':'Cargar respuesta')+'</button>':'')+'</div>';
+}
+document.addEventListener('click',e=>{
+  const f=e.target.closest&&e.target.closest('[data-fbficha]');
+  if(f&&currentIdx!==null){const c=clientes[currentIdx];if(f.dataset.fbficha==='pedir')fbAbrirPedido(getVend(currentIdx)||'Sin asignar',[currentIdx],'ficha');else fbAbrirNota({vend:getVend(currentIdx),clientes:[c.nombre]});return;}
+  const r=e.target.closest&&e.target.closest('[data-fbresp]');if(r){fbAbrirRespuesta(null,[r.dataset.fbresp]);return;}
+});
+
+// ---------- Solapa Vendedores ----------
+function fbFiltrar(){
+  const q=fbNormTxt(fbF.q);const h=fbHoy();
+  return fbBase().filter(r=>{
+    if(fbF.vend&&r.vendedor!==fbF.vend)return false;
+    if(fbF.canal&&r.canal!==fbF.canal&&r.canal_respuesta!==fbF.canal)return false;
+    if(fbF.estado==='pend'&&!(r.tipo==='pedido'&&r.estado==='pendiente'))return false;
+    if(fbF.estado==='resp'&&!(r.tipo==='pedido'&&r.estado==='respondido'))return false;
+    if(fbF.estado==='notas'&&r.tipo!=='nota')return false;
+    if(fbF.kpi==='atr'&&!fbAtrasado(r))return false;
+    if(fbF.kpi==='r7'&&!(r.estado==='respondido'&&String(r.respondido_ts||'').slice(0,10)>=agSum(h,-7)))return false;
+    if(fbF.kpi==='comp'&&!(r.compromiso_fecha&&String(r.respondido_ts||r.creado_ts).slice(0,10)>=agSum(h,-30)))return false;
+    if(q&&!fbNormTxt([r.cliente,r.vendedor,r.texto,r.respuesta].join(' ')).includes(q))return false;
+    return true;
+  });
+}
+function fbHtmlFila(r){
+  const ca=FB_CANALES[r.canal]||FB_CANALES.otro;const hay=r.cliente&&agIdxCli(r.cliente)>=0;
+  const d=new Date(r.creado_ts);const esP=r.tipo==='pedido';const ab=esP&&r.estado==='pendiente';const atr=fbAtrasado(r);
+  const est=!esP?'<span class="ag-est" style="color:var(--spots);background:var(--spots-bg);border-color:var(--border2)">'+(r.sentido==='recibido'?'Respuesta':'Enviado')+'</span>'
+    :ab?agBadge(atr?'atrasada':'pendiente',atr?' '+agDif(r.plazo,fbHoy())+' d':'')
+    :r.estado==='cancelado'?agBadge('cancelada'):'<span class="ag-est" style="color:var(--green);background:var(--green-bg);border-color:#1a4a2e">Respondido</span>';
+  const demora=esP&&r.respondido_ts?fbFmtHoras([(new Date(r.respondido_ts)-new Date(r.creado_ts))/36e5]):'';
+  const i=hay?agIdxCli(r.cliente):-1;const baj=esP&&i>=0?(+r.deuda_al_crear||0)-clientes[i].deuda:0;
+  return'<div class="ag-row ag-'+(ab?(atr?'atrasada':'pendiente'):'resuelta')+'">'
+    +'<div class="ag-fecha"><div>'+agFmt(agISO(d))+'</div><div class="ag-hora">'+d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'})+'</div></div>'
+    +'<div class="ag-cuerpo"><div>'+(r.cliente?'<a href="#" class="ag-cli" data-fbcli="'+escH(r.cliente)+'">'+escH(r.cliente)+'</a>':'<span style="color:var(--text2);font-weight:700">Conversación general</span>')+' <span class="vend-tag">'+escH(r.vendedor)+'</span>'+(r.cliente&&!hay?' <span class="ag-chip">ya no está en cartera</span>':'')+'</div>'
+      +'<div class="ag-desc"><i class="ti '+(esP?'ti-send':ca.i)+'"></i> <strong>'+(esP?'Pedido':(r.sentido==='recibido'?'Dijo el vendedor':'Le escribimos'))+'</strong> <span style="color:var(--text3)">por '+((r.datos&&r.datos.canales)||[r.canal]).map(fbCanalLbl).join(' + ')+'</span>'+(r.texto?' — <span style="white-space:pre-wrap">'+escH(String(r.texto).slice(0,600))+'</span>':'')+'</div>'
+      +'<div class="ag-meta">'+escH(r.autor_nombre||'')+(esP&&r.plazo?' · plazo '+agFmt(r.plazo):'')+(esP?' · deuda al pedir '+fmtN(+r.deuda_al_crear||0)+(baj>1?' <span style="color:var(--green)">(bajó '+fmtN(baj)+')</span>':''):'')+'</div>'
+      +(esP&&r.estado==='respondido'?'<div class="ag-res">↳ '+escH(r.respuesta||'')+(r.compromiso_fecha?' · <strong style="color:var(--yellow2)">paga '+agFmt(r.compromiso_fecha)+(r.compromiso_monto?' '+fmtN(+r.compromiso_monto):'')+'</strong>':'')+'<span style="color:var(--text3)"> — '+escH(r.respondido_por_nombre||'')+(r.canal_respuesta&&r.canal_respuesta!=='panel'?' por '+fbCanalLbl(r.canal_respuesta):' en el panel')+' · tardó '+demora+'</span></div>':'')
+      +(!esP&&r.compromiso_fecha?'<div class="ag-res"><strong style="color:var(--yellow2)">Compromiso '+agFmt(r.compromiso_fecha)+(r.compromiso_monto?' '+fmtN(+r.compromiso_monto):'')+'</strong></div>':'')
+    +'</div>'
+    +'<div class="ag-der">'+est+'<div class="ag-acc">'
+      +(ab?'<button class="btn btn-yellow" data-fbresp="'+r.id+'" title="Cargar lo que respondió"><i class="ti ti-message-reply"></i> '+(fbEsVendedorDe(r)?'Responder':'Cargar respuesta')+'</button>'+(r.autor===agYo()||agEquipo()?'<button class="btn" data-fbcan="'+r.id+'" title="Cancelar el pedido (ya no hace falta)"><i class="ti ti-x"></i></button>':''):'')
+      +(r.cliente&&hay?'<button class="btn" data-fbcli="'+escH(r.cliente)+'" title="Abrir la ficha del cliente"><i class="ti ti-file-text"></i></button>':'')
+    +'</div></div></div>';
+}
+function fbResumenVend(L){
+  const h=fbHoy(),d30=agSum(h,-30);const R={};
+  L.forEach(r=>{const o=R[r.vendedor]=R[r.vendedor]||{pend:0,atr:0,res30:0,enp:0,dem:[],ult:'',notas:0,comp:0,clis:new Set()};
+    if(r.tipo==='pedido'){if(r.estado==='pendiente'){o.pend++;o.clis.add(r.cliente);if(fbAtrasado(r))o.atr++;}
+      if(r.estado==='respondido'&&String(r.respondido_ts).slice(0,10)>=d30){o.res30++;if(!r.plazo||String(r.respondido_ts).slice(0,10)<=r.plazo)o.enp++;o.dem.push((new Date(r.respondido_ts)-new Date(r.creado_ts))/36e5);if(r.compromiso_fecha)o.comp++;}}
+    else if(String(r.creado_ts).slice(0,10)>=d30)o.notas++;
+    const t=r.respondido_ts&&r.respondido_ts>r.creado_ts?r.respondido_ts:r.creado_ts;if(t>o.ult)o.ult=t;});
+  return R;
+}
+function fbFmtHoras(hs){if(!hs.length)return'—';const m=hs.reduce((a,b)=>a+b,0)/hs.length;return m<1?'menos de 1 h':m<24?Math.round(m)+' h':(Math.round(m/24*10)/10).toString().replace('.',',')+' días';}
+function fbHtmlPorVendedor(L){
+  const R=fbResumenVend(fbBase());
+  // también los vendedores con clientes sin gestión aunque no tengan pedidos
+  const est={};clientes.forEach((c,i)=>{const v=getVend(i)||'Sin asignar';if(!veCliente(c,i)||!(c.dias_vencidos>0))return;const s=diasSinGestion(i);if(s===null||s>=UMBRAL_ESTANCADO){(est[v]=est[v]||{n:0,d:0});est[v].n++;est[v].d+=c.deuda;}});
+  const vs=[...new Set(Object.keys(R).concat(Object.keys(est)))].filter(v=>!fbF.vend||v===fbF.vend).sort((a,b)=>((R[b]||{}).atr||0)-((R[a]||{}).atr||0)||((R[b]||{}).pend||0)-((R[a]||{}).pend||0)||((est[b]||{}).n||0)-((est[a]||{}).n||0));
+  if(!vs.length)return'<div class="notif-empty" style="padding:2rem">Todavía no hay pedidos ni conversaciones registradas.</div>';
+  const pc=(a,b)=>b?Math.round(a/b*100)+'%':'—';
+  return'<div class="table-wrap"><div class="table-scroll"><table style="min-width:860px"><thead><tr><th style="min-width:170px">Vendedor</th><th style="text-align:right">Sin gestión '+UMBRAL_ESTANCADO+'+ d (en mora)</th><th style="text-align:right">Pedidos sin responder</th><th style="text-align:right">Plazo vencido</th><th style="text-align:right">Respondidos 30 d</th><th style="text-align:right">% en plazo</th><th style="text-align:right">Demora media</th><th style="text-align:right">Compromisos 30 d</th><th>Último contacto</th></tr></thead><tbody>'
+    +vs.map(v=>{const o=R[v]||{pend:0,atr:0,res30:0,enp:0,dem:[],ult:'',notas:0,comp:0};const e=est[v]||{n:0,d:0};
+      return'<tr><td><a href="#" data-fbvend="'+escH(v)+'" style="color:var(--yellow);font-weight:600">'+escH(v)+'</a>'+(agUsuarioVend(v)?'':' <span class="ag-chip" title="No tiene usuario en el Panel de Paneles: no puede entrar a responder">sin usuario</span>')
+          +'<div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">'+(puede('pedir_vendedor')&&e.n?'<button class="btn" style="padding:3px 8px;font-size:11px" data-fbpedirvend="'+escH(v)+'" title="Armar pedido con los clientes sin gestión"><i class="ti ti-send"></i> Pedir gestión</button>':'')
+          +(o.pend?'<button class="btn" style="padding:3px 8px;font-size:11px" data-fbrecordar="'+escH(v)+'" title="Mandar recordatorio por WhatsApp con los pendientes"><i class="ti ti-bell-ringing"></i> Recordar</button>':'')+'</div></td>'
+        +'<td style="text-align:right;color:'+(e.n?'var(--red)':'var(--text3)')+'" data-calc="'+escH('<strong>Sin gestión</strong>: clientes en mora de '+v+' sin gestión hace '+UMBRAL_ESTANCADO+' días o más (o nunca) = '+e.n+' · '+fmtN(e.d))+'">'+e.n+(e.n?' <span style="color:var(--text3);font-size:11px">'+fmtN(e.d)+'</span>':'')+'</td>'
+        +'<td style="text-align:right;font-weight:700">'+o.pend+'</td>'
+        +'<td style="text-align:right;font-weight:700;color:'+(o.atr?'var(--red)':'var(--text3)')+'">'+o.atr+'</td>'
+        +'<td style="text-align:right">'+o.res30+'</td>'
+        +'<td style="text-align:right" data-calc="'+escH('<strong>% en plazo</strong> = respondidos hasta la fecha de plazo ÷ respondidos en 30 días = '+o.enp+' ÷ '+o.res30)+'">'+pc(o.enp,o.res30)+'</td>'
+        +'<td style="text-align:right" data-calc="'+escH('<strong>Demora media</strong> = promedio entre que se mandó el pedido y que respondió, en los respondidos de los últimos 30 días ('+o.dem.length+')')+'">'+fbFmtHoras(o.dem)+'</td>'
+        +'<td style="text-align:right">'+o.comp+'</td>'
+        +'<td style="color:var(--text3);font-size:12px">'+(o.ult?haceCuanto(o.ult):'—')+'</td>'
+        +'</tr>';}).join('')
+    +'</tbody></table></div></div>';
+}
+function fbHtmlPorCliente(L){
+  const G={};L.filter(r=>r.cliente).forEach(r=>{(G[r.cliente]=G[r.cliente]||[]).push(r);});
+  const ks=Object.keys(G).sort((a,b)=>{const pa=G[a].some(r=>r.estado==='pendiente'),pb=G[b].some(r=>r.estado==='pendiente');return(pb-pa)||String(G[b][0].creado_ts).localeCompare(String(G[a][0].creado_ts));});
+  if(!ks.length)return'<div class="notif-empty" style="padding:2rem">No hay clientes con estos filtros.</div>';
+  return'<div class="table-wrap"><div class="table-scroll"><table style="min-width:860px"><thead><tr><th>Cliente</th><th>Vendedor</th><th style="text-align:right">Deuda hoy</th><th style="text-align:right">Pedidos</th><th>Último pedido</th><th>Última respuesta</th><th></th></tr></thead><tbody>'
+    +ks.map(n=>{const rs=G[n];const i=agIdxCli(n);const ped=rs.filter(r=>r.tipo==='pedido');const up=ped[0];const ur=rs.filter(r=>r.respuesta||(r.tipo==='nota'&&r.sentido==='recibido')).sort((a,b)=>String(b.respondido_ts||b.creado_ts).localeCompare(String(a.respondido_ts||a.creado_ts)))[0];
+      const pend=ped.filter(r=>r.estado==='pendiente');
+      return'<tr><td><a href="#" class="ag-cli" data-fbcli="'+escH(n)+'">'+escH(n)+'</a></td><td>'+escH(rs[0].vendedor)+'</td><td style="text-align:right;font-weight:700;color:var(--yellow2)">'+(i>=0?fmtN(clientes[i].deuda):'—')+'</td>'
+        +'<td style="text-align:right">'+ped.length+(pend.length?' <span style="color:var(--orange)">('+pend.length+' pend.)</span>':'')+'</td>'
+        +'<td style="font-size:12px">'+(up?haceCuanto(up.creado_ts)+' · '+(up.estado==='pendiente'?(fbAtrasado(up)?'<span style="color:var(--red)">plazo vencido</span>':'<span style="color:var(--orange)">pendiente</span>'):up.estado):'—')+'</td>'
+        +'<td style="font-size:12px;max-width:340px">'+(ur?'<span style="color:var(--text3)">'+haceCuanto(ur.respondido_ts||ur.creado_ts)+':</span> '+escH(String(ur.respuesta||ur.texto||'').slice(0,140)):'—')+'</td>'
+        +'<td style="text-align:right;white-space:nowrap">'+(pend.length?'<button class="btn" data-fbresp="'+pend[0].id+'"><i class="ti ti-message-reply"></i></button> ':'')+'<button class="btn" data-fbq="'+escH(n)+'" title="Ver todo lo de este cliente"><i class="ti ti-list-details"></i></button></td></tr>';}).join('')
+    +'</tbody></table></div></div>';
+}
+function renderFeedback(){
+  const root=document.getElementById('view-feedback');if(!root)return;
+  document.getElementById('fb-aviso').innerHTML=fbError==='falta-tabla'?'<div class="cump-banner" style="background:var(--red-bg);border-color:#4a1810"><i class="ti ti-alert-triangle" style="color:var(--red)"></i><div><strong style="color:var(--text)">Falta instalar el feedback con vendedores en Supabase.</strong> Correr una vez <code>7_sql_feedback_vendedor.sql</code> en Supabase → SQL Editor. Hasta entonces no se guarda nada.</div></div>'
+    :fbError?'<div class="cump-banner" style="background:var(--red-bg);border-color:#4a1810"><i class="ti ti-alert-triangle" style="color:var(--red)"></i><div>No se pudo leer el feedback: '+escH(fbError.slice(0,200))+'</div></div>':'';
+  const sv=document.getElementById('fb-f-vend');const vs=[...new Set(listaVendedoresConocidos().filter(v=>veVendedor(v)).concat(fbBase().map(r=>r.vendedor)))].sort((a,b)=>a.localeCompare(b,'es'));
+  sv.innerHTML='<option value="">Todos los vendedores</option>'+vs.map(v=>'<option value="'+escH(v)+'">'+escH(v)+'</option>').join('');sv.value=fbF.vend;if(sv.value!==fbF.vend)fbF.vend='';
+  document.getElementById('fb-f-estado').value=fbF.estado;document.getElementById('fb-f-canal').value=fbF.canal;
+  document.querySelectorAll('#fb-vistas .lnk').forEach(b=>b.classList.toggle('on',b.dataset.fbvista===fbF.vista));
+  document.getElementById('fb-btn-pedir').style.display=puede('pedir_vendedor')?'':'none';
+  // KPIs (filtro de vendedor)
+  const h=fbHoy();const B=fbBase().filter(r=>!fbF.vend||r.vendedor===fbF.vend);const P=B.filter(r=>r.tipo==='pedido');
+  const r30=P.filter(r=>r.estado==='respondido'&&String(r.respondido_ts).slice(0,10)>=agSum(h,-30));
+  const K=[['pend','Pedidos sin responder','var(--orange)','var(--orange-bg)',P.filter(r=>r.estado==='pendiente').length,'pedidos a vendedores (un cliente = un pedido) todavía sin respuesta'],
+    ['atr','Plazo vencido','var(--red)','var(--red-bg)',P.filter(fbAtrasado).length,'sin responder y con la fecha de plazo pasada'],
+    ['r7','Respondidos (7 días)','var(--green)','var(--green-bg)',P.filter(r=>r.estado==='respondido'&&String(r.respondido_ts).slice(0,10)>=agSum(h,-7)).length,'respuestas recibidas en los últimos 7 días'],
+    ['dem','Demora media (30 d)','var(--blue)','var(--blue-bg)',fbFmtHoras(r30.map(r=>(new Date(r.respondido_ts)-new Date(r.creado_ts))/36e5)),'promedio entre el pedido y la respuesta, en los '+r30.length+' respondidos de los últimos 30 días'],
+    ['comp','Compromisos informados (30 d)','var(--yellow)','var(--yellow-dim)',B.filter(r=>r.compromiso_fecha&&String(r.respondido_ts||r.creado_ts).slice(0,10)>=agSum(h,-30)).length,'respuestas o conversaciones con fecha de pago acordada en los últimos 30 días']];
+  document.getElementById('fb-kpis').innerHTML=K.map(([k,l,c,bg,v,ex])=>'<div class="metric'+(fbF.kpi===k?' active':'')+'" '+(k==='dem'?'':'data-fbkpi="'+k+'" ')+'style="--m-color:'+c+';--m-bg:'+bg+(k==='dem'?'':';cursor:pointer')+'" data-calc="'+escH('<strong>'+l+'</strong>: '+ex+'.'+(fbF.vend?' Solo '+fbF.vend+'.':'')+(k==='dem'?'':' Clic para ver solo esos.'))+'"><div class="metric-label">'+l+'</div><div class="metric-value">'+v+'</div></div>').join('');
+  document.getElementById('fb-kpi-off').style.display=fbF.kpi?'':'none';
+  const L=fbFiltrar();
+  const el=document.getElementById('fb-lista');
+  if(fbF.vista==='vend')el.innerHTML=fbHtmlPorVendedor(L);
+  else if(fbF.vista==='cli')el.innerHTML=fbHtmlPorCliente(L);
+  else el.innerHTML=L.length?'<div class="ag-grupo"><div class="ag-grupo-tit">'+({pend:'Pedidos sin responder',resp:'Pedidos respondidos',notas:'Conversaciones registradas',todo:'Todo'}[fbF.estado]||'')+' <span>('+L.length+')</span></div>'+L.slice(0,300).map(fbHtmlFila).join('')+'</div>'
+    :'<div class="notif-empty" style="padding:2rem">'+(fbF.estado==='pend'&&!fbF.kpi?'No hay pedidos sin responder con estos filtros 🎉':'No hay registros con estos filtros.')+'</div>';
+  if(typeof ponerCalc==='function')ponerCalc(root);
+}
+function fbRecordar(v){
+  const P=fbBase().filter(r=>r.tipo==='pedido'&&r.estado==='pendiente'&&r.vendedor===v);if(!P.length)return;
+  const nom=String(v).split(' ')[0];const pids=[...new Set(P.map(r=>r.pedido_id).filter(Boolean))];
+  const link=FB_URL+'?pv='+(pids.length===1?pids[0]:'mis');
+  const t='Hola '+nom.charAt(0)+nom.slice(1).toLowerCase()+'! Te recuerdo que tenés '+P.length+' cliente'+(P.length!==1?'s':'')+' pendiente'+(P.length!==1?'s':'')+' de respuesta:\n'
+    +P.map((r,k)=>'\n'+(k+1)+') *'+r.cliente+'*'+(r.plazo?' (plazo '+agFmt(r.plazo)+')':'')+(r.texto?' — '+r.texto:'')).join('')+'\n\nRespondé acá: '+link+'\nGracias!';
+  const tel=fbTelVend(v).replace(/^0+/,'');const num=tel?(tel.startsWith('54')?tel:'54'+tel):'';
+  window.open('https://wa.me/'+num+'?text='+encodeURIComponent(t.slice(0,3800)),'_blank');
+  fbInsert([{tipo:'nota',vendedor:v,cliente:null,canal:'whatsapp',sentido:'enviado',texto:'Recordatorio de '+P.length+' pedido'+(P.length!==1?'s':'')+' sin responder: '+P.map(r=>r.cliente).join(', '),autor:agYo(),autor_nombre:currentUser.nombre,origen:'solapa',datos:{recordatorio:true}}]).then(()=>{if(fbVistaActiva)renderFeedback();}).catch(()=>{});
+}
+function fbPedirSinGestion(v){
+  const idx=clientes.map((c,i)=>i).filter(i=>(getVend(i)||'Sin asignar')===v&&clientes[i].dias_vencidos>0&&veCliente(clientes[i],i)&&(diasSinGestion(i)===null||diasSinGestion(i)>=UMBRAL_ESTANCADO));
+  fbAbrirPedido(v,idx,'solapa');
+}
+(function(){
+  const root=document.getElementById('view-feedback');if(!root)return;
+  const on=(id,ev,fn)=>{const el=document.getElementById(id);if(el)el.addEventListener(ev,fn);};
+  on('fb-f-vend','change',e=>{fbF.vend=e.target.value;renderFeedback();});
+  on('fb-f-estado','change',e=>{fbF.estado=e.target.value;fbF.kpi='';if(fbF.vista==='vend')fbF.vista='todo';renderFeedback();});
+  on('fb-f-canal','change',e=>{fbF.canal=e.target.value;renderFeedback();});
+  let t=null;on('fb-f-q','input',e=>{clearTimeout(t);t=setTimeout(()=>{fbF.q=e.target.value;if(fbF.q&&fbF.vista==='vend')fbF.vista='todo';renderFeedback();},250);});
+  on('fb-kpi-off','click',()=>{fbF.kpi='';renderFeedback();});
+  on('fb-btn-nota','click',()=>fbAbrirNota({vend:fbF.vend}));
+  on('fb-btn-pedir','click',()=>fbAbrirPedido(fbF.vend||'',[],'solapa'));
+  on('fb-refrescar','click',()=>loadFeedback());
+  root.addEventListener('click',async e=>{
+    const k=e.target.closest('[data-fbkpi]');if(k){fbF.kpi=fbF.kpi===k.dataset.fbkpi?'':k.dataset.fbkpi;fbF.estado=fbF.kpi==='r7'?'resp':fbF.kpi==='comp'?'todo':fbF.kpi?'pend':fbF.estado;fbF.vista='todo';renderFeedback();return;}
+    const vi=e.target.closest('[data-fbvista]');if(vi){fbF.vista=vi.dataset.fbvista;renderFeedback();return;}
+    const vd=e.target.closest('[data-fbvend]');if(vd){e.preventDefault();fbF.vend=vd.dataset.fbvend;fbF.vista='todo';fbF.estado='todo';renderFeedback();return;}
+    const q=e.target.closest('[data-fbq]');if(q){fbF.q=q.dataset.fbq;document.getElementById('fb-f-q').value=fbF.q;fbF.vista='todo';fbF.estado='todo';renderFeedback();return;}
+    const c=e.target.closest('[data-fbcli]');if(c){e.preventDefault();const i=agIdxCli(c.dataset.fbcli);if(i>=0){openModal(i);switchTab('gestion');}else showToast('Ese cliente no está en la cartera actual');return;}
+    const pv=e.target.closest('[data-fbpedirvend]');if(pv){fbPedirSinGestion(pv.dataset.fbpedirvend);return;}
+    const rc=e.target.closest('[data-fbrecordar]');if(rc){fbRecordar(rc.dataset.fbrecordar);return;}
+    const cn=e.target.closest('[data-fbcan]');if(cn){const r=fbRows.find(x=>x.id===cn.dataset.fbcan);if(!r||!confirm('¿Cancelar el pedido de '+r.cliente+'? (ya no hace falta que responda)'))return;
+      try{await fbPatch(r.id,{estado:'cancelado',respondido_ts:new Date().toISOString(),respondido_por:agYo(),respondido_por_nombre:currentUser.nombre});
+        if(r.agenda_id){const a=agenda.find(x=>x.id===r.agenda_id)||{log:[]};await agPatch(r.agenda_id,{estado:'cancelada',resultado:'Pedido al vendedor cancelado',resuelta_ts:new Date().toISOString(),resuelta_por:currentUser.nombre,log:agLog(a,'cancelada','Pedido al vendedor cancelado')});}
+        showToast('Pedido cancelado');renderFeedback();fbPintarContador();agPintarContador();}catch(err){showToast('No se pudo cancelar: '+err.message);}return;}
+  });
+  on('btn-fb','click',()=>{if(fbMisPendientes().length&&!(puede('tab_feedback')&&!currentUser.vendedor_nombre))fbAbrirRespuesta(null);else{fbF.estado='pend';fbF.kpi='';fbF.vista='todo';switchMainView('feedback');}});
+})();
+
+
 // Helper para llamar a la función segura de escritura
 // Escrituras de Cobranzas. Antes pasaban por la función secure-write del Supabase viejo;
 // ahora van directo a las tablas, que solo aceptan usuarios logueados con el panel Cobranzas.
@@ -6803,6 +7583,8 @@ function showApp(){
   loadMenciones();
   loadClientesFromSheets();
   loadAgenda();
+  loadMailsVendedores().catch(()=>{});
+  loadFeedback();
 }
 
 function logout(){
@@ -6817,6 +7599,7 @@ function logout(){
   document.getElementById('view-objetivos').style.display='none';
   document.getElementById('view-ayuda').style.display='none';
   document.getElementById('view-agenda').style.display='none';agVistaActiva=false;
+  document.getElementById('view-feedback').style.display='none';fbVistaActiva=false;
   document.getElementById('ped-fab').style.display='none';
   document.getElementById('btn-usuarios').style.display='none';
   document.querySelectorAll('.modal-bg.open').forEach(m=>m.classList.remove('open'));
@@ -6882,7 +7665,7 @@ window.PORTAL_ACCESO.then(a=>{
   showApp();
 });
 // Auto-sync every 2 minutes
-setInterval(()=>{loadClientesFromSheets();setTimeout(loadFromSheets,1500);if(currentUser){loadMenciones();loadAgenda();}loadSaldosFromSheets();}, 120000);
+setInterval(()=>{loadClientesFromSheets();setTimeout(loadFromSheets,1500);if(currentUser){loadMenciones();loadAgenda();loadFeedback();}loadSaldosFromSheets();}, 120000);
 
 </script>
 </body>
